@@ -1,6 +1,7 @@
 import { useRouter } from 'next/navigation';
 import React, { useState, useRef } from 'react';
 
+import Button from '@/components/common/ui/Button';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useFormSubmitOnEnter } from '@/hooks/useFormSubmitOnEnter';
 
@@ -87,15 +88,9 @@ export const AddFamilyForm: React.FC<FamilyFormProps> = ({ onFamilyCreated }) =>
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={isLoading}
-        className={`w-full px-4 py-2 bg-custom-2 rounded-md dark:bg-custom-2 text-white font-medium transition-colors hover:cursor-pointer ${
-          isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-custom-2-hover'
-        }`}
-      >
-        {isLoading ? 'Création en cours...' : 'Créer la famille'}
-      </button>
+      <Button type="submit" variant="secondary" isLoading={isLoading} className="w-full">
+        {isLoading ? 'Création en cours…' : 'Créer la famille'}
+      </Button>
     </form>
   );
 };

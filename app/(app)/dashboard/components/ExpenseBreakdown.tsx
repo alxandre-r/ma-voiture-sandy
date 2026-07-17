@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
+import { CATEGORY_COLORS } from '@/lib/utils/chartColors';
 import { formatCurrency } from '@/lib/utils/format';
 
 import type { Expense } from '@/types/expense';
@@ -12,35 +13,34 @@ interface ExpenseBreakdownProps {
   expenses: Expense[];
 }
 
-// Inline hex colors avoids Tailwind JIT purge on dynamic class names
 const CATEGORIES = [
   {
     key: 'energy',
     label: 'Énergie',
     types: ['fuel', 'electric_charge'],
     icon: 'car',
-    color: '#f97316',
+    color: CATEGORY_COLORS.energy,
   },
   {
     key: 'maintenance',
     label: 'Entretien',
     types: ['maintenance'],
     icon: 'tool',
-    color: '#d97706',
+    color: CATEGORY_COLORS.maintenance,
   },
   {
     key: 'insurance',
     label: 'Assurance',
     types: ['insurance'],
     icon: 'secure',
-    color: '#16a34a',
+    color: CATEGORY_COLORS.insurance,
   },
   {
     key: 'other',
     label: 'Autre',
     types: ['other'],
     icon: 'stack',
-    color: '#7c3aed',
+    color: CATEGORY_COLORS.other,
   },
 ] as const;
 
@@ -60,7 +60,7 @@ export default function ExpenseBreakdown({ expenses }: ExpenseBreakdownProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon name="chart" size={18} />
           <CardTitle>Répartition des dépenses</CardTitle>

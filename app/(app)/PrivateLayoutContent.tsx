@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import GlobalSearch from '@/components/common/GlobalSearch';
 import PeriodSelector from '@/components/common/PeriodSelector';
 import VehicleSelector from '@/components/common/VehicleSelector';
 import Header from '@/components/Header';
@@ -28,10 +29,24 @@ export default function PrivateLayoutContent({
   showFilters = false,
 }: PrivateLayoutContentProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Cmd+K / Ctrl+K — open global search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   return (
     <NotificationProvider>
       <div className="relative flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+        <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
         {/* Desktop sidebar */}
         <aside className="hidden md:flex">
           <Sidebar />
@@ -44,6 +59,7 @@ export default function PrivateLayoutContent({
           <Header
             title={title}
             onMenuOpen={() => setMobileMenuOpen(true)}
+            onSearchOpen={() => setSearchOpen(true)}
             content={
               showFilters && (
                 <div className="flex flex-row gap-2 sm:gap-4 w-full sm:w-auto min-w-0">

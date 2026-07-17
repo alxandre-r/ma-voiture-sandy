@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { apiCall } from '@/lib/api/client';
 import { uploadPendingAttachments } from '@/lib/utils/uploadAttachments';
+import { validateBaseExpenseFields } from '@/lib/utils/validateExpense';
 
 import type { Fill, FillFormData } from '@/types/fill';
 
@@ -103,29 +104,18 @@ export function useFillActions() {
 
   /** --- Validate fill data --- */
   const validateFillData = (data: FillFormData): boolean => {
-    if (!data.vehicle_id || data.vehicle_id === 0) {
-      showError('Veuillez sélectionner un véhicule');
-      return false;
-    }
-    if (!data.date) {
-      showError('Veuillez entrer une date');
-      return false;
-    }
-    if (!data.amount) {
-      showError('Veuillez entrer le montant total');
-      return false;
-    }
+    if (!validateBaseExpenseFields(data, showError)) return false;
 
     // Validate based on charge type
     if (data.charge_type === 'charge') {
       // For electric charges: need either kWh or price_per_kwh
-      if (!data.kwh && !data.price_per_kwh) {
+      if ((data.kwh == null || data.kwh === 0) && !data.price_per_kwh) {
         showError('Veuillez entrer soit les kWh, soit le prix au kWh');
         return false;
       }
     } else {
       // For fuel fills: need either liters or price_per_liter
-      if (!data.liters && !data.price_per_liter) {
+      if ((data.liters == null || data.liters === 0) && !data.price_per_liter) {
         showError('Veuillez entrer soit les litres, soit le prix au litre');
         return false;
       }

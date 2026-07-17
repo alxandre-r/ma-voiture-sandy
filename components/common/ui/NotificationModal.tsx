@@ -4,10 +4,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
+interface NotificationAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface NotificationModalProps {
   message: string;
   type?: 'success' | 'error' | 'info' | 'warning';
   duration?: number;
+  action?: NotificationAction;
   onClose: () => void;
 }
 
@@ -36,6 +42,7 @@ export default function NotificationModal({
   message,
   type = 'info',
   duration = 6000,
+  action,
   onClose,
 }: NotificationModalProps) {
   const [visible, setVisible] = useState(true);
@@ -78,6 +85,18 @@ export default function NotificationModal({
               <Image src={`${svgPath[type]}.svg`} alt={type} width={24} height={24} />
 
               <p className="flex-1 text-sm text-gray-800 dark:text-white">{message}</p>
+
+              {action && (
+                <button
+                  onClick={() => {
+                    action.onClick();
+                    setVisible(false);
+                  }}
+                  className="text-xs font-semibold text-custom-1 hover:underline cursor-pointer shrink-0"
+                >
+                  {action.label}
+                </button>
+              )}
 
               <button
                 onClick={() => setVisible(false)}

@@ -6,6 +6,7 @@
  */
 import VehicleCard from '@/app/(app)/garage/components/cards/VehicleCard';
 import Icon from '@/components/common/ui/Icon';
+import SectionHeader from '@/components/common/ui/SectionHeader';
 
 import type { FamilyMemberDisplay } from '@/types/family';
 import type { Vehicle } from '@/types/vehicle';
@@ -37,18 +38,12 @@ export function FamilyVehiclesList({
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Icon name="family" size={24} className="text-gray-400" />
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 uppercase tracking-tight">
-            Véhicules de {familyName}
-          </h3>
-        </div>
-        <span className="text-xs font-semibold text-gray-400 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-          {vehicles.length} VÉHICULE{vehicles.length > 1 ? 'S' : ''} PARTAGÉ
-          {vehicles.length > 1 ? 'S' : ''}
-        </span>
-      </div>
+      <SectionHeader
+        title={`Véhicules de ${familyName}`}
+        icon={<Icon name="family" size={16} />}
+        count={vehicles.length}
+        className="mb-6"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {vehicles.map((vehicle) => {

@@ -21,47 +21,36 @@ interface InsuranceStatsGridProps {
 export default function InsuranceStatsGrid({
   loading,
   totalMonthlyPremium,
-  vehiclesInsuredCount,
-  totalVehicleCount,
   nextPaymentEntry,
   nextPaymentVehicle,
 }: InsuranceStatsGridProps) {
-  const allInsured = vehiclesInsuredCount >= totalVehicleCount;
+  const annualPremium = totalMonthlyPremium * 12;
 
   const nextPaymentLabel = nextPaymentEntry
     ? format(nextPaymentEntry.date, 'dd MMM yyyy', { locale: fr })
     : '—';
 
+  const nextVehicleName =
+    nextPaymentVehicle
+      ? `${nextPaymentVehicle.make ?? ''} ${nextPaymentVehicle.model ?? ''}`.trim()
+      : undefined;
+
   const cards: StatCardDef[] = [
     {
       key: 'premium',
       label: 'Prime mensuelle',
-      value: loading ? '—' : `${totalMonthlyPremium.toFixed(2)}`,
+      value: loading ? '—' : totalMonthlyPremium.toFixed(2),
       unit: loading ? undefined : '€',
-      icon: 'euro',
-      iconBg: 'bg-emerald-50 dark:bg-emerald-900/20',
-    },
-    {
-      key: 'vehicles',
-      label: 'Véhicules assurés',
-      value: loading ? '—' : `${vehiclesInsuredCount} / ${totalVehicleCount}`,
-      subtitle: loading ? undefined : 'véhicules',
-      icon: 'car',
-      iconBg: 'bg-sky-50 dark:bg-sky-900/20',
-      valueColor: !loading && !allInsured ? 'text-amber-500' : 'text-gray-900 dark:text-gray-100',
+      subtitle:
+        !loading && totalMonthlyPremium > 0 ? `${annualPremium.toFixed(0)} €/an` : undefined,
     },
     {
       key: 'next-payment',
       label: 'Prochaine mensualité',
       value: loading ? '—' : nextPaymentLabel,
-      subtitle:
-        !loading && nextPaymentVehicle
-          ? `${nextPaymentVehicle.make} ${nextPaymentVehicle.model}`
-          : undefined,
-      icon: 'calendar',
-      iconBg: 'bg-red-50 dark:bg-red-900/20',
+      subtitle: !loading && nextVehicleName ? nextVehicleName : undefined,
     },
   ];
 
-  return <StatOverviewGrid cards={cards} gridClass="grid-cols-3" />;
+  return <StatOverviewGrid cards={cards} gridClass="grid-cols-2" />;
 }

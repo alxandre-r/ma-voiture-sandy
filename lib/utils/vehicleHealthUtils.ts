@@ -185,7 +185,7 @@ export function computeHealthScore(
   }
 
   // ── Recent fill activity ──────────────────────────────────────────────────
-  if (vehicle.last_fill_date && vehicle.status !== 'inactive') {
+  if (vehicle.last_fill_date && vehicle.status === 'active') {
     const daysSince = Math.floor(
       (now.getTime() - new Date(vehicle.last_fill_date).getTime()) / 86_400_000,
     );

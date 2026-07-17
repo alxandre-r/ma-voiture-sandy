@@ -15,6 +15,7 @@ import {
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
+import { CHART_AXIS, CHART_FALLBACK_COLOR } from '@/lib/utils/chartColors';
 import { downloadChartSVG } from '@/lib/utils/exportChart';
 import { formatNumber } from '@/lib/utils/format';
 
@@ -201,7 +202,7 @@ export default function OdometerEvolutionChart({ series }: OdometerEvolutionChar
               <CartesianGrid
                 strokeDasharray="3 3"
                 className="dark:stroke-gray-700"
-                stroke="#e2e8f0"
+                stroke={CHART_AXIS.grid}
                 vertical={false}
               />
 
@@ -212,14 +213,14 @@ export default function OdometerEvolutionChart({ series }: OdometerEvolutionChar
                 domain={[minTs - padding, maxTs + padding]}
                 ticks={monthTicks}
                 tickFormatter={fmtMonthTick}
-                tick={{ fontSize: 10, fill: '#94a3b8' }}
-                axisLine={{ stroke: '#e2e8f0' }}
+                tick={{ fontSize: 10, fill: CHART_AXIS.tick }}
+                axisLine={{ stroke: CHART_AXIS.axis }}
                 tickLine={false}
                 className="dark:axis-dark"
               />
 
               <YAxis
-                tick={{ fontSize: 10, fill: '#94a3b8' }}
+                tick={{ fontSize: 10, fill: CHART_AXIS.tick }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) =>
@@ -239,7 +240,7 @@ export default function OdometerEvolutionChart({ series }: OdometerEvolutionChar
                       <div key={s.vehicle_id} className="flex items-center gap-1 sm:gap-2">
                         <span
                           className="w-2 h-2 sm:w-3 sm:h-3 rounded-full"
-                          style={{ backgroundColor: s.color || '#6B7280' }}
+                          style={{ backgroundColor: s.color || CHART_FALLBACK_COLOR }}
                         />
                         <span className="text-gray-600 dark:text-gray-400 text-xs">{s.name}</span>
                       </div>
@@ -254,9 +255,9 @@ export default function OdometerEvolutionChart({ series }: OdometerEvolutionChar
                   type="monotone"
                   dataKey={s.name}
                   name={s.name}
-                  stroke={s.color || '#6B7280'}
+                  stroke={s.color || CHART_FALLBACK_COLOR}
                   strokeWidth={2}
-                  dot={{ r: 3, fill: s.color || '#6B7280', strokeWidth: 0 }}
+                  dot={{ r: 3, fill: s.color || CHART_FALLBACK_COLOR, strokeWidth: 0 }}
                   activeDot={{ r: 5, strokeWidth: 0 }}
                   connectNulls
                 />

@@ -15,6 +15,7 @@ export async function DELETE(
   // @ts-expect-error: Next.js injecte ce paramètre, typage non supporté
   context,
 ) {
+  try {
   const userId = context.params.userId as string;
   const { searchParams } = new URL(request.url);
   const familyId = searchParams.get('familyId');
@@ -67,4 +68,8 @@ export async function DELETE(
 
   revalidatePath('/', 'layout');
   return NextResponse.json({ success: true }, { status: 200 });
+  } catch (err) {
+    console.error('Error removing family member:', err);
+    return NextResponse.json({ error: 'Erreur serveur inattendue' }, { status: 500 });
+  }
 }

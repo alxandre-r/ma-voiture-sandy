@@ -33,6 +33,7 @@ import InfoIcon from '@/public/icons/notif/info.svg';
 import SuccessIcon from '@/public/icons/notif/success.svg';
 import WarningIcon from '@/public/icons/notif/warning.svg';
 import ResponsiveIcon from '@/public/icons/responsive.svg';
+import SearchIcon from '@/public/icons/search.svg';
 import SecureIcon from '@/public/icons/secure.svg';
 import SettingsIcon from '@/public/icons/settings.svg';
 import SortAscendingIcon from '@/public/icons/sort-ascending.svg';
@@ -78,6 +79,7 @@ export const ICON_REGISTRY: Record<string, FC<SVGProps<SVGSVGElement>>> = {
   'more-vertical': MoreVerticalIcon,
   notes: NotesIcon,
   responsive: ResponsiveIcon,
+  search: SearchIcon,
   secure: SecureIcon,
   settings: SettingsIcon,
   'sort-ascending': SortAscendingIcon,

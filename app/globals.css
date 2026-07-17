@@ -3,15 +3,14 @@
 
 @custom-variant dark (&:where(.dark &));
 
-/* Optionnel : variables si tu veux */
 :root {
-  --background: rgb(182, 153, 153);
-  --foreground: black;
+  --background: #f8f9fa;
+  --foreground: #111827;
 }
 
 .dark {
-  --background: rgb(22, 22, 22);
-  --foreground: white;
+  --background: #0a0a0a;
+  --foreground: #f9fafb;
 }
 
 /* Custom color variables for themes */

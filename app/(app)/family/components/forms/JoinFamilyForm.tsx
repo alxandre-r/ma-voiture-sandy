@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
+import Button from '@/components/common/ui/Button';
 import { useNotifications } from '@/contexts/NotificationContext';
 
 export function JoinFamilyForm({
@@ -89,15 +90,9 @@ export function JoinFamilyForm({
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={isLoading}
-        className={`w-full px-4 py-2 bg-custom-1 rounded-md dark:bg-custom-1 text-white font-medium transition-colors hover:cursor-pointer ${
-          isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-custom-1-hover'
-        }`}
-      >
-        {isLoading ? 'Rejointure en cours...' : 'Rejoindre la famille'}
-      </button>
+      <Button type="submit" variant="primary" isLoading={isLoading} className="w-full">
+        {isLoading ? 'Rejoindre en cours…' : 'Rejoindre la famille'}
+      </Button>
     </form>
   );
 }

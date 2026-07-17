@@ -109,29 +109,24 @@ export default function PeriodSelector({
   return (
     <div ref={ref} className="periodSelector-Button relative w-full sm:w-auto">
       {/* Trigger button */}
-      <motion.button
-        className="outer-button p-0.5
-          bg-gradient-to-r from-custom-1 to-indigo-500/70
-          flex items-center justify-between w-full
-          rounded-xl sm:min-w-[180px] min-w-[120px]
-          transition-all hover:cursor-pointer active:scale-96"
+      <button
+        className={`flex items-center justify-between w-full gap-2
+          px-3 py-2 rounded-lg text-xs font-medium
+          border border-gray-200 dark:border-gray-700
+          bg-white dark:bg-gray-800
+          text-gray-900 dark:text-gray-100
+          sm:min-w-[160px] min-w-[120px]
+          transition-colors hover:cursor-pointer
+          ${isOpen ? 'border-custom-1 ring-1 ring-custom-1/30' : 'hover:border-gray-300 dark:hover:border-gray-600'}`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div
-          className="inner-button bg-white dark:bg-gray-800
-          flex items-center justify-between w-full
-          px-4 py-3 rounded-[calc(1rem-6px)]"
-        >
-          <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-            {getButtonLabel(selectedPeriod)}
-          </span>
-          <Icon
-            name="arrow-down"
-            size={16}
-            className={`ml-2 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          />
-        </div>
-      </motion.button>
+        <span className="truncate">{getButtonLabel(selectedPeriod)}</span>
+        <Icon
+          name="arrow-down"
+          size={14}
+          className={`shrink-0 transition-transform text-gray-400 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
 
       {/* Dropdown panel */}
       <AnimatePresence>

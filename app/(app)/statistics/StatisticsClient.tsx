@@ -18,8 +18,10 @@ import {
 import CarbonFootprint from '@/app/(app)/statistics/components/CarbonFootprint';
 import OdometerEvolutionChart from '@/app/(app)/statistics/components/charts/OdometerEvolutionChart';
 import VehicleComparisonTable from '@/app/(app)/statistics/components/VehicleComparisonTable';
+import Icon from '@/components/common/ui/Icon';
 import { useSelectors } from '@/contexts/SelectorsContext';
 import { filterExpenses, computeStatistics } from '@/lib/utils/statisticsUtils';
+
 
 import { useExpenses } from './hooks/useExpenses';
 import Loading from './loading';
@@ -57,6 +59,22 @@ export default function StatisticsClient({ vehicles }: StatisticsClientProps) {
         </p>
         <p className="text-xs text-gray-400 dark:text-gray-500">
           Vérifiez votre connexion et rechargez la page.
+        </p>
+      </div>
+    );
+  }
+
+  if (filteredExpenses.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+        <div className="w-16 h-16 bg-custom-1/10 rounded-full flex items-center justify-center">
+          <Icon name="chart" size={32} className="text-custom-1 opacity-60" />
+        </div>
+        <p className="font-medium text-gray-700 dark:text-gray-300">
+          Aucune donnée pour cette sélection
+        </p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 max-w-xs">
+          Ajoutez des dépenses ou modifiez la période et le véhicule sélectionnés.
         </p>
       </div>
     );

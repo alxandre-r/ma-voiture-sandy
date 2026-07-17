@@ -8,6 +8,7 @@ import OverdueReminders from '@/app/(app)/reminders/components/OverdueReminders'
 import UpcomingReminders from '@/app/(app)/reminders/components/UpcomingReminders';
 import { useRemindersPage } from '@/app/(app)/reminders/hooks/useRemindersPage';
 import ReminderForm from '@/components/common/forms/ReminderForm';
+import Button from '@/components/common/ui/Button';
 import Drawer from '@/components/common/ui/Drawer';
 import Icon from '@/components/common/ui/Icon';
 import { useSelectors } from '@/contexts/SelectorsContext';
@@ -150,13 +151,14 @@ function RemindersContent({ reminders, vehicles, fillExpenses }: RemindersClient
             </button>
           ))}
         </div>
-        <button
+        <Button
+          variant="secondary"
+          leftIcon={<Icon name="add" size={16} />}
           onClick={openCreate}
-          className="hidden sm:flex items-center gap-2 px-4 py-2 mb-px bg-custom-2 hover:bg-custom-2-hover text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+          className="hidden sm:inline-flex mb-px"
         >
-          <Icon name="add" size={16} />
           Nouveau rappel
-        </button>
+        </Button>
       </div>
 
       {/* Content */}

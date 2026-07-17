@@ -12,6 +12,7 @@ import {
 import InsightsPanel from '@/app/(app)/dashboard/components/InsightsPanel';
 import RemindersWidget from '@/app/(app)/dashboard/components/RemindersWidget';
 import { useMaintenanceActions } from '@/app/(app)/maintenance/hooks/useMaintenanceActions';
+import ContextBadge from '@/components/common/ContextBadge';
 import ExpenseButton from '@/components/common/ExpenseButton';
 import FillForm from '@/components/common/forms/FillForm';
 import MaintenanceForm from '@/components/common/forms/MaintenanceForm';
@@ -24,7 +25,7 @@ import { useFillActions } from '@/hooks/fill/useFillActions';
 import { useOtherActions } from '@/hooks/other/useOtherActions';
 import { useReminderActions } from '@/hooks/reminders/useReminderActions';
 import { detectAnomalies } from '@/lib/utils/anomalyUtils';
-import { getEffectivePeriodRange } from '@/lib/utils/filterUtils';
+import { getEffectivePeriodRange, getPreviousPeriodRange } from '@/lib/utils/filterUtils';
 
 import type { MaintenanceFormData } from '@/app/(app)/maintenance/hooks/useMaintenanceActions';
 import type { ExpenseType } from '@/components/common/ExpenseButton';
@@ -91,6 +92,26 @@ function DashboardContent({
     [filteredExpenses],
   );
 
+  // Previous period expenses for trend computation
+  const previousPeriodExpenses = useMemo(() => {
+    const prevRange = getPreviousPeriodRange(selectedPeriod);
+    if (!prevRange || !prevRange.start) return [];
+    const byVehicle = expenses.filter((e) => selectedVehicleIds.includes(e.vehicle_id));
+    let result = byVehicle.filter((e) => new Date(e.date) >= prevRange.start!);
+    if (prevRange.end) {
+      result = result.filter((e) => new Date(e.date) <= prevRange.end!);
+    }
+    return result;
+  }, [expenses, selectedVehicleIds, selectedPeriod]);
+
+  const prevTotalExpenses = useMemo(
+    () =>
+      previousPeriodExpenses.length > 0
+        ? previousPeriodExpenses.reduce((sum, e) => sum + (e.amount ?? 0), 0)
+        : null,
+    [previousPeriodExpenses],
+  );
+
   const avgConsumption = useMemo(() => {
     const fuelExpenses = filteredExpenses.filter((e) => e.type === 'fuel');
     if (fuelExpenses.length === 0) return 0;
@@ -118,10 +139,62 @@ function DashboardContent({
     return totalDistance > 0 ? (totalLiters / totalDistance) * 100 : 0;
   }, [filteredExpenses]);
 
+  const costPer100km = useMemo(() => {
+    const fuelExpenses = filteredExpenses.filter((e) => e.type === 'fuel');
+    if (fuelExpenses.length === 0) return null;
+    let totalDistance = 0;
+    const odometers: Record<number, number[]> = {};
+    fuelExpenses.forEach((expense) => {
+      const fillData = expense as unknown as { odometer?: number };
+      if (fillData.odometer) {
+        if (!odometers[expense.vehicle_id]) odometers[expense.vehicle_id] = [];
+        odometers[expense.vehicle_id].push(fillData.odometer);
+      }
+    });
+    Object.values(odometers).forEach((values) => {
+      if (values.length >= 2) {
+        const sorted = [...values].sort((a, b) => a - b);
+        totalDistance += sorted[sorted.length - 1] - sorted[0];
+      }
+    });
+    if (totalDistance === 0) return null;
+    return (totalExpenses / totalDistance) * 100;
+  }, [filteredExpenses, totalExpenses]);
+
+  const prevAvgConsumption = useMemo(() => {
+    const fuelExpenses = previousPeriodExpenses.filter((e) => e.type === 'fuel');
+    if (fuelExpenses.length === 0) return null;
+    let totalLiters = 0;
+    let totalDistance = 0;
+    const odometers: Record<number, number[]> = {};
+    fuelExpenses.forEach((expense) => {
+      const fillData = expense as unknown as { liters?: number; odometer?: number };
+      if (fillData.liters) totalLiters += fillData.liters;
+      if (fillData.odometer) {
+        if (!odometers[expense.vehicle_id]) odometers[expense.vehicle_id] = [];
+        odometers[expense.vehicle_id].push(fillData.odometer);
+      }
+    });
+    Object.values(odometers).forEach((values) => {
+      if (values.length >= 2) {
+        const sorted = [...values].sort((a, b) => a - b);
+        totalDistance += sorted[sorted.length - 1] - sorted[0];
+      }
+    });
+    return totalDistance > 0 ? (totalLiters / totalDistance) * 100 : null;
+  }, [previousPeriodExpenses]);
+
   const anomalies = useMemo(
     () => detectAnomalies(fillExpenses, vehicles),
     [fillExpenses, vehicles],
   );
+
+  const lastFill = useMemo(() => {
+    const selected = fillExpenses
+      .filter((e) => selectedVehicleIds.includes(e.vehicle_id))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return selected[0] ?? null;
+  }, [fillExpenses, selectedVehicleIds]);
 
   const writableActiveVehicles = vehicles.filter((v) => {
     const isActive = v.status === 'active' || v.status === null || v.status === undefined;
@@ -239,12 +312,10 @@ function DashboardContent({
 
   return (
     <div className="space-y-6 px-2 sm:px-0 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Stats + add button on same row (desktop) */}
-      <div className="flex md:grid grid-cols-2 gap-6">
-        <div className="flex-1 min-w-0">
-          <StatsCards avgConsumption={avgConsumption} totalExpenses={totalExpenses} />
-        </div>
-        <div className="justify-end items-end hidden sm:flex">
+      {/* Header row: context badge left, add button right */}
+      <div className="flex items-center justify-between gap-4">
+        <ContextBadge />
+        <div className="hidden sm:block shrink-0">
           <ExpenseButton
             vehicles={vehicles as VehicleMinimal[]}
             currentUserId={currentUserId}
@@ -253,6 +324,18 @@ function DashboardContent({
           />
         </div>
       </div>
+
+      {/* Stats cards — full width */}
+      <StatsCards
+        expenseCount={filteredExpenses.length}
+        totalExpenses={totalExpenses}
+        prevTotalExpenses={prevTotalExpenses}
+        avgConsumption={avgConsumption}
+        prevAvgConsumption={prevAvgConsumption}
+        costPer100km={costPer100km}
+        lastFill={lastFill}
+        onEditLastFill={lastFill ? () => handleEditFill(lastFill) : undefined}
+      />
 
       {/* Insights panel — only renders when there are actionable items */}
       <InsightsPanel
@@ -265,7 +348,7 @@ function DashboardContent({
 
       {/* Recent Expenses + Reminders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentExpenses expenses={sortedExpenses} vehicles={vehicles} onEditFill={handleEditFill} />
+        <RecentExpenses expenses={sortedExpenses} vehicles={vehicles} />
         <RemindersWidget reminders={reminders} vehicles={vehicles} fillExpenses={fillExpenses} />
       </div>
 

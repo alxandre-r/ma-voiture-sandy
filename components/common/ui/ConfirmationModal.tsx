@@ -44,7 +44,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <button
               onClick={onClose}
               disabled={isLoading}
-              className={`px-4 py-2 bg-gray-200 hover:cursor-pointer dark:bg-gray-700 text-gray-800 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${
+              className={`px-4 py-2 bg-gray-200 hover:cursor-pointer dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${
                 isLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -55,7 +55,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`px-4 py-2 text-white hover:cursor-pointer rounded-md transition-colors ${buttonColors[confirmButtonColor]} ${
+            className={`px-4 py-2 text-white hover:cursor-pointer rounded-lg transition-colors ${buttonColors[confirmButtonColor]} ${
               isLoading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >

@@ -26,6 +26,8 @@ export interface StatCardDef {
   icon?: string;
   /** Tailwind bg class for the icon pill, e.g. "bg-emerald-50 dark:bg-emerald-900/20" */
   iconBg?: string;
+  /** Tailwind text color class for the icon, e.g. "text-custom-1" */
+  iconColor?: string;
   /** Trend string shown top-right, e.g. "+12.3%" */
   trend?: string;
   /** Tailwind text color for the trend, e.g. "text-red-500" */
@@ -36,6 +38,8 @@ export interface StatCardDef {
   subtitle?: string;
   /** When provided, the card becomes interactive with a hover/click tooltip */
   tooltip?: StatCardTooltip;
+  /** When provided (without tooltip), makes the card a clickable button */
+  onClick?: () => void;
   /** Show "—" placeholders instead of real values */
   loading?: boolean;
 }
@@ -50,20 +54,24 @@ export function StatOverviewCard({
   unit,
   icon,
   iconBg = 'bg-gray-50 dark:bg-gray-900/40',
+  iconColor,
   trend,
   trendColor = 'text-gray-500',
   valueColor,
   subtitle,
   tooltip,
+  onClick,
   loading = false,
 }: StatCardDef) {
   const [showTooltip, setShowTooltip] = useState(false);
   const hasTooltip = !!tooltip;
+  const hasOnClick = !!onClick && !hasTooltip;
+  const isInteractive = hasTooltip || hasOnClick;
 
   const inner = (
     <Card
       className={`p-4 h-full transition-all ${
-        hasTooltip ? 'hover:shadow-md active:scale-[0.98] cursor-pointer' : ''
+        isInteractive ? 'hover:shadow-md active:scale-[0.98] cursor-pointer' : ''
       }`}
     >
       {/* Label row */}
@@ -71,7 +79,7 @@ export function StatOverviewCard({
         <div className="flex items-center gap-1.5 min-w-0">
           {icon && (
             <span
-              className={`p-1.5 ${iconBg} rounded-lg shrink-0 flex items-center justify-center`}
+              className={`p-1.5 ${iconBg} rounded-lg shrink-0 flex items-center justify-center ${iconColor ?? 'text-gray-500 dark:text-gray-400'}`}
             >
               <Icon name={icon} size={14} />
             </span>
@@ -109,10 +117,20 @@ export function StatOverviewCard({
     </Card>
   );
 
-  if (!hasTooltip) return <div>{inner}</div>;
+  if (hasOnClick) {
+    return (
+      <div className="h-full">
+        <button className="w-full h-full text-left" onClick={onClick}>
+          {inner}
+        </button>
+      </div>
+    );
+  }
+
+  if (!hasTooltip) return <div className="h-full">{inner}</div>;
 
   return (
-    <div className="relative">
+    <div className="relative h-full">
       <button
         className="w-full text-left"
         onClick={() => setShowTooltip((v) => !v)}

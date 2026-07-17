@@ -90,18 +90,3 @@ export const MAINTENANCE_TYPES: MaintenanceTypeOption[] = [
   },
 ];
 
-export const getMaintenanceTypeLabel = (
-  type: MaintenanceType | string | null | undefined,
-): string => {
-  if (!type) return 'Entretien';
-  const found = MAINTENANCE_TYPES.find((t) => t.value === type);
-  return found?.label ?? type;
-};
-
-export const getMaintenanceTypeIcon = (
-  type: MaintenanceType | string | null | undefined,
-): string => {
-  if (!type) return 'tool';
-  const found = MAINTENANCE_TYPES.find((t) => t.value === type);
-  return found?.icon ?? 'tool';
-};

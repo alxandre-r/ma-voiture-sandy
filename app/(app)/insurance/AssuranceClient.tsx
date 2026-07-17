@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import Button from '@/components/common/ui/Button';
+import { Card } from '@/components/common/ui/card';
 import { ConfirmationModal } from '@/components/common/ui/ConfirmationModal';
 import Icon from '@/components/common/ui/Icon';
 import Spinner from '@/components/common/ui/Spinner';
@@ -11,8 +13,9 @@ import { getActiveContract, getNextMonthlyPaymentDate } from '@/lib/utils/insura
 import { uploadPendingAttachments } from '@/lib/utils/uploadAttachments';
 
 import InsuranceContractDrawer from './components/InsuranceContractDrawer';
+import InsuranceHistoryModal from './components/InsuranceHistoryModal';
 import InsuranceStatsGrid from './components/InsuranceStatsGrid';
-import InsuranceVehicleCard from './components/InsuranceVehicleCard';
+import InsuranceVehicleRow from './components/InsuranceVehicleRow';
 import { useInsuranceContracts } from './hooks/useInsuranceContracts';
 import { useInsuranceDrawer } from './hooks/useInsuranceDrawer';
 
@@ -31,6 +34,7 @@ const SAVE_MESSAGES = {
   edit: 'Contrat mis à jour !',
 } as const;
 
+
 export default function AssuranceClient({ vehicles, ownedVehicleIds }: AssuranceClientProps) {
   const router = useRouter();
   const { showSuccess, showError } = useNotifications();
@@ -45,13 +49,16 @@ export default function AssuranceClient({ vehicles, ownedVehicleIds }: Assurance
   );
   const { drawer, openDrawer, closeDrawer } = useInsuranceDrawer();
 
-  const [expandedVehicleId, setExpandedVehicleId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteState, setDeleteState] = useState<{
     contract: InsuranceContract | null;
     vehicleId: number | null;
   }>({ contract: null, vehicleId: null });
   const [deleting, setDeleting] = useState(false);
+  const [historyState, setHistoryState] = useState<{
+    vehicle: Vehicle | null;
+    contracts: InsuranceContract[];
+  }>({ vehicle: null, contracts: [] });
 
   // ── Stats ──────────────────────────────────────────────────────────────────
 
@@ -143,8 +150,32 @@ export default function AssuranceClient({ vehicles, ownedVehicleIds }: Assurance
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  if (ownedVehicles.length === 0 && !loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 px-4 text-center animate-in fade-in duration-300">
+        <div className="w-14 h-14 bg-custom-1/10 rounded-full flex items-center justify-center mb-4">
+          <Icon name="secure" size={28} className="text-custom-1" />
+        </div>
+        <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
+          Aucun véhicule à assurer
+        </p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 mb-6 max-w-xs">
+          Ajoutez un véhicule dans votre garage pour gérer vos assurances.
+        </p>
+        <Button
+          variant="secondary"
+          leftIcon={<Icon name="car" size={16} />}
+          onClick={() => router.push('/garage')}
+        >
+          Aller au garage
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* ── Summary stats ── */}
       <InsuranceStatsGrid
         loading={loading}
         totalMonthlyPremium={totalMonthlyPremium}
@@ -154,86 +185,104 @@ export default function AssuranceClient({ vehicles, ownedVehicleIds }: Assurance
         nextPaymentVehicle={nextPaymentVehicle}
       />
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-          Contrats actifs
-        </h2>
-        {ownedVehicles.length > 0 && (
-          <button
-            onClick={() => {
-              const v = ownedVehicles[0];
-              openDrawer('add', v.vehicle_id, contractsMap.get(v.vehicle_id) ?? []);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg bg-custom-2 hover:bg-custom-2-hover text-white transition-colors cursor-pointer"
-          >
-            <Icon name="add" size={14} /> Ajouter
-          </button>
-        )}
+      {/* ── My vehicles ── */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon name="secure" size={15} className="text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Mes contrats
+            </h2>
+            <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+              {vehiclesInsuredCount}/{ownedVehicles.length}
+            </span>
+          </div>
+        </div>
+
+        <Card className="overflow-hidden p-0">
+
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Spinner />
+            </div>
+          ) : (
+            ownedVehicles.map((vehicle) => {
+              const contracts = contractsMap.get(vehicle.vehicle_id) ?? [];
+              return (
+                <InsuranceVehicleRow
+                  key={vehicle.vehicle_id}
+                  vehicle={vehicle}
+                  contracts={contracts}
+                  onAdd={() => openDrawer('add', vehicle.vehicle_id, contracts)}
+                  onNewContract={() => openDrawer('new-contract', vehicle.vehicle_id, contracts)}
+                  onChangeRate={() => openDrawer('change-rate', vehicle.vehicle_id, contracts)}
+                  onEdit={(contract) =>
+                    openDrawer('edit', vehicle.vehicle_id, contracts, contract)
+                  }
+                  onDelete={(contract) =>
+                    setDeleteState({ contract, vehicleId: vehicle.vehicle_id })
+                  }
+                  onShowHistory={() =>
+                    setHistoryState({ vehicle, contracts })
+                  }
+                />
+              );
+            })
+          )}
+        </Card>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <Spinner />
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {ownedVehicles.map((vehicle) => {
-            const contracts = contractsMap.get(vehicle.vehicle_id) ?? [];
-            return (
-              <InsuranceVehicleCard
-                key={vehicle.vehicle_id}
-                vehicle={vehicle}
-                contracts={contracts}
-                isExpanded={expandedVehicleId === vehicle.vehicle_id}
-                onToggleExpand={() =>
-                  setExpandedVehicleId((prev) =>
-                    prev === vehicle.vehicle_id ? null : vehicle.vehicle_id,
-                  )
-                }
-                onAdd={() => openDrawer('add', vehicle.vehicle_id, contracts)}
-                onNewContract={() => openDrawer('new-contract', vehicle.vehicle_id, contracts)}
-                onChangeRate={() => openDrawer('change-rate', vehicle.vehicle_id, contracts)}
-                onEdit={(contract) => openDrawer('edit', vehicle.vehicle_id, contracts, contract)}
-                onDelete={(contract) => setDeleteState({ contract, vehicleId: vehicle.vehicle_id })}
-              />
-            );
-          })}
-        </div>
-      )}
-
+      {/* ── Family vehicles ── */}
       {familyVehicles.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <Icon name="family" size={16} className="text-gray-400" />
-            <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-              Véhicules de la famille
-            </h3>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Icon name="family" size={15} className="text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Véhicules famille
+            </h2>
+            <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+              {familyVehicles.length}
+            </span>
           </div>
-          {familyVehicles.map((vehicle) => {
-            const contracts = contractsMap.get(vehicle.vehicle_id) ?? [];
-            return (
-              <InsuranceVehicleCard
-                key={vehicle.vehicle_id}
-                vehicle={vehicle}
-                contracts={contracts}
-                isFamily
-                isExpanded={expandedVehicleId === vehicle.vehicle_id}
-                onToggleExpand={() =>
-                  setExpandedVehicleId((prev) =>
-                    prev === vehicle.vehicle_id ? null : vehicle.vehicle_id,
-                  )
-                }
-              />
-            );
-          })}
+
+          <Card className="overflow-hidden p-0">
+              {familyVehicles.map((vehicle) => {
+              const contracts = contractsMap.get(vehicle.vehicle_id) ?? [];
+              return (
+                <InsuranceVehicleRow
+                  key={vehicle.vehicle_id}
+                  vehicle={vehicle}
+                  contracts={contracts}
+                  isFamily
+                />
+              );
+            })}
+          </Card>
         </div>
       )}
 
+      {/* ── Drawers & modals ── */}
       <InsuranceContractDrawer
         drawer={drawer}
         onClose={closeDrawer}
         onSave={handleSave}
         saving={saving}
+      />
+
+      <InsuranceHistoryModal
+        isOpen={!!historyState.vehicle}
+        onClose={() => setHistoryState({ vehicle: null, contracts: [] })}
+        vehicle={historyState.vehicle}
+        contracts={historyState.contracts}
+        onEdit={(contract) => {
+          setHistoryState({ vehicle: null, contracts: [] });
+          const vid = contract.vehicle_id;
+          openDrawer('edit', vid, historyState.contracts, contract);
+        }}
+        onDelete={(contract) => {
+          setHistoryState({ vehicle: null, contracts: [] });
+          setDeleteState({ contract, vehicleId: contract.vehicle_id });
+        }}
       />
 
       <ConfirmationModal

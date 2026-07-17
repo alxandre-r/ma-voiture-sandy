@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import Button from '@/components/common/ui/Button';
 import {
   FormDate,
   FormField,
@@ -10,7 +11,6 @@ import {
   FormTextArea,
 } from '@/components/common/ui/form';
 import Icon from '@/components/common/ui/Icon';
-import Spinner from '@/components/common/ui/Spinner';
 
 import type { Reminder, ReminderFormData, ReminderType } from '@/types/reminder';
 import type { VehicleMinimal } from '@/types/vehicle';
@@ -270,30 +270,17 @@ export default function ReminderForm({
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={saving}
-            className="px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors cursor-pointer"
-          >
+          <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
             Annuler
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={saving}
-            className="px-5 py-2 rounded-lg bg-custom-2 hover:bg-custom-2-hover text-white text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
+            variant="secondary"
+            isLoading={saving}
+            leftIcon={<Icon name="check" size={16} />}
           >
-            {saving ? (
-              <>
-                <Spinner color="white" /> Enregistrement...
-              </>
-            ) : (
-              <>
-                <Icon name="check" size={16} />
-                {isEditing ? 'Enregistrer' : 'Créer le rappel'}
-              </>
-            )}
-          </button>
+            {isEditing ? 'Enregistrer' : 'Créer le rappel'}
+          </Button>
         </div>
       </form>
     </div>

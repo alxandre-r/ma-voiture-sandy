@@ -55,20 +55,6 @@ export interface ExpenseFormData {
   charge_type?: 'fill' | 'charge';
 }
 
-// Mapping of expense types to display names
-export const EXPENSE_TYPE_LABELS: Record<Expense['type'], string> = {
-  fuel: 'Carburant',
-  electric_charge: 'Recharge électrique',
-  maintenance: 'Entretien',
-  insurance: 'Assurance',
-  other: 'Autre',
-};
-
-// Check if an expense is related to energy (fuel or electric charge)
-export const isEnergyExpense = (expense: Expense): boolean => {
-  return expense.type === 'fuel' || expense.type === 'electric_charge';
-};
-
 // Get the category name for an expense type (for grouping in statistics)
 export const getCategoryName = (type: string): string => {
   switch (type) {

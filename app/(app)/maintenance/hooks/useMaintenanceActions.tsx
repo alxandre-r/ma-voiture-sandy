@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { apiCall } from '@/lib/api/client';
 import { uploadPendingAttachments } from '@/lib/utils/uploadAttachments';
+import { validateBaseExpenseFields } from '@/lib/utils/validateExpense';
 
 export interface MaintenanceFormData {
   vehicle_id: number;
@@ -37,19 +38,7 @@ export function useMaintenanceActions() {
 
   /** --- Validate maintenance data --- */
   const validateMaintenanceData = (data: MaintenanceFormData): boolean => {
-    if (!data.vehicle_id || data.vehicle_id === 0) {
-      showError('Veuillez sélectionner un véhicule');
-      return false;
-    }
-    if (!data.date) {
-      showError('Veuillez entrer une date');
-      return false;
-    }
-    if (data.amount === undefined || data.amount === null || data.amount <= 0) {
-      showError('Veuillez entrer un montant valide');
-      return false;
-    }
-    return true;
+    return validateBaseExpenseFields(data, showError);
   };
 
   /** --- Add new maintenance --- */

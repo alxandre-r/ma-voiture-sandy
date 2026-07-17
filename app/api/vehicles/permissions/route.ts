@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
+  try {
   const { searchParams } = new URL(request.url);
   const vehicleId = searchParams.get('vehicleId');
 
@@ -54,9 +55,14 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ data }, { status: 200 });
+  } catch (err) {
+    console.error('Unexpected error in GET /api/vehicles/permissions:', err);
+    return NextResponse.json({ error: 'Erreur serveur inattendue' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
+  try {
   const body = await request.json();
   const {
     vehicleId,
@@ -90,6 +96,28 @@ export async function POST(request: Request) {
 
   if (vehicleError || !vehicle) {
     return NextResponse.json({ error: 'Véhicule introuvable ou accès refusé' }, { status: 403 });
+  }
+
+  // Collect all target user IDs that will receive permissions
+  const targetUserIds = permissions.filter((p) => p.level !== 'none').map((p) => p.userId);
+
+  if (targetUserIds.length > 0) {
+    // Verify all target users are in the same family as the owner
+    const { data: familyMembers } = await supabase
+      .from('family_members')
+      .select('user_id, families!inner(owner_id)')
+      .eq('families.owner_id', user.id)
+      .in('user_id', targetUserIds);
+
+    const allowedIds = new Set((familyMembers ?? []).map((m) => m.user_id));
+    const unauthorized = targetUserIds.filter((id) => !allowedIds.has(id));
+
+    if (unauthorized.length > 0) {
+      return NextResponse.json(
+        { error: "Certains utilisateurs ne font pas partie de votre famille" },
+        { status: 403 },
+      );
+    }
   }
 
   const toUpsert = permissions.filter((p) => p.level !== 'none');
@@ -132,4 +160,8 @@ export async function POST(request: Request) {
 
   revalidatePath('/', 'layout');
   return NextResponse.json({ success: true }, { status: 200 });
+  } catch (err) {
+    console.error('Unexpected error in POST /api/vehicles/permissions:', err);
+    return NextResponse.json({ error: 'Erreur serveur inattendue' }, { status: 500 });
+  }
 }

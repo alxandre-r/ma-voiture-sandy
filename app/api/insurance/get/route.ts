@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
  * Returns insurance contracts for a specific vehicle owned by the current user.
  */
 export async function GET(request: Request) {
+  try {
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -50,4 +51,8 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ contracts: data });
+  } catch (err) {
+    console.error('Unexpected error in /api/insurance/get:', err);
+    return NextResponse.json({ error: 'Erreur serveur inattendue' }, { status: 500 });
+  }
 }

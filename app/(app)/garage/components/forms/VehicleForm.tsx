@@ -42,10 +42,10 @@ export default function VehicleForm({
     plate: '',
     vin: '',
     // Status
-    status: 'active' as 'active' | 'inactive',
+    status: 'active' as 'active' | 'sold' | 'archived',
     // Technical
-    fuel_type: 'Essence',
-    transmission: 'Manuelle' as 'Manuelle' | 'Automatique',
+    fuel_type: 'gasoline',
+    transmission: 'manual' as 'manual' | 'automatic',
     odometer: 0,
     // Image
     image: '',
@@ -71,8 +71,8 @@ export default function VehicleForm({
         plate: vehicle.plate || '',
         vin: vehicle.vin || '',
         status: vehicle.status || 'active',
-        fuel_type: vehicle.fuel_type || 'Essence',
-        transmission: vehicle.transmission || 'Manuelle',
+        fuel_type: vehicle.fuel_type || 'gasoline',
+        transmission: vehicle.transmission || 'manual',
         odometer: vehicle.odometer || 0,
         image: vehicle.image || '',
         color: vehicle.color || '#f97316',
@@ -87,7 +87,7 @@ export default function VehicleForm({
 
   // Check if vehicle is electric or hybrid (both should have automatic transmission)
   const isElectricOrHybrid =
-    formData.fuel_type === 'Électrique' || formData.fuel_type === 'Hybride';
+    formData.fuel_type === 'electric' || formData.fuel_type === 'hybrid';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -105,12 +105,12 @@ export default function VehicleForm({
             : undefined
           : value;
 
-    // If fuel_type changes to Électrique or Hybride, automatically set transmission to Automatique
-    if (name === 'fuel_type' && (value === 'Électrique' || value === 'Hybride')) {
+    // If fuel_type changes to electric or hybrid, automatically set transmission to automatic
+    if (name === 'fuel_type' && (value === 'electric' || value === 'hybrid')) {
       setFormData((prev) => ({
         ...prev,
         fuel_type: value,
-        transmission: 'Automatique',
+        transmission: 'automatic',
       }));
     } else {
       setFormData((prev) => ({
@@ -278,10 +278,10 @@ export default function VehicleForm({
 
                         <button
                           type="button"
-                          onClick={() => setFormData((prev) => ({ ...prev, status: 'inactive' }))}
+                          onClick={() => setFormData((prev) => ({ ...prev, status: 'archived' }))}
                           className={`flex-1 text-xs font-bold uppercase tracking-wider transition-colors z-10 cursor-pointer
                               ${
-                                formData.status === 'inactive'
+                                formData.status !== 'active'
                                   ? 'text-white'
                                   : 'text-gray-500 dark:text-gray-400'
                               }`}
@@ -408,8 +408,8 @@ export default function VehicleForm({
                     onChange={handleChange}
                     disabled={isElectricOrHybrid}
                   >
-                    <option value="Automatique">Automatique</option>
-                    {!isElectricOrHybrid && <option value="Manuelle">Manuelle</option>}
+                    <option value="automatic">Automatique</option>
+                    {!isElectricOrHybrid && <option value="manual">Manuelle</option>}
                   </FormSelect>
                 </FormField>
               </div>

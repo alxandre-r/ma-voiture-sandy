@@ -4,9 +4,9 @@ import { useState } from 'react';
 
 import { useMaintenanceForm } from '@/app/(app)/maintenance/hooks/useMaintenanceForm';
 import AttachmentSection from '@/components/common/attachments/AttachmentSection';
+import Button from '@/components/common/ui/Button';
 import { FormField, FormInput, FormDate } from '@/components/common/ui/form';
 import Icon from '@/components/common/ui/Icon';
-import Spinner from '@/components/common/ui/Spinner';
 import { MAINTENANCE_TYPES } from '@/types/maintenance';
 
 import type { MaintenanceFormData } from '@/app/(app)/maintenance/hooks/useMaintenanceActions';
@@ -14,8 +14,8 @@ import type { Expense } from '@/types/expense';
 import type { VehicleMinimal } from '@/types/vehicle';
 
 const SELECT_CLASS =
-  'w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 ' +
-  'px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ' +
+  'w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 ' +
+  'px-3 py-2.5 text-sm focus:border-custom-1 focus:ring-1 focus:ring-custom-1/30 ' +
   'hover:border-gray-400 dark:hover:border-gray-600 transition-colors';
 
 interface MaintenanceFormProps {
@@ -177,7 +177,7 @@ export default function MaintenanceForm({
             onChange={handleChange}
             rows={4}
             placeholder="Détails supplémentaires sur l'intervention..."
-            className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 hover:border-gray-400 dark:hover:border-gray-600 transition-colors"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm resize-none focus:border-custom-1 focus:ring-1 focus:ring-custom-1/30 hover:border-gray-400 dark:hover:border-gray-600 transition-colors"
           />
         </div>
 
@@ -197,29 +197,17 @@ export default function MaintenanceForm({
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={saving}
-            className="px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors cursor-pointer"
-          >
+          <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
             Annuler
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={saving}
-            className="px-5 py-2 rounded-lg bg-custom-2 hover:bg-custom-2-hover text-white text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
+            variant="secondary"
+            isLoading={saving}
+            leftIcon={<Icon name="check" size={16} />}
           >
-            {saving ? (
-              <>
-                <Spinner color="white" /> Enregistrement...
-              </>
-            ) : (
-              <>
-                <Icon name="check" size={16} /> Enregistrer
-              </>
-            )}
-          </button>
+            Enregistrer
+          </Button>
         </div>
       </form>
     </div>

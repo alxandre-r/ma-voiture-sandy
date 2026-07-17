@@ -20,9 +20,9 @@ export interface Vehicle {
   co2_emission?: number | null; // g/km, official homologated value from technical sheet
 
   // New fields from garage_model
-  status?: 'active' | 'inactive' | null;
+  status?: 'active' | 'sold' | 'archived' | null;
   vin?: string | null;
-  transmission?: 'Manuelle' | 'Automatique' | null;
+  transmission?: 'manual' | 'automatic' | null;
   image?: string | null;
   insurance_start_date?: string | null;
   insurance_monthly_cost?: number | null;
@@ -54,6 +54,6 @@ export interface VehicleMinimal {
   // Added for EV support
   fuel_type?: string | null;
   // Added for filtering active vehicles
-  status?: 'active' | 'inactive' | null;
+  status?: 'active' | 'sold' | 'archived' | null;
   permission_level?: 'read' | 'write' | null;
 }

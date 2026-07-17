@@ -429,8 +429,23 @@ function ExpensesContent({
   // Early return if no vehicles - must be after all hooks
   if (!vehicles || vehicles.length === 0 || !userHasVehicles) {
     return (
-      <div className="text-center py-8">
-        Aucun véhicule trouvé. Veuillez ajouter un véhicule pour commencer à suivre vos dépenses.
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-20 h-20 bg-custom-1 rounded-full flex items-center justify-center mb-5">
+          <Icon name="euro" size={40} className="text-white" />
+        </div>
+        <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">
+          Aucune dépense à afficher
+        </h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm">
+          Ajoutez un véhicule dans votre garage pour commencer à suivre vos dépenses.
+        </p>
+        <button
+          onClick={() => router.push('/garage')}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-custom-2 hover:bg-custom-2-hover text-white rounded-lg font-semibold transition-all duration-200"
+        >
+          <Icon name="car" size={18} />
+          Aller au garage
+        </button>
       </div>
     );
   }

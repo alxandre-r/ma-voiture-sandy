@@ -16,6 +16,7 @@ import {
 import { EXPENSE_CATEGORIES } from '@/app/(app)/expenses/components/expenseCategories';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
+import { VEHICLE_LINE_COLORS, CHART_AXIS, CHART_FALLBACK_COLOR } from '@/lib/utils/chartColors';
 import { downloadChartSVG } from '@/lib/utils/exportChart';
 import { formatCurrency } from '@/lib/utils/format';
 
@@ -45,17 +46,7 @@ interface MonthlyExpenseChartProps {
   }>;
 }
 
-// Vehicle colors
-const VEHICLE_COLORS = [
-  '#f97415', // primary
-  '#7c3aed', // secondary
-  '#3B82F6', // blue
-  '#F59E0B', // amber
-  '#8B5CF6', // violet
-  '#EC4899', // pink
-  '#06B6D4', // cyan
-  '#EF4444', // red
-];
+const VEHICLE_COLORS = VEHICLE_LINE_COLORS;
 
 const CustomTooltip = ({
   active,
@@ -130,7 +121,7 @@ export default function MonthlyExpenseChart({
   // Get colors from the expense categories
   const getCategoryColor = (category: string): string => {
     const cat = EXPENSE_CATEGORIES.find((c) => c.name === category);
-    return cat?.color || '#6B7280';
+    return cat?.color || CHART_FALLBACK_COLOR;
   };
 
   // Get vehicle color
@@ -206,13 +197,13 @@ export default function MonthlyExpenseChart({
               />
               <XAxis
                 dataKey="month"
-                tick={{ fontSize: 10, fill: '#94a3b8' }}
-                axisLine={{ stroke: '#e2e8f0' }}
+                tick={{ fontSize: 10, fill: CHART_AXIS.tick }}
+                axisLine={{ stroke: CHART_AXIS.axis }}
                 tickLine={false}
                 className="dark:axis-dark"
               />
               <YAxis
-                tick={{ fontSize: 10, fill: '#94a3b8' }}
+                tick={{ fontSize: 10, fill: CHART_AXIS.tick }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(value) => `${value}€`}

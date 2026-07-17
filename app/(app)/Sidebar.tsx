@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import Icon from '@/components/common/ui/Icon';
+import { useRemindersCount } from '@/contexts/RemindersCountContext';
 
 // ----- Types -----
 type MenuItem = {
@@ -45,10 +46,14 @@ function SidebarItem({
   item,
   active = false,
   onClick,
+  badge,
+  badgeVariant = 'red',
 }: {
   item: MenuItem;
   active?: boolean;
   onClick?: () => void;
+  badge?: number;
+  badgeVariant?: 'red' | 'orange';
 }) {
   return (
     <Link
@@ -61,7 +66,16 @@ function SidebarItem({
       aria-current={active ? 'page' : undefined}
     >
       <Icon name={item.icon} size={22} className="shrink-0" />
-      <span className="truncate">{item.name}</span>
+      <span className="truncate flex-1">{item.name}</span>
+      {badge != null && badge > 0 && (
+        <span
+          className={`shrink-0 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center ${
+            badgeVariant === 'red' ? 'bg-red-500' : 'bg-orange-400'
+          }`}
+        >
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </Link>
   );
 }
@@ -72,6 +86,8 @@ export default function Sidebar() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [indicatorTop, setIndicatorTop] = useState<number | null>(null);
   const refs = useRef<HTMLDivElement[]>([]);
+  const { overdue, dueSoon } = useRemindersCount();
+  const reminderBadge = overdue + dueSoon;
 
   useEffect(() => {
     const index = MENU_ITEMS.findIndex((item) => pathname.startsWith(item.path));
@@ -111,7 +127,12 @@ export default function Sidebar() {
                 if (el) refs.current[index] = el;
               }}
             >
-              <SidebarItem item={item} active={activeIndex === index} />
+              <SidebarItem
+                item={item}
+                active={activeIndex === index}
+                badge={item.path === '/reminders' ? reminderBadge : undefined}
+                badgeVariant={overdue > 0 ? 'red' : 'orange'}
+              />
             </div>
             {SEPARATOR_AFTER.has(index) && <Separator />}
           </div>
@@ -137,6 +158,8 @@ export function MobileSidebarDrawer({ isOpen, onClose }: { isOpen: boolean; onCl
   const [activeIndex, setActiveIndex] = useState(0);
   const [indicatorTop, setIndicatorTop] = useState<number | null>(null);
   const refs = useRef<HTMLDivElement[]>([]);
+  const { overdue, dueSoon } = useRemindersCount();
+  const reminderBadge = overdue + dueSoon;
 
   useEffect(() => {
     if (pathname.startsWith(BOTTOM_ITEM.path)) {
@@ -220,7 +243,13 @@ export function MobileSidebarDrawer({ isOpen, onClose }: { isOpen: boolean; onCl
                       if (el) refs.current[index] = el;
                     }}
                   >
-                    <SidebarItem item={item} active={activeIndex === index} onClick={onClose} />
+                    <SidebarItem
+                      item={item}
+                      active={activeIndex === index}
+                      onClick={onClose}
+                      badge={item.path === '/reminders' ? reminderBadge : undefined}
+                      badgeVariant={overdue > 0 ? 'red' : 'orange'}
+                    />
                   </div>
                   {SEPARATOR_AFTER.has(index) && <Separator />}
                 </div>

@@ -14,13 +14,12 @@ import type { Vehicle } from '@/types/vehicle';
 interface RecentExpensesProps {
   expenses: Expense[];
   vehicles: Vehicle[];
-  onEditFill?: (expense: Expense) => void;
 }
 
-export default function RecentExpenses({ expenses, vehicles, onEditFill }: RecentExpensesProps) {
+export default function RecentExpenses({ expenses, vehicles }: RecentExpensesProps) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon name="euro" size={18} />
           <CardTitle>Dépenses récentes</CardTitle>
@@ -61,22 +60,10 @@ export default function RecentExpenses({ expenses, vehicles, onEditFill }: Recen
                   </div>
                 </div>
 
-                {/* Right: Edit button (fill/charge only) + Amount */}
-                <div className="flex items-center gap-1 shrink-0 ml-2">
-                  {onEditFill &&
-                    (expense.type === 'fuel' || expense.type === 'electric_charge') && (
-                      <button
-                        onClick={() => onEditFill(expense)}
-                        className="p-1 text-gray-400 hover:text-custom-1 transition-colors"
-                        title="Modifier"
-                      >
-                        <Icon name="pencil" size={13} />
-                      </button>
-                    )}
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">
-                    {formatCurrency(expense.amount ?? 0)}
-                  </span>
-                </div>
+                {/* Right: Amount */}
+                <span className="text-sm font-bold text-gray-900 dark:text-white shrink-0 ml-2">
+                  {formatCurrency(expense.amount ?? 0)}
+                </span>
               </div>
             ))}
           </div>

@@ -41,7 +41,7 @@ export default function RemindersWidget({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon name="bell" size={18} />
           <CardTitle>Rappels</CardTitle>

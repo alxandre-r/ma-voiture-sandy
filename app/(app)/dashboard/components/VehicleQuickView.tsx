@@ -51,7 +51,7 @@ function VehicleRow({
 
   return (
     <div className="flex items-center gap-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
-      <Link href={`/garage`} className="flex items-center gap-4 w-full">
+      <Link href={`/garage?vehicleId=${vehicle.vehicle_id}`} className="flex items-center gap-4 w-full">
         {/* Thumbnail */}
         <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800">
           {vehicle.image ? (
@@ -124,12 +124,12 @@ export default function VehicleQuickView({
   expenses?: Expense[];
   activeInsuranceVehicleIds?: number[];
 }) {
-  const active = vehicles.filter((v) => v.status !== 'inactive');
+  const active = vehicles.filter((v) => v.status === 'active' || v.status == null);
   if (active.length === 0) return null;
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon name="car" size={18} />
           <CardTitle>Mes véhicules</CardTitle>

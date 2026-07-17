@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { apiCall } from '@/lib/api/client';
 import { uploadPendingAttachments } from '@/lib/utils/uploadAttachments';
+import { validateBaseExpenseFields } from '@/lib/utils/validateExpense';
 
 export interface OtherFormData {
   vehicle_id: number;
@@ -18,18 +19,7 @@ export function useOtherActions() {
   const [saving, setSaving] = useState(false);
 
   const validateData = (data: OtherFormData): boolean => {
-    if (!data.vehicle_id || data.vehicle_id === 0) {
-      showError('Veuillez sélectionner un véhicule');
-      return false;
-    }
-    if (!data.date) {
-      showError('Veuillez entrer une date');
-      return false;
-    }
-    if (data.amount === undefined || data.amount === null || data.amount <= 0) {
-      showError('Veuillez entrer un montant valide');
-      return false;
-    }
+    if (!validateBaseExpenseFields(data, showError)) return false;
     if (!data.label?.trim()) {
       showError('Veuillez entrer un libellé');
       return false;

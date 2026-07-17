@@ -8,7 +8,7 @@
  * for business logic.
  */
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect } from 'react';
 
 import VehicleForm from '@/app/(app)/garage/components/forms/VehicleForm';
@@ -48,6 +48,7 @@ export default function GarageClient({
   familyOwnerPreferences,
 }: GarageClientProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const {
     isSubmitting,
@@ -60,17 +61,32 @@ export default function GarageClient({
     handleAddNew,
     handleCancel,
     handleBack,
+    updateOdometer,
   } = useGarageActions();
+
+  // Flat list of all family vehicles (for helper lookups)
+  const allFamilyVehicles = familyGroups.flatMap((g) => g.vehicles);
 
   // --- Modal ouverture selon search param ---
   useEffect(() => {
     if (searchParams.get('addVehicle') === 'true') {
       handleAddNew();
+      return;
     }
-  }, [searchParams, handleAddNew]);
-
-  // Flat list of all family vehicles (for helper lookups)
-  const allFamilyVehicles = familyGroups.flatMap((g) => g.vehicles);
+    const vehicleIdParam = searchParams.get('vehicleId');
+    if (vehicleIdParam) {
+      const id = Number(vehicleIdParam);
+      const found =
+        userVehicles.find((v) => v.vehicle_id === id) ??
+        allFamilyVehicles.find((v) => v.vehicle_id === id);
+      if (found) {
+        handleVehicleClick(found);
+        // Nettoyer le param de l'URL pour que le bouton retour fonctionne proprement
+        router.replace('/garage');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Helper to check if vehicle is from family
   const isFamilyVehicle = (vehicle: Vehicle) =>
@@ -141,6 +157,7 @@ export default function GarageClient({
         onVehicleClick={handleVehicleClick}
         onAddVehicle={handleAddNew}
         activeInsuranceVehicleIds={activeInsuranceVehicleIds}
+        onOdometerUpdate={updateOdometer}
       />
 
       {/* Section: Véhicules par famille */}

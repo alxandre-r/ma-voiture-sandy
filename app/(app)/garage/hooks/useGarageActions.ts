@@ -16,6 +16,7 @@ export interface UseGarageActionsReturn {
   // Vehicle actions
   handleSaveVehicle: (vehicleData: Partial<Vehicle>, pendingFiles?: File[]) => Promise<boolean>;
   handleDeleteVehicle: (vehicleId: string) => Promise<boolean>;
+  updateOdometer: (vehicleId: number, odometer: number) => Promise<void>;
 
   // View state
   viewState: 'list' | 'detail' | 'form';
@@ -115,6 +116,24 @@ export function useGarageActions(): UseGarageActionsReturn {
     [handleBack, router, showSuccess, showError],
   );
 
+  /** --- Update odometer inline --- */
+  const updateOdometer = useCallback(
+    async (vehicleId: number, odometer: number): Promise<void> => {
+      try {
+        await apiCall('/api/vehicles/update', {
+          method: 'PATCH',
+          body: JSON.stringify({ vehicle_id: vehicleId, odometer }),
+        });
+        showSuccess('Kilométrage mis à jour');
+        router.refresh();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+        showError(msg);
+      }
+    },
+    [router, showSuccess, showError],
+  );
+
   /** --- Delete vehicle --- */
   const handleDeleteVehicle = useCallback(
     async (vehicleId: string): Promise<boolean> => {
@@ -148,6 +167,7 @@ export function useGarageActions(): UseGarageActionsReturn {
     isSubmitting,
     handleSaveVehicle,
     handleDeleteVehicle,
+    updateOdometer,
     viewState,
     selectedVehicle,
     isEditing,

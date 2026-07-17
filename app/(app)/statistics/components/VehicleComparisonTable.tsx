@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
+import { VEHICLE_LINE_COLORS } from '@/lib/utils/chartColors';
 import { formatCurrency } from '@/lib/utils/format';
 
 import type { Expense } from '@/types/expense';
@@ -21,7 +22,7 @@ const CATEGORIES: { type: string; label: string }[] = [
   { type: 'other', label: 'Autre' },
 ];
 
-const FALLBACK_COLORS = ['#f97415', '#7c3aed', '#3B82F6', '#F59E0B'];
+const FALLBACK_COLORS = VEHICLE_LINE_COLORS;
 
 function getVehicleName(id: number, vehicles: (Vehicle | VehicleMinimal)[]): string {
   const v = vehicles.find((v) => v.vehicle_id === id);

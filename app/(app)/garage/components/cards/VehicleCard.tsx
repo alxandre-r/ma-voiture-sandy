@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useRef, useState } from 'react';
 
 import Icon from '@/components/common/ui/Icon';
 import ProfilePicture from '@/components/user/ProfilePicture';
@@ -20,6 +21,7 @@ interface VehicleCardProps {
   isFamilyVehicle?: boolean;
   owner?: VehicleOwner;
   hasActiveInsurance?: boolean;
+  onOdometerUpdate?: (vehicleId: number, value: number) => Promise<void>;
 }
 
 export default function VehicleCard({
@@ -28,11 +30,44 @@ export default function VehicleCard({
   isFamilyVehicle,
   owner,
   hasActiveInsurance,
+  onOdometerUpdate,
 }: VehicleCardProps) {
-  // Handle card click - use callback instead of navigation
+  const [isEditingOdo, setIsEditingOdo] = useState(false);
+  const [odoInput, setOdoInput] = useState('');
+  const [savingOdo, setSavingOdo] = useState(false);
+  const escapeRef = useRef(false);
+
   const handleClick = () => {
-    if (onClick) {
-      onClick(vehicle);
+    if (onClick) onClick(vehicle);
+  };
+
+  const startEditOdo = () => {
+    setOdoInput(String(vehicle.odometer ?? ''));
+    setIsEditingOdo(true);
+  };
+
+  const handleOdoSave = async () => {
+    if (escapeRef.current) {
+      escapeRef.current = false;
+      setIsEditingOdo(false);
+      return;
+    }
+    const value = parseInt(odoInput, 10);
+    if (isNaN(value) || value < 0 || value === vehicle.odometer) {
+      setIsEditingOdo(false);
+      return;
+    }
+    setSavingOdo(true);
+    await onOdometerUpdate?.(vehicle.vehicle_id, value);
+    setSavingOdo(false);
+    setIsEditingOdo(false);
+  };
+
+  const handleOdoKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') e.currentTarget.blur();
+    if (e.key === 'Escape') {
+      escapeRef.current = true;
+      setIsEditingOdo(false);
     }
   };
 
@@ -41,7 +76,7 @@ export default function VehicleCard({
 
   return (
     <div
-      className="group relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm 
+      className="group relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm
       dark:bg-gray-800 dark:border-gray-700
       hover:shadow-md transition-shadow hover:-trangray-y-1 hover:border-custom-1/70 cursor-pointer transition-transform"
       onClick={handleClick}
@@ -128,12 +163,45 @@ export default function VehicleCard({
               {vehicle.year || '—'}
             </span>
           </div>
-          <div className="flex flex-col">
+
+          {/* Kilométrage — inline editable */}
+          <div className="flex flex-col" onClick={(e) => e.stopPropagation()}>
             <span className="text-[10px] text-gray-400 font-bold uppercase">Kilométrage</span>
-            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-              {vehicle.odometer?.toLocaleString() || '—'} km
-            </span>
+            {onOdometerUpdate && isEditingOdo ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={odoInput}
+                  onChange={(e) => setOdoInput(e.target.value)}
+                  onKeyDown={handleOdoKeyDown}
+                  onBlur={handleOdoSave}
+                  autoFocus
+                  disabled={savingOdo}
+                  className="w-20 text-sm font-bold text-gray-700 dark:text-gray-300 bg-transparent border-b border-custom-1 outline-none disabled:opacity-50"
+                />
+                <span className="text-xs text-gray-400">km</span>
+              </div>
+            ) : (
+              <div
+                className={`flex items-center gap-1 group/odo ${onOdometerUpdate ? 'cursor-pointer' : ''}`}
+                onClick={onOdometerUpdate ? startEditOdo : undefined}
+              >
+                <span
+                  className={`text-sm font-bold text-gray-700 dark:text-gray-300 ${onOdometerUpdate ? 'group-hover/odo:text-custom-1 transition-colors' : ''}`}
+                >
+                  {vehicle.odometer?.toLocaleString() || '—'} km
+                </span>
+                {onOdometerUpdate && (
+                  <Icon
+                    name="pencil"
+                    size={11}
+                    className="opacity-0 group-hover/odo:opacity-50 transition-opacity text-gray-400"
+                  />
+                )}
+              </div>
+            )}
           </div>
+
           <div className="flex flex-col">
             <span className="text-[10px] text-gray-400 font-bold uppercase">Consommation</span>
             <span className="text-sm font-bold text-gray-700 dark:text-gray-300">

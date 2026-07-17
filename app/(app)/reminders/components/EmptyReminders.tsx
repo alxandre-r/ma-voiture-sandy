@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '@/components/common/ui/Button';
 import { Card, CardContent } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
 
@@ -19,12 +20,9 @@ export default function EmptyReminders({ onAdd }: EmptyRemindersProps) {
             manuellement.
           </p>
         </div>
-        <button
-          onClick={onAdd}
-          className="px-4 py-2 bg-custom-2 hover:bg-custom-2-hover text-white rounded-md text-sm font-medium transition-colors cursor-pointer"
-        >
+        <Button variant="secondary" onClick={onAdd}>
           Créer un rappel
-        </button>
+        </Button>
       </CardContent>
     </Card>
   );

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
 
+import AdvancedFilters from './AdvancedFilters';
 import CategoryFilters from './CategoryFilters';
 import ExpenseDetailModal from './ExpenseDetailModal';
 import { CATEGORY_DEFS } from './expenseListUtils';
@@ -37,6 +38,10 @@ export default function ExpenseList({
 }: ExpenseListProps) {
   const router = useRouter();
   const [activeCategories, setActiveCategories] = useState<string[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+  const [showMobileAdvanced, setShowMobileAdvanced] = useState(false);
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [visibleMonths, setVisibleMonths] = useState(6);
 
@@ -64,16 +69,39 @@ export default function ExpenseList({
 
   const resetCategories = () => setActiveCategories([]);
 
+  const hasActiveAdvancedFilters = searchText.trim() !== '' || minAmount !== '' || maxAmount !== '';
+
+  const resetAdvancedFilters = () => {
+    setSearchText('');
+    setMinAmount('');
+    setMaxAmount('');
+  };
+
   const filteredExpenses = useMemo(() => {
     let result = [...expenses];
+
     if (activeCategories.length > 0) {
       const activeTypes = CATEGORY_DEFS.filter((c) => activeCategories.includes(c.key)).flatMap(
         (c) => [...c.types],
       );
       result = result.filter((e) => activeTypes.includes(e.type));
     }
+
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      result = result.filter((e) => e.notes?.toLowerCase().includes(q));
+    }
+
+    if (minAmount !== '') {
+      result = result.filter((e) => (e.amount ?? 0) >= Number(minAmount));
+    }
+
+    if (maxAmount !== '') {
+      result = result.filter((e) => (e.amount ?? 0) <= Number(maxAmount));
+    }
+
     return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenses, activeCategories]);
+  }, [expenses, activeCategories, searchText, minAmount, maxAmount]);
 
   const monthGroups = useMemo(() => {
     const map = new Map<
@@ -92,10 +120,10 @@ export default function ExpenseList({
     return [...map.values()].sort((a, b) => b.sortKey.localeCompare(a.sortKey));
   }, [filteredExpenses]);
 
-  // Reset pagination when filters or data change
+  // Reset pagination when any filter or data changes
   useEffect(() => {
     setVisibleMonths(6);
-  }, [activeCategories, filteredExpenses]);
+  }, [activeCategories, searchText, minAmount, maxAmount, filteredExpenses]);
 
   const visibleGroups = useMemo(
     () => monthGroups.slice(0, visibleMonths),
@@ -119,9 +147,9 @@ export default function ExpenseList({
   return (
     <div className="flex gap-6 items-start">
       {/* Desktop sidebar */}
-      <aside className="max-lg:hidden w-44 shrink-0">
+      <aside className="max-lg:hidden w-48 shrink-0">
         <Card>
-          <div className="p-3">
+          <div className="p-3 space-y-1">
             <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">
               Catégories
             </p>
@@ -132,22 +160,63 @@ export default function ExpenseList({
               counts={categoryCounts}
               totalCount={expenses.length}
             />
+            <AdvancedFilters
+              searchText={searchText}
+              onSearchChange={setSearchText}
+              minAmount={minAmount}
+              onMinAmountChange={setMinAmount}
+              maxAmount={maxAmount}
+              onMaxAmountChange={setMaxAmount}
+              onReset={resetAdvancedFilters}
+              hasActiveFilters={hasActiveAdvancedFilters}
+            />
           </div>
         </Card>
       </aside>
 
       {/* Main area */}
       <div className="flex-1 min-w-0 space-y-4">
-        {/* Mobile: category pills */}
-        <div className="lg:hidden">
-          <CategoryFilters
-            activeCategories={activeCategories}
-            onToggle={toggleCategory}
-            onReset={resetCategories}
-            counts={categoryCounts}
-            totalCount={expenses.length}
-            mobile
-          />
+        {/* Mobile: category pills + advanced filter toggle */}
+        <div className="lg:hidden space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 overflow-x-auto">
+              <CategoryFilters
+                activeCategories={activeCategories}
+                onToggle={toggleCategory}
+                onReset={resetCategories}
+                counts={categoryCounts}
+                totalCount={expenses.length}
+                mobile
+              />
+            </div>
+            <button
+              onClick={() => setShowMobileAdvanced((v) => !v)}
+              className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                showMobileAdvanced || hasActiveAdvancedFilters
+                  ? 'bg-custom-1 text-white border-custom-1'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-transparent'
+              }`}
+            >
+              <Icon name="search" size={12} />
+              {hasActiveAdvancedFilters && (
+                <span className="w-1.5 h-1.5 rounded-full bg-white/70 shrink-0" />
+              )}
+            </button>
+          </div>
+
+          {showMobileAdvanced && (
+            <AdvancedFilters
+              searchText={searchText}
+              onSearchChange={setSearchText}
+              minAmount={minAmount}
+              onMinAmountChange={setMinAmount}
+              maxAmount={maxAmount}
+              onMaxAmountChange={setMaxAmount}
+              onReset={resetAdvancedFilters}
+              hasActiveFilters={hasActiveAdvancedFilters}
+              mobile
+            />
+          )}
         </div>
 
         {/* Stats + action button on same row (desktop) */}

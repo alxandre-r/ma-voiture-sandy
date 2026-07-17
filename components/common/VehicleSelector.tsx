@@ -111,37 +111,31 @@ export default function VehicleSelector({
 
   return (
     <div ref={ref} className="vehicleSelector-Button relative w-full sm:w-auto">
-      {/* Trigger — same anatomy as PeriodSelector */}
-      <motion.button
+      <button
         type="button"
         disabled={disabled || hasOnlyOneVehicle}
         onClick={() => {
           if (!hasOnlyOneVehicle && !disabled) setOpen((o) => !o);
         }}
-        className={`outer-button p-0.5
-          bg-gradient-to-r from-orange-400/70 to-custom-2
-          flex items-center justify-between w-full
-          rounded-xl sm:min-w-[180px] min-w-[120px]
-          transition-all
-          ${hasOnlyOneVehicle || disabled ? 'cursor-default' : 'hover:cursor-pointer active:scale-96'}`}
+        className={`flex items-center justify-between w-full gap-2
+          px-3 py-2 rounded-lg text-xs font-medium
+          border border-gray-200 dark:border-gray-700
+          bg-white dark:bg-gray-800
+          text-gray-900 dark:text-gray-100
+          sm:min-w-[160px] min-w-[120px]
+          transition-colors
+          ${open ? 'border-custom-1 ring-1 ring-custom-1/30' : ''}
+          ${hasOnlyOneVehicle || disabled ? 'cursor-default opacity-60' : 'hover:border-gray-300 dark:hover:border-gray-600 cursor-pointer'}`}
       >
-        <div
-          className="inner-button bg-white dark:bg-gray-800
-          flex items-center justify-between w-full
-          px-4 py-3 rounded-[calc(1rem-6px)]"
-        >
-          <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-            {label}
-          </span>
-          {!hasOnlyOneVehicle && !disabled && (
-            <Icon
-              name="arrow-down"
-              size={16}
-              className={`ml-2 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-            />
-          )}
-        </div>
-      </motion.button>
+        <span className="truncate">{label}</span>
+        {!hasOnlyOneVehicle && !disabled && (
+          <Icon
+            name="arrow-down"
+            size={14}
+            className={`shrink-0 transition-transform text-gray-400 ${open ? 'rotate-180' : ''}`}
+          />
+        )}
+      </button>
 
       {/* Dropdown */}
       <AnimatePresence>
@@ -335,7 +329,7 @@ function GroupCard({
         transition-all duration-150 hover:cursor-pointer
         ${
           active
-            ? 'bg-gradient-to-br from-orange-400 to-custom-2 shadow-md shadow-orange-200/60 dark:shadow-orange-900/40'
+            ? 'bg-custom-2 shadow-sm'
             : 'bg-gray-50 dark:bg-gray-700/60 hover:bg-gray-100 dark:hover:bg-gray-700'
         }`}
     >
@@ -371,12 +365,12 @@ function VehicleRow({
       onClick={onToggle}
       className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-xl
         text-left transition-all duration-150 hover:cursor-pointer
-        ${checked ? 'bg-orange-50 dark:bg-orange-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/60'}`}
+        ${checked ? 'bg-custom-2/10 dark:bg-custom-2/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/60'}`}
     >
       {/* Checkbox */}
       <span
         className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors
-          ${checked ? 'bg-orange-500 border-orange-500' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'}`}
+          ${checked ? 'bg-custom-2 border-custom-2' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'}`}
       >
         {checked && (
           <svg

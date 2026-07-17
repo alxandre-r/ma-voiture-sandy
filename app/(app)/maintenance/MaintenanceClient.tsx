@@ -19,6 +19,7 @@ import MaintenanceTimeline from '@/app/(app)/maintenance/components/MaintenanceT
 import { useMaintenanceActions } from '@/app/(app)/maintenance/hooks/useMaintenanceActions';
 import MaintenanceForm from '@/components/common/forms/MaintenanceForm';
 import ReminderForm from '@/components/common/forms/ReminderForm';
+import Button from '@/components/common/ui/Button';
 import Drawer from '@/components/common/ui/Drawer';
 import Icon from '@/components/common/ui/Icon';
 import { useSelectors } from '@/contexts/SelectorsContext';
@@ -245,9 +246,24 @@ function MaintenanceContent({
    */
   if (vehicles.length === 0) {
     return (
-      <div className="text-center py-8">
-        Aucun véhicule trouvé pour la sélection. Veuillez ajouter un véhicule pour commencer à
-        suivre vos entretiens.
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-20 h-20 bg-custom-1 rounded-full flex items-center justify-center mb-5">
+          <Icon name="tool" size={40} className="text-white" />
+        </div>
+        <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">
+          Aucun entretien à afficher
+        </h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm">
+          Ajoutez un véhicule dans votre garage pour commencer à suivre vos entretiens.
+        </p>
+        <Button
+          variant="secondary"
+          size="lg"
+          leftIcon={<Icon name="car" size={18} />}
+          onClick={() => router.push('/garage')}
+        >
+          Aller au garage
+        </Button>
       </div>
     );
   }

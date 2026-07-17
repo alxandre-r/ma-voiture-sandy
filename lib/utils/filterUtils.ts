@@ -1,4 +1,4 @@
-import { subMonths } from 'date-fns';
+import { subMonths, subYears } from 'date-fns';
 
 import type { PeriodSelection } from '@/types/period';
 
@@ -33,6 +33,49 @@ export function getEffectivePeriodRange(selection: PeriodSelection): PeriodDateR
     case 'all':
     default:
       return { start: null, end: null };
+  }
+}
+
+/**
+ * Returns the period range immediately preceding the given selection, with the same duration.
+ * Used to compute trend comparisons on stat cards.
+ * Returns null for 'all' (no meaningful previous period).
+ */
+export function getPreviousPeriodRange(selection: PeriodSelection): PeriodDateRange | null {
+  const now = new Date();
+
+  if (typeof selection === 'object' && selection.preset === 'custom') {
+    const start = new Date(selection.start);
+    const end = new Date(selection.end);
+    const durationMs = end.getTime() - start.getTime();
+    return {
+      start: new Date(start.getTime() - durationMs),
+      end: new Date(start.getTime() - 1),
+    };
+  }
+
+  switch (selection) {
+    case 'month': {
+      const prevMonth = subMonths(now, 1);
+      return {
+        start: new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999),
+      };
+    }
+    case '3months':
+      return { start: subMonths(now, 6), end: subMonths(now, 3) };
+    case '6months':
+      return { start: subMonths(now, 12), end: subMonths(now, 6) };
+    case 'year':
+      return {
+        start: new Date(now.getFullYear() - 1, 0, 1),
+        end: new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999),
+      };
+    case '12months':
+      return { start: subYears(now, 2), end: subYears(now, 1) };
+    case 'all':
+    default:
+      return null;
   }
 }
 

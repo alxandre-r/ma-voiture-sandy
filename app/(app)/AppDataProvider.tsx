@@ -9,9 +9,11 @@
  */
 import { redirect } from 'next/navigation';
 
+import { RemindersCountProvider } from '@/contexts/RemindersCountContext';
 import { SelectorsProvider } from '@/contexts/SelectorsContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { getUserFamilies } from '@/lib/data/family/getUserFamilies';
+import { getOverdueCount } from '@/lib/data/reminders/getOverdueCount';
 import { getCurrentUserInfo } from '@/lib/data/user/getCurrentUserInfo';
 import { getUserPreferences } from '@/lib/data/user/getUserPreferences';
 import { getAllVehiclesMinimal } from '@/lib/data/vehicles';
@@ -27,12 +29,13 @@ interface AppDataProviderProps {
  * This is wrapped in Suspense to enable streaming.
  */
 export default async function AppDataProvider({ children }: AppDataProviderProps) {
-  // Fetch user, vehicles and preferences in PARALLEL
-  const [user, initialVehicles, preferences, families] = await Promise.all([
+  // Fetch user, vehicles, preferences and reminder counts in PARALLEL
+  const [user, initialVehicles, preferences, families, reminderCounts] = await Promise.all([
     getCurrentUserInfo(),
     getAllVehiclesMinimal(),
     getUserPreferences(),
     getUserFamilies(),
+    getOverdueCount(),
   ]);
 
   if (!user) {
@@ -50,7 +53,9 @@ export default async function AppDataProvider({ children }: AppDataProviderProps
         initialFamilies={families}
         currentUserId={safeUser.id}
       >
-        {children}
+        <RemindersCountProvider overdue={reminderCounts.overdue} dueSoon={reminderCounts.dueSoon}>
+          {children}
+        </RemindersCountProvider>
       </SelectorsProvider>
     </UserProvider>
   );

@@ -8,6 +8,7 @@ import {
   CardContent,
 } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
+import { CHART_FALLBACK_COLOR } from '@/lib/utils/chartColors';
 
 interface VehicleData {
   vehicle_id?: number;
@@ -51,7 +52,7 @@ export default function VehicleComparison({ vehicleStats, totalCost }: VehicleCo
           {displayVehicles.map((vehicle, _index) => {
             const percentage = (vehicle.cost / total) * 100;
             const vehicleData = vehicle.vehicle;
-            const barColor = vehicle.vehicleColor || '#f97415';
+            const barColor = vehicle.vehicleColor || CHART_FALLBACK_COLOR;
 
             return (
               <div
@@ -73,7 +74,7 @@ export default function VehicleComparison({ vehicleStats, totalCost }: VehicleCo
                   <div className="absolute top-0 left-0 w-full h-[72px] bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
                   <div
                     className="absolute bottom-1 right-1 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800"
-                    style={{ backgroundColor: vehicle.vehicleColor || '#64748b' }}
+                    style={{ backgroundColor: vehicle.vehicleColor || CHART_FALLBACK_COLOR }}
                   ></div>
                 </div>
 

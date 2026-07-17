@@ -18,6 +18,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
  * @returns {Promise<NextResponse>} JSON response with vehicles array or error
  */
 export async function GET() {
+  try {
   const supabase = await createSupabaseServerClient();
 
   // Get authenticated user
@@ -91,4 +92,8 @@ export async function GET() {
     })) || [];
 
   return NextResponse.json({ vehicles: vehiclesWithInsurance });
+  } catch (err) {
+    console.error('Unexpected error in /api/vehicles/get:', err);
+    return NextResponse.json({ error: 'Erreur serveur inattendue' }, { status: 500 });
+  }
 }
