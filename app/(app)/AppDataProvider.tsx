@@ -8,9 +8,11 @@
  * for proper granular streaming with Suspense boundaries.
  *
  * In demo mode (mv_demo cookie), the same fetchers answer from the demo state and the demo shell (demo controls + guided tour) is mounted.
+ * DemoModeSync (both modes) reloads tabs left in the other mode, since the demo cookie is shared by all tabs.
  */
 import { redirect } from 'next/navigation';
 
+import DemoModeSync from '@/components/demo/DemoModeSync';
 import DemoShell from '@/components/demo/DemoShell';
 import { RemindersCountProvider } from '@/contexts/RemindersCountContext';
 import { SelectorsProvider } from '@/contexts/SelectorsContext';
@@ -59,6 +61,7 @@ export default async function AppDataProvider({ children }: AppDataProviderProps
         currentUserId={safeUser.id}
       >
         <RemindersCountProvider overdue={reminderCounts.overdue} dueSoon={reminderCounts.dueSoon}>
+          <DemoModeSync isDemo={demo !== null} />
           {demo ? <DemoShell sessionId={demo.journal.sessionId}>{children}</DemoShell> : children}
         </RemindersCountProvider>
       </SelectorsProvider>
