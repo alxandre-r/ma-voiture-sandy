@@ -6,6 +6,7 @@
 import {
   DEMO_COOKIE_MAX_BYTES,
   DEMO_LIMIT_MESSAGE,
+  DEMO_MAX_OPS,
   DEMO_SESSION_MISSING_MESSAGE,
 } from '../constants';
 import { toISODate } from '../dates';
@@ -47,8 +48,10 @@ export function handleDemoApiRequest(request: DemoHttpRequest): DemoHttpResponse
     });
     if (!result.op) return { status: result.status, json: result.json };
 
-    const cookie = encodeJournal({ ...journal, ops: [...journal.ops, result.op] });
-    if (cookie.length > DEMO_COOKIE_MAX_BYTES) {
+    const ops = [...journal.ops, result.op];
+    const cookie = encodeJournal({ ...journal, ops });
+    // decodeJournal rejects anything beyond these caps: never issue such a cookie
+    if (cookie.length > DEMO_COOKIE_MAX_BYTES || ops.length > DEMO_MAX_OPS) {
       return { status: 409, json: { error: DEMO_LIMIT_MESSAGE } };
     }
     return { status: result.status, json: result.json, cookie };

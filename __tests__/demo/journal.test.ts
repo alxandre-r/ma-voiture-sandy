@@ -1,9 +1,12 @@
 // @vitest-environment node
+import { deflateRawSync } from 'node:zlib';
+
 import { describe, expect, it } from 'vitest';
 
-import { DEMO_COOKIE_MAX_BYTES } from '@/lib/demo/constants';
+import { DEMO_COOKIE_MAX_BYTES, DEMO_MAX_OPS } from '@/lib/demo/constants';
 import { createJournal, decodeJournal, encodeJournal } from '@/lib/demo/journal';
 import { createRandom } from '@/lib/demo/random';
+import { buildDemoState } from '@/lib/demo/state';
 
 import type { DemoOp } from '@/lib/demo/ops';
 
@@ -53,5 +56,73 @@ describe('demo journal', () => {
     expect(encodeJournal({ sessionId: crypto.randomUUID(), ops }).length).toBeLessThan(
       DEMO_COOKIE_MAX_BYTES,
     );
+  });
+});
+
+describe('demo journal: tampered cookie caps', () => {
+  const maintenanceOp: DemoOp = {
+    t: 'maintenance.add',
+    id: 10_000,
+    at: '2026-10-01T08:00:00.000Z',
+    d: {
+      vehicle_id: 101,
+      date: '2026-09-01',
+      amount: 80,
+      notes: null,
+      maintenance_type: 'oil_change',
+      odometer: 92_000,
+      garage: null,
+    },
+  };
+
+  // Encoder called directly: the server never issues such cookies, an attacker can craft them
+  const craft = (count: number) =>
+    encodeJournal({
+      sessionId: 'attacker',
+      ops: Array.from({ length: count }, () => maintenanceOp),
+    });
+  const crafted4000 = craft(4_000);
+  // Fits the size cap: only the op cap can stop this one
+  const craftedUnderSizeCap = craft(3_400);
+
+  it('crafts a 3 400-op cookie that fits the cookie size limit', () => {
+    expect(craftedUnderSizeCap.length).toBeLessThanOrEqual(DEMO_COOKIE_MAX_BYTES);
+  });
+
+  it.each([
+    ['4 000 ops', crafted4000],
+    ['3 400 ops under the size cap', craftedUnderSizeCap],
+  ])('recovers an empty journal from a crafted cookie of %s', (_label, cookie) => {
+    expect(decodeJournal(cookie)).toEqual({ sessionId: 'recovered', ops: [] });
+  });
+
+  it.each([
+    ['4 000 ops', crafted4000],
+    ['3 400 ops under the size cap', craftedUnderSizeCap],
+  ])('decodes and replays a crafted cookie of %s in under 50 ms', (_label, cookie) => {
+    // Warm-up: the first seed build pays JIT costs unrelated to the journal
+    buildDemoState('2026-10-02', []);
+    const started = performance.now();
+    buildDemoState('2026-10-02', decodeJournal(cookie).ops);
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+
+  it('accepts a journal of exactly DEMO_MAX_OPS ops', () => {
+    const ops = Array.from({ length: DEMO_MAX_OPS }, () => maintenanceOp);
+    expect(decodeJournal(encodeJournal({ sessionId: 's', ops })).ops).toHaveLength(DEMO_MAX_OPS);
+  });
+
+  it('recovers an empty journal when the raw cookie is longer than the cookie limit', () => {
+    const valid = encodeJournal({ sessionId: 's', ops: [maintenanceOp] });
+    const oversized = valid + 'A'.repeat(DEMO_COOKIE_MAX_BYTES);
+    expect(decodeJournal(oversized)).toEqual({ sessionId: 'recovered', ops: [] });
+  });
+
+  it('recovers an empty journal when the payload inflates past 128 KB', () => {
+    // Valid JSON once inflated: 200 KB of whitespace inside the op array
+    const json = `{"s":"s","o":[${' '.repeat(200 * 1024)}]}`;
+    const bomb = `v1.${deflateRawSync(Buffer.from(json, 'utf8')).toString('base64url')}`;
+    expect(bomb.length).toBeLessThan(DEMO_COOKIE_MAX_BYTES);
+    expect(decodeJournal(bomb)).toEqual({ sessionId: 'recovered', ops: [] });
   });
 });

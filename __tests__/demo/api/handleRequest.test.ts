@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { handleDemoApiRequest } from '@/lib/demo/api/handleRequest';
-import { DEMO_COOKIE_MAX_BYTES, DEMO_VEHICLE } from '@/lib/demo/constants';
+import { DEMO_COOKIE_MAX_BYTES, DEMO_MAX_OPS, DEMO_VEHICLE } from '@/lib/demo/constants';
 import { createJournal, decodeJournal, encodeJournal } from '@/lib/demo/journal';
 import { createRandom } from '@/lib/demo/random';
 
@@ -82,6 +82,19 @@ describe('handleDemoApiRequest', () => {
         error: 'Limite de la démo atteinte : réinitialisez-la depuis le bandeau pour continuer.',
       },
     });
+    expect(result.cookie).toBeUndefined();
+  });
+
+  it('refuses a mutation that would exceed the op cap, so the next decode never resets the demo', () => {
+    const ops: DemoOp[] = Array.from({ length: DEMO_MAX_OPS }, () => ({
+      t: 'profile.update',
+      name: 'Camille',
+    }));
+    const raw = encodeJournal({ sessionId: 's', ops });
+    expect(raw.length).toBeLessThan(DEMO_COOKIE_MAX_BYTES);
+
+    const result = request('POST', 'fills/add', raw, fillBody);
+    expect(result.status).toBe(409);
     expect(result.cookie).toBeUndefined();
   });
 });

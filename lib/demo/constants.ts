@@ -8,6 +8,8 @@ export const DEMO_COOKIE = 'mv_demo';
 export const DEMO_JOURNAL_VERSION = 'v1';
 /** Max size of the encoded cookie value (browsers cap one cookie at ~4096 bytes). */
 export const DEMO_COOKIE_MAX_BYTES = 3800;
+/** Max ops accepted when decoding a journal: replay is O(n²), a crafted cookie must not block the server. */
+export const DEMO_MAX_OPS = 500;
 
 export const DEMO_USER_ID = '00000000-0000-4000-8000-000000000001'; // Camille
 export const DEMO_PARTNER_ID = '00000000-0000-4000-8000-000000000002'; // Thomas
