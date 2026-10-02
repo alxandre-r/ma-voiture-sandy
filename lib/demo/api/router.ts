@@ -1,5 +1,6 @@
 import { DEMO_UNAVAILABLE_MESSAGE } from '../constants';
 
+import { expenseHandlers } from './handlers/expenses';
 import { readHandlers } from './handlers/reads';
 import { fail } from './helpers';
 
@@ -8,6 +9,7 @@ import type { DemoApiContext, DemoApiHandler, DemoApiResult } from './types';
 /** "METHOD path" -> handler. Paths are relative to /api (e.g. "POST fills/add"). */
 const HANDLERS: Record<string, DemoApiHandler> = {
   ...readHandlers,
+  ...expenseHandlers,
 };
 
 export function dispatchDemoApi(method: string, path: string, ctx: DemoApiContext): DemoApiResult {
