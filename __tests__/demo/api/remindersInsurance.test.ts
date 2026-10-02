@@ -117,7 +117,7 @@ describe('reminders endpoints', () => {
 });
 
 describe('insurance endpoints', () => {
-  it('creates a contract on an owned vehicle; instalments are derived', () => {
+  it('creates a non-overlapping contract; instalments are derived', () => {
     const state = seed();
     const result = commit(
       state,
@@ -125,8 +125,8 @@ describe('insurance endpoints', () => {
         vehicle_id: DEMO_VEHICLE.zoe,
         provider: ' Assur+ ',
         monthly_cost: 31,
-        start_date: '2026-09-01',
-        end_date: '',
+        start_date: '2020-01-01',
+        end_date: '2020-03-31',
       }),
     );
     expect(result.status).toBe(201);
@@ -138,12 +138,23 @@ describe('insurance endpoints', () => {
         e.id >= 1_000_000 + contract.id * 1000 &&
         e.id < 1_000_000 + (contract.id + 1) * 1000,
     );
-    expect(instalments.map((e) => e.date)).toEqual(['2026-09-01', '2026-10-01']);
+    expect(instalments.map((e) => e.date)).toEqual(['2020-01-01', '2020-02-01', '2020-03-01']);
+  });
+
+  it('rejects an overlapping contract with 409', () => {
+    const state = seed();
+    const result = call(state, 'POST', 'insurance/create', {
+      vehicle_id: DEMO_VEHICLE.zoe,
+      monthly_cost: 31,
+      start_date: '2026-09-01',
+    });
+    expect(result.status).toBe(409);
+    expect((result.json as { error: string }).error).toMatch(/^Ce contrat chevauche le contrat du /);
   });
 
   it('requires cost, start date and ownership', () => {
     const state = seed();
-    const base = { vehicle_id: DEMO_VEHICLE.zoe, monthly_cost: 31, start_date: '2026-09-01' };
+    const base = { vehicle_id: DEMO_VEHICLE.zoe, monthly_cost: 31, start_date: '2020-01-01' };
     expect(call(state, 'POST', 'insurance/create', { ...base, monthly_cost: 0 }).json).toEqual({
       error: 'Le coût mensuel est requis',
     });
@@ -158,14 +169,67 @@ describe('insurance endpoints', () => {
     });
   });
 
-  it('updates and deletes own contracts only', () => {
+  it('updates and deletes own contracts only; update rejects overlaps but not itself', () => {
     const state = seed();
     expect(call(state, 'PATCH', 'insurance/update', { id: 504, monthly_cost: 10 }).status).toBe(
       403,
+    );
+    // 502 is the open 308 contract: moving its start inside 501 overlaps
+    expect(
+      call(state, 'PATCH', 'insurance/update', { id: 502, start_date: '2024-10-01' }).status,
+    ).toBe(409);
+    expect(call(state, 'PATCH', 'insurance/update', { id: 502, monthly_cost: 40 }).status).toBe(
+      200,
     );
     commit(state, call(state, 'PATCH', 'insurance/update', { id: 503, end_date: '2026-09-30' }));
     expect(state.insuranceContracts.find((c) => c.id === 503)?.end_date).toBe('2026-09-30');
     expect(commit(state, call(state, 'DELETE', 'insurance/delete', { id: 503 })).status).toBe(200);
     expect(state.insuranceContracts.some((c) => c.id === 503)).toBe(false);
+  });
+
+  it('changes a contract: closes the current one the day before and opens the new one', () => {
+    const state = seed();
+    const result = commit(
+      state,
+      call(state, 'POST', 'insurance/change', {
+        vehicle_id: DEMO_VEHICLE.peugeot308,
+        monthly_cost: 49.9,
+        effective_date: '2026-11-01',
+      }),
+    );
+    expect(result.status).toBe(201);
+    const created = (result.json as { contract: { id: number; provider: string } }).contract;
+    expect(created.provider).toBe('Mutuelle des Routes');
+    expect(state.insuranceContracts.find((c) => c.id === 502)?.end_date).toBe('2026-10-31');
+    expect(state.insuranceContracts.find((c) => c.id === created.id)).toMatchObject({
+      start_date: '2026-11-01',
+      end_date: null,
+      monthly_cost: 49.9,
+      owner_id: DEMO_USER_ID,
+    });
+  });
+
+  it('refuses a change when a contract already starts later, and on family vehicles', () => {
+    const state = seed();
+    // Seeded Zoé already has an upcoming contract (506)
+    expect(
+      call(state, 'POST', 'insurance/change', {
+        vehicle_id: DEMO_VEHICLE.zoe,
+        monthly_cost: 30,
+        effective_date: '2026-10-15',
+      }),
+    ).toEqual({
+      status: 409,
+      json: {
+        error: 'Un contrat commence déjà à cette date ou après. Modifiez-le ou supprimez-le.',
+      },
+    });
+    expect(
+      call(state, 'POST', 'insurance/change', {
+        vehicle_id: DEMO_VEHICLE.niro,
+        monthly_cost: 30,
+        effective_date: '2026-11-01',
+      }).status,
+    ).toBe(404);
   });
 });

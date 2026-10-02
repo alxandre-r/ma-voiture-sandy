@@ -30,7 +30,7 @@ export function seedInsuranceContracts(today: string): DemoInsuranceContract[] {
       owner_id: DEMO_USER_ID,
       monthly_cost: 29.9,
       start_date: addMonths(today, -24),
-      end_date: null,
+      end_date: addDays(today, 19),
       provider: 'Mutuelle des Routes',
     },
     {
@@ -50,6 +50,16 @@ export function seedInsuranceContracts(today: string): DemoInsuranceContract[] {
       start_date: addDays(addMonths(today, -24), 12),
       end_date: null,
       provider: 'Assurance Horizon',
+    },
+      {
+      // Scheduled change: the demo shows a "Changement le …" badge on the Zoé
+      id: 506,
+      vehicle_id: DEMO_VEHICLE.zoe,
+      owner_id: DEMO_USER_ID,
+      monthly_cost: 31.9,
+      start_date: addDays(today, 20),
+      end_date: null,
+      provider: 'Mutuelle des Routes',
     },
   ];
 }

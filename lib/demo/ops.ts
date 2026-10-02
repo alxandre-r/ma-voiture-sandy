@@ -111,6 +111,12 @@ export type DemoOp =
   | { t: 'insurance.create'; id: number; d: ContractData }
   | { t: 'insurance.update'; id: number; d: ContractPatch }
   | { t: 'insurance.delete'; id: number }
+  | {
+      t: 'insurance.change';
+      id: number;
+      d: ContractData;
+      close: { id: number; end_date: string } | null;
+    }
   | { t: 'vehicle.add'; id: number; at: string; d: VehicleData }
   | { t: 'vehicle.update'; id: number; d: VehicleData }
   | { t: 'vehicle.delete'; id: number }
@@ -136,6 +142,7 @@ const OP_TYPES: ReadonlySet<string> = new Set<DemoOp['t']>([
   'reminder.complete',
   'insurance.create',
   'insurance.update',
+  'insurance.change',
   'insurance.delete',
   'vehicle.add',
   'vehicle.update',
@@ -157,6 +164,7 @@ const PAYLOAD_OP_TYPES: ReadonlySet<string> = new Set<DemoOp['t']>([
   'reminder.update',
   'insurance.create',
   'insurance.update',
+  'insurance.change',
   'vehicle.add',
   'vehicle.update',
   'preferences.update',
@@ -172,6 +180,13 @@ export function isDemoOp(value: unknown): value is DemoOp {
   if (typeof value !== 'object' || value === null) return false;
   const { t: type, d } = value as { t?: unknown; d?: unknown };
   if (typeof type !== 'string' || !OP_TYPES.has(type)) return false;
+  if (type === 'insurance.change') {
+    const { close } = value as { close?: unknown };
+    if (close !== null) {
+      if (!isPlainObject(close)) return false;
+      if (typeof close.id !== 'number' || typeof close.end_date !== 'string') return false;
+    }
+  }
   return !PAYLOAD_OP_TYPES.has(type) || isPlainObject(d);
 }
 
@@ -471,6 +486,18 @@ export function applyOp(state: DemoState, op: DemoOp): void {
     case 'insurance.delete':
       state.insuranceContracts = state.insuranceContracts.filter((c) => c.id !== op.id);
       return;
+    case 'insurance.change': {
+      const { close } = op;
+      if (close) {
+        // Only the user's own contracts can be closed (the cookie can be tampered with)
+        const closed = state.insuranceContracts.find(
+          (c) => c.id === close.id && c.owner_id === DEMO_USER_ID,
+        );
+        if (closed) closed.end_date = close.end_date;
+      }
+      state.insuranceContracts.push({ id: op.id, owner_id: DEMO_USER_ID, ...sanitize(op.d) });
+      return;
+    }
     case 'vehicle.add':
       state.vehicles.push({
         ...EMPTY_VEHICLE,

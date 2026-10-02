@@ -203,4 +203,50 @@ describe('tampered op payloads', () => {
     expect(state.insuranceContracts.find((c) => c.id === 900)?.owner_id).toBe(DEMO_USER_ID);
     expect(state.reminders.find((r) => r.id === 900)?.user_id).toBe(DEMO_USER_ID);
   });
+
+  it('replays insurance.change and ignores closing a contract the user does not own', () => {
+    const state = buildDemoSeed('2026-10-01');
+    applyOp(state, {
+      t: 'insurance.change',
+      id: 950,
+      d: {
+        vehicle_id: DEMO_VEHICLE.peugeot308,
+        monthly_cost: 40,
+        start_date: '2026-11-01',
+        end_date: null,
+        provider: 'X',
+      },
+      close: { id: 502, end_date: '2026-10-31' },
+    });
+    expect(state.insuranceContracts.find((c) => c.id === 502)?.end_date).toBe('2026-10-31');
+    expect(state.insuranceContracts.find((c) => c.id === 950)?.owner_id).toBe(DEMO_USER_ID);
+
+    applyOp(state, {
+      t: 'insurance.change',
+      id: 951,
+      d: {
+        vehicle_id: DEMO_VEHICLE.niro,
+        monthly_cost: 1,
+        start_date: '2026-11-01',
+        end_date: null,
+        provider: null,
+      },
+      close: { id: 504, end_date: '2000-01-01' }, // 504 belongs to the partner
+    });
+    expect(state.insuranceContracts.find((c) => c.id === 504)?.end_date).toBeNull();
+  });
+
+  it('validates the close payload of insurance.change', () => {
+    const d = {
+      vehicle_id: 1,
+      monthly_cost: 1,
+      start_date: '2026-11-01',
+      end_date: null,
+      provider: null,
+    };
+    expect(isDemoOp({ t: 'insurance.change', id: 1, d, close: null })).toBe(true);
+    expect(isDemoOp({ t: 'insurance.change', id: 1, d, close: { id: 'x', end_date: 1 } })).toBe(
+      false,
+    );
+  });
 });

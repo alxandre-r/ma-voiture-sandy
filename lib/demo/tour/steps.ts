@@ -150,7 +150,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: '/insurance',
     target: 'insurance-overview',
     title: 'Vos contrats, sans paperasse',
-    body: "Tarif, prochaine échéance et historique des prix. Les mensualités s'ajoutent toutes seules à vos dépenses.",
+    body: "Tarif, échéances et historique de chaque contrat. Un changement d'assureur se programme à l'avance, et les mensualités s'ajoutent toutes seules à vos dépenses.",
   },
   {
     id: 'vehicle-health',

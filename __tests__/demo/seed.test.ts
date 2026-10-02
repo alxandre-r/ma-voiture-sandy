@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DEMO_VEHICLE } from '@/lib/demo/constants';
 import { addDays, toTimestamp } from '@/lib/demo/dates';
 import { buildDemoSeed } from '@/lib/demo/seed';
+import { findOverlap } from '@/lib/utils/insuranceUtils';
 
 const TODAY = '2026-10-01';
 
@@ -35,7 +36,7 @@ describe('buildDemoSeed', () => {
     expect(seed.expenses.filter((e) => e.fill)).toHaveLength(230);
     expect(seed.expenses.filter((e) => e.type === 'maintenance')).toHaveLength(20);
     expect(seed.expenses.filter((e) => e.type === 'other')).toHaveLength(20);
-    expect(seed.insuranceContracts).toHaveLength(5);
+    expect(seed.insuranceContracts).toHaveLength(6);
     expect(seed.reminders).toHaveLength(6);
   });
 
@@ -69,5 +70,15 @@ describe('buildDemoSeed', () => {
     const p308 = seed.vehicles.find((v) => v.id === DEMO_VEHICLE.peugeot308)!;
     const oil = seed.reminders.find((r) => r.maintenance_type_id === 'oil_change')!;
     expect(oil.due_odometer! - p308.odometer).toBe(1_200);
+  });
+
+  it('schedules a contract change on the Zoé and never overlaps contracts', () => {
+    const seed = buildDemoSeed(TODAY);
+    const zoe = seed.insuranceContracts.filter((c) => c.vehicle_id === DEMO_VEHICLE.zoe);
+    expect(zoe.some((c) => c.start_date > TODAY)).toBe(true);
+    for (const contract of seed.insuranceContracts) {
+      const siblings = seed.insuranceContracts.filter((c) => c.vehicle_id === contract.vehicle_id);
+      expect(findOverlap(siblings, contract, contract.id)).toBeNull();
+    }
   });
 });

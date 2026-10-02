@@ -3,8 +3,9 @@
  * @description Demo equivalents of the SQL views (__info__/current_schema/views.sql), same column names.
  */
 
+import { getInstalmentDates } from '@/lib/utils/insuranceUtils';
+
 import { DERIVED_INSURANCE_ID_BASE } from './constants';
-import { addMonths } from './dates';
 
 import type { DemoExpense, DemoInsuranceContract, DemoState } from './types';
 import type { Attachment } from '@/types/attachment';
@@ -145,16 +146,11 @@ export function isDerivedInsuranceId(id: number): boolean {
   return id >= DERIVED_INSURANCE_ID_BASE;
 }
 
-/** Monthly instalments from start_date to min(end_date, today), like the SQL triggers. */
+/** Monthly instalments from start_date to min(end_date, today), like the API backfill and SQL triggers. */
 export function insuranceInstalments(state: DemoState, contract: DemoInsuranceContract): Expense[] {
-  const end =
-    contract.end_date && contract.end_date < state.today ? contract.end_date : state.today;
   const vehicleName = state.vehicles.find((v) => v.id === contract.vehicle_id)?.name ?? null;
-  const rows: Expense[] = [];
-  for (let i = 0; i < 1200; i += 1) {
-    const date = addMonths(contract.start_date, i);
-    if (date > end) break;
-    rows.push({
+  return getInstalmentDates(contract.start_date, contract.end_date, state.today).map(
+    (date, i): Expense => ({
       id: DERIVED_INSURANCE_ID_BASE + contract.id * 1000 + i,
       vehicle_id: contract.vehicle_id,
       vehicle_name: vehicleName,
@@ -175,9 +171,8 @@ export function insuranceInstalments(state: DemoState, contract: DemoInsuranceCo
       price_per_kwh: null,
       charge_type: null,
       attachments: [],
-    });
-  }
-  return rows;
+    }),
+  );
 }
 
 export function expensesForDisplay(state: DemoState): Expense[] {
