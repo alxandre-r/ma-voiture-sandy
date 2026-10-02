@@ -19,6 +19,8 @@ export type DemoVehicleRow = Vehicle & {
   family_id: string | null;
   family_ids: string[] | null;
   insurance_id: number | null;
+  insurance_monthly_cost: number | null;
+  insurance_start_date: string | null;
   insurance_owner_id: string | null;
   insurance_end_date: string | null;
   insurance_provider: string | null;

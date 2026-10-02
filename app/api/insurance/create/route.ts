@@ -1,12 +1,21 @@
-import { addMonths, parseISO } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  findOverlap,
+  formatOverlapError,
+  getInstalmentDates,
+  validateContractInput,
+} from '@/lib/utils/insuranceUtils';
+import { getLocalToday } from '@/lib/utils/isoDate';
+
+import type { InsuranceContract } from '@/types/insurance';
 
 /**
  * POST /api/insurance/create
- * Creates an insurance contract and backfills monthly expenses from start_date to today.
+ * Creates a contract (no overlap allowed on the vehicle) and backfills monthly expenses
+ * from start_date to min(end_date, today).
  */
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -25,18 +34,14 @@ export async function POST(request: Request) {
     if (!body.vehicle_id) {
       return NextResponse.json({ error: 'Le champ vehicle_id est requis' }, { status: 400 });
     }
-    if (!body.monthly_cost) {
-      return NextResponse.json({ error: 'Le coût mensuel est requis' }, { status: 400 });
-    }
-    if (!body.start_date) {
-      return NextResponse.json({ error: 'La date de début est requise' }, { status: 400 });
-    }
+    const invalid = validateContractInput(body);
+    if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
 
-    // Verify vehicle ownership
+    const vehicleId = Number(body.vehicle_id);
     const { data: vehicle, error: vehicleError } = await supabase
       .from('vehicles')
       .select('id')
-      .eq('id', body.vehicle_id)
+      .eq('id', vehicleId)
       .eq('owner_id', user.id)
       .single();
 
@@ -47,15 +52,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create the insurance contract
+    const startDate = String(body.start_date).slice(0, 10);
+    const endDate = body.end_date ? String(body.end_date).slice(0, 10) : null;
+
+    const { data: siblings } = await supabase
+      .from('insurance_contracts')
+      .select('id, start_date, end_date')
+      .eq('vehicle_id', vehicleId);
+    const overlap = findOverlap((siblings ?? []) as InsuranceContract[], {
+      start_date: startDate,
+      end_date: endDate,
+    });
+    if (overlap) {
+      return NextResponse.json({ error: formatOverlapError(overlap) }, { status: 409 });
+    }
+
     const { data: contract, error: contractError } = await supabase
       .from('insurance_contracts')
       .insert({
-        vehicle_id: Number(body.vehicle_id),
+        vehicle_id: vehicleId,
         owner_id: user.id,
         monthly_cost: Number(body.monthly_cost),
-        start_date: body.start_date,
-        end_date: body.end_date || null,
+        start_date: startDate,
+        end_date: endDate,
         provider: body.provider?.trim() || null,
       })
       .select()
@@ -69,33 +88,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // Backfill monthly expenses from start_date to min(end_date, today)
-    const today = new Date();
-    const periodEnd =
-      body.end_date && parseISO(body.end_date) < today ? parseISO(body.end_date) : today;
-
-    let current = parseISO(body.start_date);
-    const expensesToInsert = [];
-
-    while (current <= periodEnd) {
-      const dateStr = current.toISOString().split('T')[0];
-      expensesToInsert.push({
-        owner_id: user.id,
-        vehicle_id: Number(body.vehicle_id),
-        type: 'insurance',
-        amount: Number(body.monthly_cost),
-        date: dateStr,
-        insurance_contract_id: contract.id,
-        notes: 'Mensualité',
-      });
-      current = addMonths(current, 1);
-    }
-
-    if (expensesToInsert.length > 0) {
-      const { error: expensesError } = await supabase.from('expenses').insert(expensesToInsert);
+    const expenses = getInstalmentDates(startDate, endDate, getLocalToday()).map((date) => ({
+      owner_id: user.id,
+      vehicle_id: vehicleId,
+      type: 'insurance',
+      amount: Number(body.monthly_cost),
+      date,
+      insurance_contract_id: contract.id,
+      notes: 'Mensualité',
+    }));
+    if (expenses.length > 0) {
+      const { error: expensesError } = await supabase.from('expenses').insert(expenses);
       if (expensesError) {
-        console.error('Error backfilling insurance expenses:', expensesError);
         // Contract created but expenses failed — non-blocking
+        console.error('Error backfilling insurance expenses:', expensesError);
       }
     }
 

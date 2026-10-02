@@ -1,22 +1,18 @@
-import { addMonths, parseISO, subDays } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getInstalmentDates, planContractChange } from '@/lib/utils/insuranceUtils';
+import { getLocalToday } from '@/lib/utils/isoDate';
+
+import type { InsuranceContract } from '@/types/insurance';
 
 /**
- * POST /api/insurance/change
- * Handles a price change or insurer change on the active contract.
+ * POST /api/insurance/change — "Changer de contrat".
+ * Closes the vehicle's latest contract on effective_date − 1 (when it would still run then),
+ * creates an open contract from effective_date and backfills its instalments up to today.
  *
- * - Closes the current active contract (end_date = effective_date - 1 day)
- * - Creates a new contract starting on effective_date
- * - Backfills monthly expenses for the new contract
- *
- * Body:
- *   vehicle_id     number   (required)
- *   monthly_cost   number   (required)
- *   effective_date string   (required, YYYY-MM-DD)
- *   provider       string?  (optional — if omitted, copies from current contract)
+ * Body: vehicle_id, monthly_cost, effective_date (YYYY-MM-DD), provider? (defaults to the closed one's)
  */
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -35,79 +31,85 @@ export async function POST(request: Request) {
     if (!body.vehicle_id) {
       return NextResponse.json({ error: 'Le champ vehicle_id est requis' }, { status: 400 });
     }
-    if (!body.monthly_cost) {
-      return NextResponse.json({ error: 'Le coût mensuel est requis' }, { status: 400 });
-    }
-    if (!body.effective_date) {
-      return NextResponse.json({ error: "La date d'effet est requise" }, { status: 400 });
-    }
+    const vehicleId = Number(body.vehicle_id);
 
-    // Fetch the current active contract (no end_date or future end_date)
-    const today = new Date().toISOString().split('T')[0];
-    const { data: allContracts } = await supabase
-      .from('insurance_contracts')
-      .select('*')
-      .eq('vehicle_id', Number(body.vehicle_id))
+    const { data: vehicle } = await supabase
+      .from('vehicles')
+      .select('id')
+      .eq('id', vehicleId)
       .eq('owner_id', user.id)
-      .order('start_date', { ascending: false });
-
-    const activeContract = allContracts?.find((c) => !c.end_date || c.end_date >= today) ?? null;
-
-    // Close the active contract at effective_date - 1 day
-    if (activeContract && !activeContract.end_date) {
-      const endDate = subDays(parseISO(body.effective_date), 1).toISOString().split('T')[0];
-      await supabase
-        .from('insurance_contracts')
-        .update({ end_date: endDate })
-        .eq('id', activeContract.id);
+      .maybeSingle();
+    if (!vehicle) {
+      return NextResponse.json(
+        { error: "Véhicule non trouvé ou vous n'êtes pas le propriétaire" },
+        { status: 404 },
+      );
     }
 
-    // Determine provider: use provided value or copy from current contract
-    const provider = body.provider?.trim() || activeContract?.provider || null;
+    const { data } = await supabase
+      .from('insurance_contracts')
+      .select('id, start_date, end_date, provider')
+      .eq('vehicle_id', vehicleId);
+    const contracts = (data ?? []) as InsuranceContract[];
 
-    // Create the new contract
+    const plan = planContractChange(contracts, {
+      vehicle_id: vehicleId,
+      monthly_cost: body.monthly_cost,
+      effective_date: body.effective_date,
+      provider: body.provider,
+    });
+    if (!plan.ok) return NextResponse.json({ error: plan.error }, { status: plan.status });
+
+    const { close, create } = plan;
+    const previousEnd = close ? (contracts.find((c) => c.id === close.id)?.end_date ?? null) : null;
+
+    if (close) {
+      const { error: closeError } = await supabase
+        .from('insurance_contracts')
+        .update({ end_date: close.end_date })
+        .eq('id', close.id);
+      if (closeError) {
+        console.error('Error closing insurance contract:', closeError);
+        return NextResponse.json(
+          { error: 'Erreur lors de la clôture du contrat actuel' },
+          { status: 500 },
+        );
+      }
+    }
+
     const { data: newContract, error: createError } = await supabase
       .from('insurance_contracts')
-      .insert({
-        vehicle_id: Number(body.vehicle_id),
-        owner_id: user.id,
-        monthly_cost: Number(body.monthly_cost),
-        start_date: body.effective_date,
-        end_date: null,
-        provider,
-      })
+      .insert({ ...create, owner_id: user.id })
       .select()
       .single();
 
     if (createError) {
       console.error('Error creating new insurance contract:', createError);
+      if (close) {
+        // Restore the closed contract so the vehicle is not left uninsured
+        await supabase
+          .from('insurance_contracts')
+          .update({ end_date: previousEnd })
+          .eq('id', close.id);
+      }
       return NextResponse.json(
         { error: 'Erreur lors de la création du nouveau contrat' },
         { status: 500 },
       );
     }
 
-    // Backfill monthly expenses from effective_date to today
-    const effectiveDate = parseISO(body.effective_date);
-    const periodEnd = new Date();
-    let current = effectiveDate;
-    const expensesToInsert = [];
-
-    while (current <= periodEnd) {
-      expensesToInsert.push({
-        owner_id: user.id,
-        vehicle_id: Number(body.vehicle_id),
-        type: 'insurance',
-        amount: Number(body.monthly_cost),
-        date: current.toISOString().split('T')[0],
-        insurance_contract_id: newContract.id,
-        notes: 'Mensualité',
-      });
-      current = addMonths(current, 1);
-    }
-
-    if (expensesToInsert.length > 0) {
-      await supabase.from('expenses').insert(expensesToInsert);
+    const expenses = getInstalmentDates(create.start_date, null, getLocalToday()).map((date) => ({
+      owner_id: user.id,
+      vehicle_id: vehicleId,
+      type: 'insurance',
+      amount: create.monthly_cost,
+      date,
+      insurance_contract_id: newContract.id,
+      notes: 'Mensualité',
+    }));
+    if (expenses.length > 0) {
+      const { error: expensesError } = await supabase.from('expenses').insert(expenses);
+      if (expensesError) console.error('Error backfilling insurance expenses:', expensesError);
     }
 
     revalidatePath('/', 'layout');

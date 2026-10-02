@@ -27,8 +27,6 @@ const VALID_FIELDS = [
   'vin',
   'transmission',
   'image',
-  'insurance_start_date',
-  'insurance_monthly_cost',
   'tech_control_expiry',
   'financing_mode',
   'purchase_date',
@@ -81,13 +79,9 @@ export async function PATCH(request: Request) {
       Object.entries(inputData).filter(([key]) => VALID_FIELDS.includes(key)),
     );
 
-    // Apply type conversions (except insurance fields which are handled separately)
+    // Apply type conversions
     const updateData: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(processedData)) {
-      // Skip insurance fields - they're handled separately
-      if (key === 'insurance_start_date' || key === 'insurance_monthly_cost') {
-        continue;
-      }
       if (key === 'tech_control_expiry' || key === 'purchase_date') {
         updateData[key] = toDate(value as string);
       } else if (key === 'purchase_price' || key === 'co2_emission') {
@@ -150,48 +144,6 @@ export async function PATCH(request: Request) {
         errorMessage = 'Le modèle est requis';
       }
       return NextResponse.json({ error: errorMessage }, { status: 500 });
-    }
-
-    // Handle insurance contract update
-    const insuranceStartDate = toDate(inputData.insurance_start_date as string);
-    const insuranceMonthlyCost = toNumber(inputData.insurance_monthly_cost as number);
-
-    if (insuranceStartDate || insuranceMonthlyCost) {
-      // Check if there's an existing insurance contract
-      const { data: existingContract } = await supabase
-        .from('insurance_contracts')
-        .select('id')
-        .eq('vehicle_id', id)
-        .maybeSingle();
-
-      if (existingContract) {
-        // Update existing contract
-        const { error: insuranceUpdateError } = await supabase
-          .from('insurance_contracts')
-          .update({
-            monthly_cost: insuranceMonthlyCost,
-            start_date: insuranceStartDate,
-          })
-          .eq('id', existingContract.id);
-
-        if (insuranceUpdateError) {
-          console.error('Error updating insurance contract:', insuranceUpdateError);
-        }
-      } else if (insuranceStartDate && insuranceMonthlyCost) {
-        // Create new contract if both values are provided
-        const { error: insuranceInsertError } = await supabase.from('insurance_contracts').insert([
-          {
-            vehicle_id: id,
-            owner_id: user.id,
-            monthly_cost: insuranceMonthlyCost,
-            start_date: insuranceStartDate,
-          },
-        ]);
-
-        if (insuranceInsertError) {
-          console.error('Error creating insurance contract:', insuranceInsertError);
-        }
-      }
     }
 
     revalidatePath('/', 'layout');

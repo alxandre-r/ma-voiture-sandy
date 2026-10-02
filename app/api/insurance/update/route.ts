@@ -2,11 +2,19 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  findOverlap,
+  formatOverlapError,
+  validateContractInput,
+} from '@/lib/utils/insuranceUtils';
+
+import type { InsuranceContract } from '@/types/insurance';
 
 /**
  * PATCH /api/insurance/update
- * Updates an insurance contract (the DB trigger sync_insurance_expenses_after_update
- * automatically adjusts future monthly expenses when cost/dates change).
+ * Updates an insurance contract (no overlap allowed with the vehicle's other contracts).
+ * The DB trigger sync_insurance_expenses_after_update regenerates the contract's monthly
+ * expenses when cost, dates or vehicle change.
  */
 export async function PATCH(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -29,7 +37,7 @@ export async function PATCH(request: Request) {
     // Verify contract ownership before updating
     const { data: existing, error: fetchError } = await supabase
       .from('insurance_contracts')
-      .select('id, owner_id')
+      .select('*')
       .eq('id', body.id)
       .single();
 
@@ -44,8 +52,23 @@ export async function PATCH(request: Request) {
     const updates: Record<string, unknown> = {};
     if (body.provider !== undefined) updates.provider = body.provider?.trim() || null;
     if (body.monthly_cost !== undefined) updates.monthly_cost = Number(body.monthly_cost);
-    if (body.start_date !== undefined) updates.start_date = body.start_date;
-    if (body.end_date !== undefined) updates.end_date = body.end_date || null;
+    if (body.start_date !== undefined) updates.start_date = String(body.start_date).slice(0, 10);
+    if (body.end_date !== undefined) {
+      updates.end_date = body.end_date ? String(body.end_date).slice(0, 10) : null;
+    }
+
+    const merged = { ...existing, ...updates } as InsuranceContract;
+    const invalid = validateContractInput(merged);
+    if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
+
+    const { data: siblings } = await supabase
+      .from('insurance_contracts')
+      .select('id, start_date, end_date')
+      .eq('vehicle_id', existing.vehicle_id);
+    const overlap = findOverlap((siblings ?? []) as InsuranceContract[], merged, existing.id);
+    if (overlap) {
+      return NextResponse.json({ error: formatOverlapError(overlap) }, { status: 409 });
+    }
 
     const { data, error } = await supabase
       .from('insurance_contracts')

@@ -37,8 +37,6 @@ export async function POST(request: Request) {
       vin,
       transmission,
       image,
-      insurance_start_date,
-      insurance_monthly_cost,
       tech_control_expiry,
       financing_mode,
       purchase_date,
@@ -105,23 +103,6 @@ export async function POST(request: Request) {
         errorMessage = 'Le modèle est requis';
       }
       return NextResponse.json({ error: errorMessage }, { status: 500 });
-    }
-
-    // Create insurance_contract if insurance data is provided
-    if (insurance_start_date && insurance_monthly_cost) {
-      const { error: insuranceError } = await supabase.from('insurance_contracts').insert([
-        {
-          vehicle_id: data.vehicle_id,
-          owner_id: user.id,
-          monthly_cost: toNumber(insurance_monthly_cost),
-          start_date: toDate(insurance_start_date),
-        },
-      ]);
-
-      if (insuranceError) {
-        console.error('Error creating insurance contract:', insuranceError);
-        // Don't fail the whole request, just log the error
-      }
     }
 
     revalidatePath('/', 'layout');

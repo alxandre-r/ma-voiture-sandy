@@ -24,8 +24,6 @@ export interface Vehicle {
   vin?: string | null;
   transmission?: 'manual' | 'automatic' | null;
   image?: string | null;
-  insurance_start_date?: string | null;
-  insurance_monthly_cost?: number | null;
   tech_control_expiry?: string | null;
   financing_mode?: 'owned' | 'lld' | 'loa' | null;
   purchase_date?: string | null;
