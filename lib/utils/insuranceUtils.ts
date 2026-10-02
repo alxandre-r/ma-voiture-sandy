@@ -3,7 +3,11 @@ import { fr } from 'date-fns/locale';
 
 import { addDaysIso, addMonthsIso, daysBetweenIso } from '@/lib/utils/isoDate';
 
-import type { InsuranceContract, InsuranceData } from '@/types/insurance';
+import type {
+  InsuranceContract,
+  InsuranceContractInput,
+  InsuranceData,
+} from '@/types/insurance';
 import type { Vehicle } from '@/types/vehicle';
 
 export function getTodayMidnight(): Date {
@@ -172,4 +176,125 @@ export function getInsuranceBadge(
     default:
       return { label: 'Non assuré', tone: vehicleActive ? 'danger' : 'neutral' };
   }
+}
+
+// ── Write-side rules (shared by the API routes and the demo handlers) ──
+
+export const INSURANCE_ERRORS = {
+  costRequired: 'Le coût mensuel est requis',
+  startRequired: 'La date de début est requise',
+  effectiveRequired: "La date d'effet est requise",
+  endBeforeStart: 'La date de fin doit être postérieure à la date de début',
+  laterContractExists:
+    'Un contrat commence déjà à cette date ou après. Modifiez-le ou supprimez-le.',
+} as const;
+
+const OPEN_END = '9999-12-31';
+
+export function isIsoDate(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value);
+}
+
+const toCost = (value: unknown) =>
+  value === null || value === undefined || value === '' ? NaN : Number(value);
+
+export function validateContractInput(input: {
+  monthly_cost: unknown;
+  start_date: unknown;
+  end_date?: unknown;
+}): string | null {
+  const cost = toCost(input.monthly_cost);
+  if (!Number.isFinite(cost) || cost <= 0) return INSURANCE_ERRORS.costRequired;
+  if (!isIsoDate(input.start_date)) return INSURANCE_ERRORS.startRequired;
+  if (isIsoDate(input.end_date) && input.end_date.slice(0, 10) < input.start_date.slice(0, 10)) {
+    return INSURANCE_ERRORS.endBeforeStart;
+  }
+  return null;
+}
+
+export function findOverlap<T extends ContractPeriod & { id: number }>(
+  contracts: T[],
+  candidate: ContractPeriod,
+  excludeId?: number,
+): T | null {
+  const candidateEnd = candidate.end_date ?? OPEN_END;
+  return (
+    contracts.find(
+      (c) =>
+        c.id !== excludeId &&
+        c.start_date <= candidateEnd &&
+        candidate.start_date <= (c.end_date ?? OPEN_END),
+    ) ?? null
+  );
+}
+
+export function formatOverlapError(contract: ContractPeriod): string {
+  const end = contract.end_date ? formatInsuranceDate(contract.end_date) : '—';
+  return `Ce contrat chevauche le contrat du ${formatInsuranceDate(contract.start_date)} au ${end}.`;
+}
+
+/** Monthly instalment dates from start (start + n months, clamped) up to min(end, today). */
+export function getInstalmentDates(start: string, end: string | null, today: string): string[] {
+  const last = end !== null && end < today ? end : today;
+  const dates: string[] = [];
+  for (let i = 0; i < MAX_MONTHS; i += 1) {
+    const date = addMonthsIso(start, i);
+    if (date > last) break;
+    dates.push(date);
+  }
+  return dates;
+}
+
+export interface ContractChangeInput {
+  vehicle_id: number;
+  monthly_cost: unknown;
+  effective_date: unknown;
+  provider?: unknown;
+}
+
+export type ContractChangePlan =
+  | { ok: true; close: { id: number; end_date: string } | null; create: InsuranceContractInput }
+  | { ok: false; status: 400 | 409; error: string };
+
+/** "Changer de contrat": close the latest contract the day before, then open a new one. */
+export function planContractChange(
+  contracts: (ContractPeriod & { id: number; provider: string | null })[],
+  input: ContractChangeInput,
+): ContractChangePlan {
+  if (!isIsoDate(input.effective_date)) {
+    return { ok: false, status: 400, error: INSURANCE_ERRORS.effectiveRequired };
+  }
+  const effective = input.effective_date.slice(0, 10);
+  const invalid = validateContractInput({ monthly_cost: input.monthly_cost, start_date: effective });
+  if (invalid) return { ok: false, status: 400, error: invalid };
+  if (contracts.some((c) => c.start_date >= effective)) {
+    return { ok: false, status: 409, error: INSURANCE_ERRORS.laterContractExists };
+  }
+
+  const base = sortByStartDesc(contracts)[0] ?? null;
+  const close =
+    base && (base.end_date === null || base.end_date >= effective)
+      ? { id: base.id, end_date: addDaysIso(effective, -1) }
+      : null;
+  const provider =
+    (typeof input.provider === 'string' && input.provider.trim()) || base?.provider || null;
+
+  return {
+    ok: true,
+    close,
+    create: {
+      vehicle_id: input.vehicle_id,
+      monthly_cost: Number(input.monthly_cost),
+      start_date: effective,
+      end_date: null,
+      provider,
+    },
+  };
+}
+
+/** Default date d'effet: the day after the latest contract's future end date, else today. */
+export function getSuggestedEffectiveDate(contracts: InsuranceContract[], today: string): string {
+  const latest = sortByStartDesc(contracts)[0];
+  if (latest?.end_date && latest.end_date >= today) return addDaysIso(latest.end_date, 1);
+  return today;
 }
