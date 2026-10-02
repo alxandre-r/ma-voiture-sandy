@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import GlobalSearch from '@/components/common/GlobalSearch';
 import PeriodSelector from '@/components/common/PeriodSelector';
 import VehicleSelector from '@/components/common/VehicleSelector';
+import DemoBanner from '@/components/demo/DemoBanner';
 import Header from '@/components/Header';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { useSelectors } from '@/contexts/SelectorsContext';
@@ -56,6 +57,7 @@ export default function PrivateLayoutContent({
         <MobileSidebarDrawer isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
 
         <div className="flex flex-1 flex-col min-w-0">
+          <DemoBanner />
           <Header
             title={title}
             onMenuOpen={() => setMobileMenuOpen(true)}

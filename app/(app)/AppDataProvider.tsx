@@ -6,9 +6,12 @@
  *
  * Note: Family data is fetched directly in each page's Server Components
  * for proper granular streaming with Suspense boundaries.
+ *
+ * In demo mode (mv_demo cookie), the same fetchers answer from the demo state and the demo context is mounted.
  */
 import { redirect } from 'next/navigation';
 
+import { DemoProvider } from '@/contexts/DemoContext';
 import { RemindersCountProvider } from '@/contexts/RemindersCountContext';
 import { SelectorsProvider } from '@/contexts/SelectorsContext';
 import { UserProvider } from '@/contexts/UserContext';
@@ -17,6 +20,7 @@ import { getOverdueCount } from '@/lib/data/reminders/getOverdueCount';
 import { getCurrentUserInfo } from '@/lib/data/user/getCurrentUserInfo';
 import { getUserPreferences } from '@/lib/data/user/getUserPreferences';
 import { getAllVehiclesMinimal } from '@/lib/data/vehicles';
+import { getDemoSession } from '@/lib/demo/server';
 
 import type { ReactNode } from 'react';
 
@@ -37,6 +41,7 @@ export default async function AppDataProvider({ children }: AppDataProviderProps
     getUserFamilies(),
     getOverdueCount(),
   ]);
+  const demo = await getDemoSession();
 
   if (!user) {
     redirect('/?reason=session_expired');
@@ -54,7 +59,11 @@ export default async function AppDataProvider({ children }: AppDataProviderProps
         currentUserId={safeUser.id}
       >
         <RemindersCountProvider overdue={reminderCounts.overdue} dueSoon={reminderCounts.dueSoon}>
-          {children}
+          {demo ? (
+            <DemoProvider sessionId={demo.journal.sessionId}>{children}</DemoProvider>
+          ) : (
+            children
+          )}
         </RemindersCountProvider>
       </SelectorsProvider>
     </UserProvider>
