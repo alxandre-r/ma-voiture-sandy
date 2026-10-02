@@ -8,6 +8,9 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
+import { useDemo } from '@/contexts/DemoContext';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { DEMO_PHOTOS_MESSAGE } from '@/lib/demo/constants';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import type { User } from '@/types/user';
@@ -19,6 +22,8 @@ interface UseAccountActionsProps {
 
 export default function useAccountActions({ user, showNotification }: UseAccountActionsProps) {
   const router = useRouter();
+  const demo = useDemo();
+  const { showInfo } = useNotifications();
 
   const [localUser, setLocalUser] = useState<User>(user);
 
@@ -61,7 +66,8 @@ export default function useAccountActions({ user, showNotification }: UseAccount
       });
 
       if (!res.ok) {
-        throw new Error('Erreur lors de la mise à jour');
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? 'Erreur lors de la mise à jour');
       }
 
       showNotification('Profil mis à jour', 'success');
@@ -123,6 +129,11 @@ export default function useAccountActions({ user, showNotification }: UseAccount
      AVATAR UPDATE
   ============================== */
   const updateAvatar = async (file: File | null) => {
+    if (demo) {
+      showInfo(DEMO_PHOTOS_MESSAGE);
+      return false;
+    }
+
     setIsAvatarLoading(true);
 
     try {

@@ -4,7 +4,9 @@ import { useRef } from 'react';
 
 import Icon from '@/components/common/ui/Icon';
 import Spinner from '@/components/common/ui/Spinner';
+import { useDemo } from '@/contexts/DemoContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { DEMO_ATTACHMENTS_LABEL } from '@/lib/demo/constants';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_MIME = /^(image\/.+|application\/pdf)$/;
@@ -24,6 +26,7 @@ export default function AttachmentUploader({
   maxFiles,
   currentCount = 0,
 }: AttachmentUploaderProps) {
+  const isDemo = useDemo() !== null;
   const { showError } = useNotifications();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -64,7 +67,7 @@ export default function AttachmentUploader({
     <div className="space-y-1">
       <button
         type="button"
-        disabled={disabled || atLimit}
+        disabled={disabled || atLimit || isDemo}
         onClick={() => inputRef.current?.click()}
         className="flex items-center gap-2 px-3 py-2 w-full justify-center rounded-md
                    border border-dashed border-gray-300 dark:border-gray-600
@@ -80,7 +83,11 @@ export default function AttachmentUploader({
         ) : (
           <Icon name="add" size={16} />
         )}
-        {uploading ? 'Envoi en cours…' : 'Ajouter des pièces jointes'}
+        {uploading
+          ? 'Envoi en cours…'
+          : isDemo
+            ? DEMO_ATTACHMENTS_LABEL
+            : 'Ajouter des pièces jointes'}
         <input
           ref={inputRef}
           type="file"

@@ -5,6 +5,9 @@
 
 'use client';
 
+import { useDemo } from '@/contexts/DemoContext';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { DEMO_PHOTOS_MESSAGE } from '@/lib/demo/constants';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 interface UseVehicleImageUploadProps {
@@ -12,7 +15,14 @@ interface UseVehicleImageUploadProps {
 }
 
 export default function useVehicleImageUpload({ showNotification }: UseVehicleImageUploadProps) {
+  const demo = useDemo();
+  const { showInfo } = useNotifications();
+
   const uploadVehicleImage = async (file: File, vehicleId?: number): Promise<string | null> => {
+    if (demo) {
+      showInfo(DEMO_PHOTOS_MESSAGE);
+      return null;
+    }
     try {
       const supabase = createSupabaseBrowserClient();
 
@@ -51,6 +61,7 @@ export default function useVehicleImageUpload({ showNotification }: UseVehicleIm
   };
 
   const deleteVehicleImage = async (imageUrl: string): Promise<boolean> => {
+    if (demo) return true; // demo images are never stored
     try {
       const supabase = createSupabaseBrowserClient();
 

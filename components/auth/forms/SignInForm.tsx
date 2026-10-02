@@ -12,6 +12,7 @@ import { useState } from 'react';
 
 import Spinner from '@/components/common/ui/Spinner';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { exitDemoSession } from '@/lib/demo/client';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 /**
@@ -54,6 +55,9 @@ export default function SignInForm() {
     }
 
     setLoading(true);
+
+    // A real session must never stay stuck in demo mode
+    await exitDemoSession();
 
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithPassword({

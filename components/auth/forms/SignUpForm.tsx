@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import Spinner from '@/components/common/ui/Spinner';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { exitDemoSession } from '@/lib/demo/client';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function SignUpForm() {
@@ -42,6 +43,9 @@ export default function SignUpForm() {
     setLoading(true);
 
     try {
+      // Leave the demo first: with the demo cookie, /api/auth/sign-up would hit the fake backend
+      await exitDemoSession();
+
       const res = await fetch('/api/auth/sign-up', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

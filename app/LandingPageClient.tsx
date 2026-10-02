@@ -22,8 +22,10 @@ const REASON_MESSAGES: Record<string, string> = {
 };
 
 export default function LandingPage() {
-  const [formType, setFormType] = useState<'signin' | 'signup'>('signin');
   const searchParams = useSearchParams();
+  const [formType, setFormType] = useState<'signin' | 'signup'>(() =>
+    searchParams.get('mode') === 'signup' ? 'signup' : 'signin',
+  );
   const reason = searchParams.get('reason');
   const reasonMessage = reason ? REASON_MESSAGES[reason] : null;
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -69,6 +71,24 @@ export default function LandingPage() {
         >
           Une solution simple, rapide et intuitive pour suivre et gérer vos véhicules.
         </motion.p>
+
+        <motion.div
+          className="flex flex-col items-center gap-2"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.7 }}
+        >
+          {/* Plain <a>: /demo sets a cookie, it must never be prefetched by next/link */}
+          <a
+            href="/demo"
+            className="inline-flex items-center gap-2 rounded-xl bg-custom-2 px-6 py-3 font-semibold text-white shadow-lg shadow-custom-2/30 transition-colors hover:bg-custom-2-hover"
+          >
+            Essayer la démo, sans inscription
+          </a>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Données fictives · visite guidée de 3 minutes
+          </span>
+        </motion.div>
       </section>
 
       {/* Session-expired / auth error banner */}
