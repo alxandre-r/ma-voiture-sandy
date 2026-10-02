@@ -270,12 +270,16 @@ function completeReminder(state: DemoState, op: Extract<DemoOp, { t: 'reminder.c
     id: nextId(state.reminders),
     is_completed: false,
     last_triggered_at: null,
+    estimated_due_date: null,
     created_at: op.at,
   };
+  // Like the real route's fresh insert: only the relevant due field is carried over
   if (reminder.recurrence_type === 'time') {
+    next.due_odometer = null;
     const from = (reminder.due_date ?? op.at).slice(0, 10);
     next.due_date = toTimestamp(addMonths(from, reminder.recurrence_value));
   } else {
+    next.due_date = null;
     const odometer = state.vehicles.find((v) => v.id === reminder.vehicle_id)?.odometer;
     next.due_odometer = (odometer ?? reminder.due_odometer ?? 0) + reminder.recurrence_value;
   }

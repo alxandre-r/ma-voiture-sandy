@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { dispatchDemoApi } from '@/lib/demo/api/router';
 import { DEMO_USER_ID, DEMO_VEHICLE } from '@/lib/demo/constants';
+import { addMonths, toTimestamp } from '@/lib/demo/dates';
 import { applyOp } from '@/lib/demo/ops';
 import { buildDemoSeed } from '@/lib/demo/seed';
 import { expensesForDisplay } from '@/lib/demo/views';
@@ -65,15 +66,41 @@ describe('reminders endpoints', () => {
     expect(state.reminders.find((r) => r.id === 702)?.title).toBe('Pneus à permuter');
   });
 
-  it('completes a recurring reminder and schedules the next one', () => {
+  it('completes a time-recurring reminder: next occurrence has a new date and no odometer', () => {
     const state = seed();
     const before = state.reminders.length;
+    const old = state.reminders.find((r) => r.id === 701)!;
+    // Stale fields that must not leak into the next occurrence
+    old.due_odometer = 123_456;
+    old.estimated_due_date = '2026-01-01T00:00:00.000Z';
     const result = commit(
       state,
       call(state, 'PATCH', 'reminders/complete', { id: 701, is_completed: true }),
     );
     expect(result.json).toMatchObject({ reminder: { id: 701, is_completed: true } });
     expect(state.reminders).toHaveLength(before + 1);
+    const next = state.reminders[state.reminders.length - 1];
+    expect(old.recurrence_type).toBe('time');
+    expect(next.due_date).toBe(
+      toTimestamp(addMonths(old.due_date!.slice(0, 10), old.recurrence_value!)),
+    );
+    expect(next.due_odometer).toBeNull();
+    expect(next.estimated_due_date).toBeNull();
+    expect(next.is_completed).toBe(false);
+  });
+
+  it('completes a km-recurring reminder: next occurrence has a new odometer and no date', () => {
+    const state = seed();
+    const old = state.reminders.find((r) => r.id === 703)!;
+    old.due_date = '2026-01-01T00:00:00.000Z';
+    old.estimated_due_date = '2026-01-01T00:00:00.000Z';
+    commit(state, call(state, 'PATCH', 'reminders/complete', { id: 703, is_completed: true }));
+    const next = state.reminders[state.reminders.length - 1];
+    const odometer = state.vehicles.find((v) => v.id === old.vehicle_id)!.odometer;
+    expect(old.recurrence_type).toBe('km');
+    expect(next.due_odometer).toBe(odometer + old.recurrence_value!);
+    expect(next.due_date).toBeNull();
+    expect(next.estimated_due_date).toBeNull();
   });
 
   it('answers success on delete even when nothing matches, like the real route', () => {

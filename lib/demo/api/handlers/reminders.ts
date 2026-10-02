@@ -103,7 +103,7 @@ export const reminderHandlers: Record<string, DemoApiHandler> = {
     if (!id) return fail(400, "L'identifiant est requis");
     const reminder = state.reminders.find((r) => r.id === id && r.user_id === DEMO_USER_ID);
     if (!reminder) return fail(404, 'Rappel introuvable');
-    const done = body.is_completed === undefined ? true : body.is_completed === true;
+    const done = Boolean(body.is_completed ?? true);
     return reply(
       200,
       { reminder: { ...reminder, is_completed: done, last_triggered_at: done ? now : null } },
