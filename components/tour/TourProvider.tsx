@@ -143,14 +143,8 @@ export function TourProvider({
   }, [pathname, steps, dispatch]);
 
   // ── Step actions ──
-  useEffect(() => {
-    if (!isRunning || isNavigating || !step?.onEnter) return;
-    // Aborted on cleanup: React StrictMode's double effect never clicks twice
-    const controller = new AbortController();
-    void runTourAction(step.onEnter, { signal: controller.signal });
-    return () => controller.abort();
-  }, [isRunning, isNavigating, step]);
-
+  // Declared before the onEnter effect: effects run in order, so the previous step's exit
+  // action always starts before the next step's enter action
   const activeStepRef = useRef<TourStep | null>(null);
   useEffect(() => {
     const active = isRunning ? step : null;
@@ -158,6 +152,14 @@ export function TourProvider({
     activeStepRef.current = active;
     if (previous && previous !== active && previous.onExit) void runTourAction(previous.onExit);
   }, [isRunning, step]);
+
+  useEffect(() => {
+    if (!isRunning || isNavigating || !step?.onEnter) return;
+    // Aborted on cleanup: React StrictMode's double effect never clicks twice
+    const controller = new AbortController();
+    void runTourAction(step.onEnter, { signal: controller.signal });
+    return () => controller.abort();
+  }, [isRunning, isNavigating, step]);
 
   // ── Commands ──
   const start = useCallback((chapter?: string) => dispatch({ type: 'START', chapter }), [dispatch]);

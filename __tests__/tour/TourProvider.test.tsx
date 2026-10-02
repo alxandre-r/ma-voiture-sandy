@@ -226,4 +226,55 @@ describe('TourProvider', () => {
     await waitFor(() => expect(onMouseDown).toHaveBeenCalled());
     document.removeEventListener('mousedown', onMouseDown);
   });
+
+  it("runs the previous step's exit action before the next step's enter action", async () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 10,
+      left: 10,
+      width: 50,
+      height: 20,
+      right: 60,
+      bottom: 30,
+      x: 10,
+      y: 10,
+      toJSON: () => ({}),
+    } as DOMRect);
+    const steps: TourStep[] = [
+      {
+        id: 'x',
+        chapter: 'a',
+        route: '/dashboard',
+        title: 'X',
+        body: 'Ferme le panneau en sortant.',
+        onExit: { type: 'click', target: 'close' },
+      },
+      {
+        id: 'y',
+        chapter: 'a',
+        route: '/dashboard',
+        title: 'Y',
+        body: 'Ouvre le menu en entrant.',
+        onEnter: { type: 'click', target: 'menu' },
+      },
+    ];
+    const clicks: string[] = [];
+    store({ status: 'running', stepIndex: 0, sessionId: 's1' });
+    render(
+      <>
+        <button type="button" data-tour="close" onClick={() => clicks.push('exit')}>
+          fermer
+        </button>
+        <button type="button" data-tour="menu" onClick={() => clicks.push('enter')}>
+          menu
+        </button>
+        <TourProvider steps={steps} chapters={CHAPTERS} sessionId="s1" storageKey={KEY}>
+          <Probe />
+        </TourProvider>
+      </>,
+    );
+    expect(status()).toBe('running');
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    await waitFor(() => expect(clicks).toEqual(['exit', 'enter']));
+  });
 });
