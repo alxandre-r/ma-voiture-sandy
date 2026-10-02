@@ -65,7 +65,7 @@ export default async function GaragePage() {
   const allVehicleIds = [...vehicleIds, ...allFamilyVehicles.map((v) => v.vehicle_id)];
   const [expenses, activeInsuranceVehicleIds] = await Promise.all([
     allVehicleIds.length > 0 ? getAllExpenses(allVehicleIds) : Promise.resolve([]),
-    getActiveInsuranceVehicleIds(vehicleIds),
+    getActiveInsuranceVehicleIds(allVehicleIds),
   ]);
 
   // Fetch preferences for all unique family vehicle owners (for visibility control)

@@ -3,9 +3,9 @@ import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 /**
- * Returns the subset of the given vehicle IDs that have at least one active
- * insurance contract owned by the current user.
- * An active contract has no end_date (ongoing) or end_date >= today.
+ * Returns the subset of the given vehicle IDs that have at least one active insurance contract,
+ * whoever holds it (a family vehicle insured by its owner counts as insured).
+ * Callers only pass vehicles the user can access. Active = no end_date or end_date >= today.
  */
 export async function getActiveInsuranceVehicleIds(vehicleIds: number[]): Promise<number[]> {
   if (vehicleIds.length === 0) return [];
@@ -25,7 +25,6 @@ export async function getActiveInsuranceVehicleIds(vehicleIds: number[]): Promis
     .from('insurance_contracts')
     .select('vehicle_id')
     .in('vehicle_id', vehicleIds)
-    .eq('owner_id', user.id)
     .or(`end_date.is.null,end_date.gte.${today}`);
 
   if (error || !data) return [];
