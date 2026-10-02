@@ -1,4 +1,5 @@
 import type { Attachment } from '@/types/attachment';
+import type { Vehicle } from '@/types/vehicle';
 
 export interface InsuranceContract {
   id: number;
@@ -32,3 +33,5 @@ export interface InsuranceFormData {
   start_date: string;
   end_date: string;
 }
+
+export type InsuranceVehicleRef = Pick<Vehicle, 'vehicle_id' | 'owner_id'>;

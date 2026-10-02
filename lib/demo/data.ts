@@ -4,6 +4,8 @@
  * Each fetcher starts with `if (demo) return demoData.<name>(demo.state, …)`.
  */
 
+import { sortByStartDesc } from '@/lib/utils/insuranceUtils';
+
 import { DEMO_USER_ID } from './constants';
 import {
   expensesForDisplay,
@@ -16,6 +18,7 @@ import {
 import type { DemoState } from './types';
 import type { DemoVehicleRow } from './views';
 import type { Expense } from '@/types/expense';
+import type { InsuranceData, InsuranceVehicleRef } from '@/types/insurance';
 import type { Reminder } from '@/types/reminder';
 import type { UserPreferences } from '@/types/userPreferences';
 
@@ -205,4 +208,25 @@ export function getFamilyInfo(state: DemoState, familyId: string) {
 
 export function getFamilyMembers(state: DemoState, familyId: string) {
   return familyMembersDisplay(state, familyId);
+}
+
+/** Same contract as lib/data getInsuranceData: hides family vehicles whose owner disabled show_insurance. */
+export function getInsuranceData(state: DemoState, vehicles: InsuranceVehicleRef[]): InsuranceData {
+  const hiddenVehicleIds = vehicles
+    .filter(
+      (v) =>
+        v.owner_id &&
+        v.owner_id !== DEMO_USER_ID &&
+        getPreferencesByUserId(state, v.owner_id)?.show_insurance === false,
+    )
+    .map((v) => v.vehicle_id);
+  const visibleIds = new Set(
+    vehicles.map((v) => v.vehicle_id).filter((id) => !hiddenVehicleIds.includes(id)),
+  );
+  const contracts = sortByStartDesc(
+    state.insuranceContracts
+      .filter((c) => visibleIds.has(c.vehicle_id))
+      .map((c) => ({ ...c, attachments: [] })),
+  );
+  return { contracts, hiddenVehicleIds };
 }

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEMO_DAUGHTER_ID, DEMO_FAMILY_ID, DEMO_USER_ID, DEMO_VEHICLE } from '@/lib/demo/constants';
+import {
+  DEMO_DAUGHTER_ID,
+  DEMO_FAMILY_ID,
+  DEMO_PARTNER_ID,
+  DEMO_USER_ID,
+  DEMO_VEHICLE,
+} from '@/lib/demo/constants';
 import * as demoData from '@/lib/demo/data';
 import { buildDemoSeed } from '@/lib/demo/seed';
 
@@ -84,5 +90,30 @@ describe('demo data (lib/data equivalents)', () => {
     types.revision.interval_months = 99;
     expect(s.maintenanceTypes.revision.interval_months).toBe(12);
     expect(demoData.getPreferencesByUserId(s, DEMO_DAUGHTER_ID)?.show_financials).toBe(false);
+  });
+});
+
+describe('getInsuranceData (demo)', () => {
+  const vehicles = [
+    { vehicle_id: DEMO_VEHICLE.zoe, owner_id: DEMO_USER_ID },
+    { vehicle_id: DEMO_VEHICLE.niro, owner_id: DEMO_PARTNER_ID },
+  ];
+
+  it('returns the contracts of the given vehicles, newest first', () => {
+    const data = demoData.getInsuranceData(state(), vehicles);
+    expect(data.hiddenVehicleIds).toEqual([]);
+    expect(new Set(data.contracts.map((c) => c.vehicle_id))).toEqual(
+      new Set([DEMO_VEHICLE.zoe, DEMO_VEHICLE.niro]),
+    );
+    const starts = data.contracts.map((c) => c.start_date);
+    expect(starts).toEqual([...starts].sort().reverse());
+  });
+
+  it('hides family vehicles whose owner turned show_insurance off', () => {
+    const s = state();
+    s.preferences.find((p) => p.user_id === DEMO_PARTNER_ID)!.show_insurance = false;
+    const data = demoData.getInsuranceData(s, vehicles);
+    expect(data.hiddenVehicleIds).toEqual([DEMO_VEHICLE.niro]);
+    expect(data.contracts.some((c) => c.vehicle_id === DEMO_VEHICLE.niro)).toBe(false);
   });
 });
