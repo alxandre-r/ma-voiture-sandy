@@ -1,6 +1,6 @@
 # Mode démo + visite guidée — Design
 
-> Statut : design validé section par section le 2026-10-01, en attente de relecture du document.
+> Statut : implémenté sur la branche feat/demo-mode. Les écarts d'implémentation sont listés en §15.
 > Périmètre : version « démo » en accès libre (sans compte), données fictives cohérentes, visite guidée passable.
 
 ---
@@ -10,12 +10,14 @@
 **Problème.** La fiche `sandy` du portfolio pointe vers `ma-voiture-sandy.vercel.app` (bouton « Utiliser l'app »). Aujourd'hui, ce lien mène à un écran de connexion : un visiteur (recruteur, développeur) ne voit rien du produit sans créer de compte.
 
 **Objectif.** Un visiteur clique sur « Essayer la démo » et arrive en moins de 2 s sur un tableau de bord rempli. Une carte d'accueil lui propose :
+
 - une visite guidée d'environ 3 min, qui montre l'étendue du produit ;
 - ou une exploration libre.
 
 Il peut tout manipuler sans rien casser, sans jamais toucher la vraie base.
 
 **Critères de succès**
+
 1. Aucun appel à Supabase en mode démo, ni en lecture ni en écriture, prouvé par des tests.
 2. Toutes les pages de l'app sont utilisables en démo avec des données crédibles. Chaque widget conditionnel a de quoi s'afficher.
 3. Les modifications du visiteur (ajout d'un plein, rappel terminé…) sont visibles immédiatement et durant toute sa session. Un bouton les réinitialise.
@@ -30,14 +32,14 @@ Il peut tout manipuler sans rien casser, sans jamais toucher la vraie base.
 
 ## 2. Décisions validées
 
-| Sujet | Décision | Alternatives écartées |
-|---|---|---|
-| Écritures en démo | **Bac à sable de session** : les modifications marchent vraiment, restent locales au visiteur et sont réinitialisables | Lecture seule (on ne « sent » pas le produit) ; comptes anonymes Supabase (migration, nettoyage, pollution de la base de prod) |
-| Architecture | **A : côté serveur, « graine + journal en cookie »** | B : store client + `fetch` patché (duplique la composition de chaque `page.tsx`, monkey-patching fragile) |
-| Lancement de la visite | **Carte d'accueil avec choix** « Visite guidée » / « Explorer librement » ; relançable depuis le bandeau | Lancement automatique ; manuel uniquement |
-| Moteur de visite | **Maison**, sans nouvelle dépendance (framer-motion déjà présent) | driver.js, react-joyride : pas de navigation multi-pages App Router ni d'attente du streaming |
-| Correctif assurance | **Inclus** (voir §10) | — |
-| « Correctif VE » (`fuel_type`) | **Retiré** : la démo utilise les libellés français, comme le formulaire véhicule | Helper de normalisation (touche du code réel sur des hypothèses non vérifiées) |
+| Sujet                          | Décision                                                                                                               | Alternatives écartées                                                                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Écritures en démo              | **Bac à sable de session** : les modifications marchent vraiment, restent locales au visiteur et sont réinitialisables | Lecture seule (on ne « sent » pas le produit) ; comptes anonymes Supabase (migration, nettoyage, pollution de la base de prod) |
+| Architecture                   | **A : côté serveur, « graine + journal en cookie »**                                                                   | B : store client + `fetch` patché (duplique la composition de chaque `page.tsx`, monkey-patching fragile)                      |
+| Lancement de la visite         | **Carte d'accueil avec choix** « Visite guidée » / « Explorer librement » ; relançable depuis le bandeau               | Lancement automatique ; manuel uniquement                                                                                      |
+| Moteur de visite               | **Maison**, sans nouvelle dépendance (framer-motion déjà présent)                                                      | driver.js, react-joyride : pas de navigation multi-pages App Router ni d'attente du streaming                                  |
+| Correctif assurance            | **Inclus** (voir §10)                                                                                                  | —                                                                                                                              |
+| « Correctif VE » (`fuel_type`) | **Retiré** : la démo utilise les libellés français, comme le formulaire véhicule                                       | Helper de normalisation (touche du code réel sur des hypothèses non vérifiées)                                                 |
 
 ---
 
@@ -65,21 +67,23 @@ Server Components → lib/data/* :
 
 ### 3.2 Entrée, sortie, réinitialisation
 
-| Route | Rôle |
-|---|---|
+| Route                             | Rôle                                                                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /demo` (`app/demo/route.ts`) | Si le cookie est absent, en crée un avec un journal vide et un `sessionId` aléatoire. S'il existe, le conserve (le visiteur reprend sa démo). Redirige vers `/dashboard`. |
-| `POST /api/demo/reset` | Remplace le journal par un journal vide en gardant le `sessionId`. Le client fait ensuite `router.refresh()` et affiche un toast « Démo réinitialisée ». |
-| `POST /api/demo/exit` | Supprime le cookie. Le client vide l'état de la visite (localStorage) puis fait `window.location.href = '/'`, ou `'/?mode=signup'` pour le bouton « Créer un compte ». |
+| `POST /api/demo/reset`            | Remplace le journal par un journal vide en gardant le `sessionId`. Le client fait ensuite `router.refresh()` et affiche un toast « Démo réinitialisée ».                  |
+| `POST /api/demo/exit`             | Supprime le cookie. Le client vide l'état de la visite (localStorage) puis fait `window.location.href = '/'`, ou `'/?mode=signup'` pour le bouton « Créer un compte ».    |
 
 **Cookie `mv_demo`**
+
 - Attributs : `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure` en production, sans `Max-Age` (cookie de session).
-- Valeur : `v1.<base64url(JSON)>`, où le JSON vaut `{ "s": "<sessionId>", "o": [ <ops…> ] }`.
+- Valeur : `v1.<base64url(deflate(JSON))>`, où le JSON vaut `{ "s": "<sessionId>", "o": [ <ops…> ] }` (deflate : voir §15, E1).
 - Version inconnue ou contenu illisible : journal vide. Le prochain appel en écriture réécrit le cookie.
 - Taille maximale de la valeur : **3 800 octets**. Si l'ajout d'une op dépasse cette limite, réponse `409 { error: "Limite de la démo atteinte : réinitialisez-la depuis le bandeau pour continuer." }`.
   - Une estimation donne environ 40 modifications.
-  - Compression deflate possible plus tard (×5), non retenue pour l'instant.
+  - **Écart (E1) :** la compression deflate (`node:zlib`) est active dès le départ. Sans elle, des ops lisibles ne laissaient qu'une dizaine de modifications.
 
 **Connexion réelle.**
+
 - `SignInForm` et `SignUpForm` appellent `POST /api/demo/exit` **au début de la soumission**, avant tout appel d'authentification.
   - Sans cela, `/api/auth/sign-up` serait réécrit vers la démo et échouerait.
   - Une vraie session ne peut ainsi jamais rester « coincée » en mode démo.
@@ -95,10 +99,14 @@ const isDemo = req.cookies.has(DEMO_COOKIE);
 
 // 1. En démo, toute l'API est servie par le faux backend
 if (isDemo && pathname.startsWith('/api/') && !pathname.startsWith('/api/demo/')) {
-  return NextResponse.rewrite(new URL(`/api/demo/${pathname.slice(5)}${req.nextUrl.search}`, req.url));
+  return NextResponse.rewrite(
+    new URL(`/api/demo/${pathname.slice(5)}${req.nextUrl.search}`, req.url),
+  );
 }
 
-if (isPublicPath(pathname)) { /* … inchangé (Cache-Control des assets) … */ }
+if (isPublicPath(pathname)) {
+  /* … inchangé (Cache-Control des assets) … */
+}
 
 // 2. En démo, les pages ne demandent pas de session Supabase
 if (isDemo) return NextResponse.next();
@@ -187,13 +195,15 @@ Conséquence : en démo, les ~50 vraies routes API sont **inatteignables**. La b
 
 Les valeurs de `fuel_type` sont les **libellés français**, comme ceux que le formulaire véhicule écrit réellement.
 
-| id | Véhicule | Propriétaire | `fuel_type` | Droit de Camille | Rôle dans la démo |
-|---|---|---|---|---|---|
-| 101 | Peugeot 308 SW 2019, ~92 400 km | Camille | `Diesel` | propriétaire | Historique riche ; **anomalie de conso** sur le dernier plein (+20 % environ) ; **CT dans 12 jours** ; changement d'assureur |
-| 102 | Renault Zoé 2021, ~38 900 km | Camille | `Électrique` | propriétaire | Recharges à domicile (~0,23 €/kWh) et sur bornes rapides (~0,49 €/kWh) ; rappel en retard |
-| 103 | Kia Niro hybride rechargeable 2021 | Thomas | `Hybride rechargeable` | **écriture** | Pleins **et** recharges ; Camille peut y saisir des dépenses |
-| 104 | Peugeot 208 2016 | Léa | `Essence` | **lecture** | Lecture seule ; rappel « Pneus » en retard (créé par Léa) |
-| 105 | Renault Clio III 2011 | Camille | `Essence` | propriétaire | Statut `sold` depuis 14 mois |
+| id  | Véhicule                           | Propriétaire | `fuel_type`            | Droit de Camille | Rôle dans la démo                                                                                                            |
+| --- | ---------------------------------- | ------------ | ---------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 101 | Peugeot 308 SW 2019, ~92 400 km    | Camille      | `Diesel`               | propriétaire     | Historique riche ; **anomalie de conso** sur le dernier plein (+20 % environ) ; **CT dans 12 jours** ; changement d'assureur |
+| 102 | Renault Zoé 2021, ~38 900 km       | Camille      | `Électrique`           | propriétaire     | Recharges à domicile (~0,23 €/kWh) et sur bornes rapides (~0,49 €/kWh) ; rappel en retard                                    |
+| 103 | Kia Niro hybride rechargeable 2021 | Thomas       | `Hybride rechargeable` | **écriture**     | Pleins **et** recharges ; Camille peut y saisir des dépenses                                                                 |
+| 104 | Peugeot 208 2016                   | Léa          | `Essence`              | **lecture**      | Lecture seule ; rappel « Pneus » en retard (créé par Léa)                                                                    |
+| 105 | Renault Clio III 2011              | Camille      | `Essence`              | propriétaire     | Statut `sold` depuis 14 mois                                                                                                 |
+
+> **Écart (E2) :** la Clio n'est pas dans la graine. Un véhicule vendu déclenche à tort « Aucun contrat d'assurance actif » dans `InsightsPanel` (constat §12, point 11). La démo compte donc 4 véhicules, comme l'annonce la carte d'accueil. Les autres mentions de la Clio (ligne du tableau ci-dessus, phrase sur le contrôle technique, contrat au §4.3) sont caduques.
 
 Tous les véhicules ont une couleur, une plaque au format SIV, une transmission, un `co2_emission` (sauf la Zoé, à 0) et une `tech_control_expiry`. La Clio n'a pas de date de CT.
 
@@ -256,6 +266,7 @@ Tous les véhicules ont une couleur, une plaque au format SIV, une transmission,
 ### 4.5 Invariants testés
 
 Les tests utilisent les **vrais utilitaires** de l'app, pour que la démo montre réellement ces fonctionnalités :
+
 - `detectAnomalies` renvoie une anomalie pour la 308.
 - `computeHealthScore` fait remonter au moins 3 facteurs warning/critical sur les véhicules de Camille (CT, rappel en retard, rappel imminent).
 - `computeMaintenanceSuggestions` renvoie au moins une suggestion.
@@ -268,7 +279,7 @@ Les tests utilisent les **vrais utilitaires** de l'app, pour que la démo montre
 
 ## 5. Journal des modifications
 
-- **Types d'ops.** Union discriminée avec des clés courtes, versionnée par le préfixe `v1.` :
+- **Types d'ops.** Union discriminée avec des clés courtes, versionnée par le préfixe `v1.` et compressée en deflate (E1) :
   - plein ajouté ou modifié ;
   - dépense « autre » ajoutée ;
   - dépense modifiée ou supprimée ;
@@ -299,37 +310,38 @@ L'interface n'appelle que 36 des 49 handlers. Les formes de réponse et les mess
 
 ### 6.1 Lectures émulées
 
-| Endpoint | Réponse | Appelé par |
-|---|---|---|
-| `GET expenses/get?vehicleIds=` | `{ expenses }` | Statistiques |
-| `GET expenses/maintenanceExpense?vehicleIds=` | `{ expenses }` | Entretiens |
-| `GET insurance/get?vehicle_id=` | `{ contracts }` ; 403 si le véhicule n'est pas visible | Assurance, fiche véhicule |
-| `GET search?q=` | `{ expenses (≤ 8), reminders (≤ 5) }` | Ctrl+K. Même périmètre qu'en vrai : dépenses des véhicules **possédés**, rappels personnels non terminés |
-| `GET vehicles/permissions?vehicleId=` | `{ data: [{ user_id, permission_level }] }` ; 403 si l'utilisateur n'est pas propriétaire | Famille |
-| `GET family/getByInvitToken?token=` | 404 « Dans la démo, il n'y a pas d'autre famille à rejoindre. » | Page `/family/join` |
+| Endpoint                                      | Réponse                                                                                   | Appelé par                                                                                               |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `GET expenses/get?vehicleIds=`                | `{ expenses }`                                                                            | Statistiques                                                                                             |
+| `GET expenses/maintenanceExpense?vehicleIds=` | `{ expenses }`                                                                            | Entretiens                                                                                               |
+| `GET insurance/get?vehicle_id=`               | `{ contracts }` ; 403 si le véhicule n'est pas visible                                    | Assurance, fiche véhicule                                                                                |
+| `GET search?q=`                               | `{ expenses (≤ 8), reminders (≤ 5) }`                                                     | Ctrl+K. Même périmètre qu'en vrai : dépenses des véhicules **possédés**, rappels personnels non terminés |
+| `GET vehicles/permissions?vehicleId=`         | `{ data: [{ user_id, permission_level }] }` ; 403 si l'utilisateur n'est pas propriétaire | Famille                                                                                                  |
+| `GET family/getByInvitToken?token=`           | 404 « Dans la démo, il n'y a pas d'autre famille à rejoindre. »                           | Page `/family/join`                                                                                      |
 
 ### 6.2 Écritures émulées
 
-| Endpoint | Réponse (champs lus par le client) | Règles reproduites |
-|---|---|---|
-| `POST fills/add` | 201 `{ fill: { expense_id, … }, message }` | droit d'écriture (403 sur la 208) ; odomètre |
-| `PATCH fills/update` | `{ fill, message }` | `id` = identifiant de **dépense**, comme l'envoie le tableau de bord ; propriétaire ou droit d'écriture |
-| `POST expenses/other/add` | 201 `{ expense: { id, label, vehicle_name, … } }` | droit d'écriture |
-| `PATCH expenses/update` | `{ expense, message }` | champs spécifiques selon le type ; recalcul du rappel d'entretien |
-| `DELETE expenses/delete` | `{ message, expenseId }` | 403 « Les dépenses d'assurance ne peuvent pas être supprimées » |
-| `POST maintenance/add` | 201 `{ expense: { id, … } }` | création ou mise à jour du rappel ; odomètre |
-| `DELETE maintenance/delete` | `{ message }` | le rappel créé automatiquement est conservé, comme en vrai |
-| `POST reminders/create` · `PATCH update` · `DELETE delete` · `PATCH complete` | `{ reminder }` / `{ success }` | droit d'écriture ; occurrence suivante d'un rappel récurrent |
-| `POST insurance/create` · `PATCH update` · `DELETE delete` | `{ contract }` / `{ success }` | propriétaire uniquement ; mensualités dérivées |
-| `POST vehicles/add` · `PATCH update` · `DELETE delete` | `{ vehicle }` / `{ message, vehicle_id }` | `vehicles/add` renvoie `vehicle.id`, comme la vraie route ; suppression réservée au propriétaire, avec cascade |
-| `POST vehicles/permissions` | `{ success }` | propriétaire ; les cibles doivent être membres de sa famille |
-| `PATCH family/update` | `{ success, message, family }` | propriétaire ; nom de 100 caractères maximum |
-| `PATCH users/preferences` | `{ success, updated_at }` | validation de `default_period` et `default_vehicle_scope` |
-| `POST users/update-profile` | `{ success, message }` | le **nom** est émulé ; un changement d'email est refusé (voir §6.3) |
+| Endpoint                                                                      | Réponse (champs lus par le client)                | Règles reproduites                                                                                             |
+| ----------------------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `POST fills/add`                                                              | 201 `{ fill: { expense_id, … }, message }`        | droit d'écriture (403 sur la 208) ; odomètre                                                                   |
+| `PATCH fills/update`                                                          | `{ fill, message }`                               | `id` = identifiant de **dépense**, comme l'envoie le tableau de bord ; propriétaire ou droit d'écriture        |
+| `POST expenses/other/add`                                                     | 201 `{ expense: { id, label, vehicle_name, … } }` | droit d'écriture                                                                                               |
+| `PATCH expenses/update`                                                       | `{ expense, message }`                            | champs spécifiques selon le type ; recalcul du rappel d'entretien                                              |
+| `DELETE expenses/delete`                                                      | `{ message, expenseId }`                          | 403 « Les dépenses d'assurance ne peuvent pas être supprimées »                                                |
+| `POST maintenance/add`                                                        | 201 `{ expense: { id, … } }`                      | création ou mise à jour du rappel ; odomètre                                                                   |
+| `DELETE maintenance/delete`                                                   | `{ message }`                                     | le rappel créé automatiquement est conservé, comme en vrai                                                     |
+| `POST reminders/create` · `PATCH update` · `DELETE delete` · `PATCH complete` | `{ reminder }` / `{ success }`                    | droit d'écriture ; occurrence suivante d'un rappel récurrent                                                   |
+| `POST insurance/create` · `PATCH update` · `DELETE delete`                    | `{ contract }` / `{ success }`                    | propriétaire uniquement ; mensualités dérivées                                                                 |
+| `POST vehicles/add` · `PATCH update` · `DELETE delete`                        | `{ vehicle }` / `{ message, vehicle_id }`         | `vehicles/add` renvoie `vehicle.id`, comme la vraie route ; suppression réservée au propriétaire, avec cascade |
+| `POST vehicles/permissions`                                                   | `{ success }`                                     | propriétaire ; les cibles doivent être membres de sa famille                                                   |
+| `PATCH family/update`                                                         | `{ success, message, family }`                    | propriétaire ; nom de 100 caractères maximum                                                                   |
+| `PATCH users/preferences`                                                     | `{ success, updated_at }`                         | validation de `default_period` et `default_vehicle_scope`                                                      |
+| `POST users/update-profile`                                                   | `{ success, message }`                            | le **nom** est émulé ; un changement d'email est refusé (voir §6.3)                                            |
 
 ### 6.3 Désactivé, avec message explicite (403 `{ error }`)
 
 Format du message : « … n'est pas disponible dans la démo. »
+
 - **Compte** : `users/change-password`, changement d'email, `auth/delete-account`.
 - **Fichiers** : `attachments/add` et `attachments/delete`. Côté client, le sélecteur est désactivé et l'upload de photos est bloqué (§3.6).
 - **Famille** : `family/create`, `family/join`, `family/leave`, `family/delete`. On garde ainsi intactes l'histoire de la démo et le chapitre Famille de la visite.
@@ -341,16 +353,16 @@ Format du message : « … n'est pas disponible dans la démo. »
 
 ### 7.1 Pièces
 
-| Fichier | Rôle |
-|---|---|
-| `lib/demo/tour/steps.ts` | Données pures : chapitres (id, libellé, emoji) et étapes |
-| `lib/demo/tour/reducer.ts` | Machine à états pure (voir 7.2) |
-| `components/tour/TourProvider.tsx` | État, persistance, navigation, raccourcis clavier |
-| `components/tour/TourOverlay.tsx` | Voile, découpe et halo, rendus dans un portail |
-| `components/tour/TourPopover.tsx` | Bulle : titre, texte, progression, contrôles |
-| `components/tour/useTourTarget.ts` | Attente, choix, défilement et suivi de la cible |
-| `components/tour/placement.ts` | Calcul pur de la position de la bulle |
-| `components/demo/WelcomeCard.tsx` | Carte d'accueil |
+| Fichier                            | Rôle                                                     |
+| ---------------------------------- | -------------------------------------------------------- |
+| `lib/demo/tour/steps.ts`           | Données pures : chapitres (id, libellé, emoji) et étapes |
+| `lib/demo/tour/reducer.ts`         | Machine à états pure (voir 7.2)                          |
+| `components/tour/TourProvider.tsx` | État, persistance, navigation, raccourcis clavier        |
+| `components/tour/TourOverlay.tsx`  | Voile, découpe et halo, rendus dans un portail           |
+| `components/tour/TourPopover.tsx`  | Bulle : titre, texte, progression, contrôles             |
+| `components/tour/useTourTarget.ts` | Attente, choix, défilement et suivi de la cible          |
+| `components/tour/placement.ts`     | Calcul pur de la position de la bulle                    |
+| `components/demo/WelcomeCard.tsx`  | Carte d'accueil                                          |
 
 **Schéma d'une étape**
 
@@ -358,14 +370,14 @@ Format du message : « … n'est pas disponible dans la démo. »
 interface TourStep {
   id: string;
   chapter: TourChapterId;
-  route: string;                 // ex. '/statistics', '/garage?vehicleId=101'
-  target?: string;               // valeur de data-tour ; absent → carte centrée
+  route: string; // ex. '/statistics', '/garage?vehicleId=101'
+  target?: string; // valeur de data-tour ; absent → carte centrée
   title: string;
   body: string;
   placement?: 'auto' | 'top' | 'bottom' | 'left' | 'right';
-  interactive?: boolean;         // l'utilisateur peut manipuler la page (« Essayez »)
-  onEnter?: TourAction;          // ex. { type: 'click', target: 'expense-button-trigger' }
-  onExit?: TourAction;           // ex. referme le menu ouvert par onEnter
+  interactive?: boolean; // l'utilisateur peut manipuler la page (« Essayez »)
+  onEnter?: TourAction; // ex. { type: 'click', target: 'expense-button-trigger' }
+  onExit?: TourAction; // ex. referme le menu ouvert par onEnter
 }
 ```
 
@@ -420,33 +432,34 @@ interface TourStep {
 **Ton :** phrases courtes et complices, une touche d'humour. Titre de 6 mots maximum, texte de 1 à 2 phrases. Les textes définitifs seront rédigés dans `steps.ts` et relus pendant l'implémentation.
 
 **Carte d'accueil**
+
 > 👋 **Bienvenue dans Ma Voiture.** Vous êtes Camille : 4 véhicules, 2 ans d'historique, une famille… et le droit de tout casser — la démo se réinitialise d'un clic.
 
 Boutons : **Visite guidée (~3 min)** · **Explorer librement**.
 
 **Étapes**
 
-| # | Chapitre | Route | Cible `data-tour` | Message |
-|---|---|---|---|---|
-| 1 | Tableau de bord | `/dashboard` | `dashboard-stats` | 4 chiffres clés : coût aux 100 km, total, conso, dernier plein, avec leurs tendances |
-| 2 | | | `dashboard-insights` | Points d'attention : CT qui approche, rappel en retard, conso anormale de la 308 ; un clic mène au bon endroit |
-| 3 | | | `dashboard-vehicles` | Score de suivi de A à F par véhicule |
-| 4 | | | `header-filters` (*interactive*) | **Essayez :** changez de véhicules ou de période, tout se recalcule et le choix vous suit partout |
-| 5 | | | `expense-button` (`onEnter` : ouvre le menu) | Plein, recharge, entretien, autre dépense ou rappel en quelques secondes ; carte centrée sur mobile |
-| 6 | Statistiques | `/statistics` | `stats-overview` | Dépenses, moyenne mensuelle, projection annuelle, coût au km |
-| 7 | | | `stats-monthly` | Mois par mois, par catégorie ou par véhicule ; export SVG |
-| 8 | | | `stats-carbon` | Empreinte carbone, avec données officielles ou calculée sur les litres réels |
-| 9 | | | `stats-comparison` | Duel de véhicules, catégorie par catégorie |
-| 10 | Dépenses | `/expenses` | `expenses-filters` | Filtres par catégorie, recherche dans les notes, fourchette de montants |
-| 11 | | | `expenses-list` | Historique mois par mois ; un clic pour le détail, ⋮ pour modifier |
-| 12 | | | `expenses-csv` | Export CSV pour le comptable, l'assureur ou Excel ; carte centrée sur mobile |
-| 13 | Entretiens et rappels | `/maintenance` | `maintenance-suggestions` | Échéances calculées depuis l'historique ; un clic crée le rappel |
-| 14 | | `/reminders` | `reminders-list` | En retard, bientôt dus, à venir ; date estimée d'après votre rythme de conduite |
-| 15 | Assurance et garage | `/insurance` | `insurance-overview` | Contrats, prochaine échéance, historique des tarifs ; mensualités ajoutées automatiquement aux dépenses |
-| 16 | | `/garage?vehicleId=101` | `vehicle-health` | Bilan de santé de la 308, facteur par facteur, avec quoi faire |
-| 17 | Famille | `/family` | `family-vehicles` | Camille, Thomas et Léa partagent leurs véhicules ; droits lecture ou écriture par personne |
-| 18 | Pour finir | `/family` | `global-search` | Ctrl+K, et c'est trouvé : véhicules, dépenses, rappels, pages |
-| 19 | | `/settings` | `settings-panel` (`onEnter` : clic sur `settings-preferences`) | Thème clair ou sombre, filtres par défaut, ce que la famille voit de vos véhicules |
+| #   | Chapitre              | Route                   | Cible `data-tour`                                              | Message                                                                                                        |
+| --- | --------------------- | ----------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1   | Tableau de bord       | `/dashboard`            | `dashboard-stats`                                              | 4 chiffres clés : coût aux 100 km, total, conso, dernier plein, avec leurs tendances                           |
+| 2   |                       |                         | `dashboard-insights`                                           | Points d'attention : CT qui approche, rappel en retard, conso anormale de la 308 ; un clic mène au bon endroit |
+| 3   |                       |                         | `dashboard-vehicles`                                           | Score de suivi de A à F par véhicule                                                                           |
+| 4   |                       |                         | `header-filters` (_interactive_)                               | **Essayez :** changez de véhicules ou de période, tout se recalcule et le choix vous suit partout              |
+| 5   |                       |                         | `expense-button` (`onEnter` : ouvre le menu)                   | Plein, recharge, entretien, autre dépense ou rappel en quelques secondes ; carte centrée sur mobile            |
+| 6   | Statistiques          | `/statistics`           | `stats-overview`                                               | Dépenses, moyenne mensuelle, projection annuelle, coût au km                                                   |
+| 7   |                       |                         | `stats-monthly`                                                | Mois par mois, par catégorie ou par véhicule ; export SVG                                                      |
+| 8   |                       |                         | `stats-carbon`                                                 | Empreinte carbone, avec données officielles ou calculée sur les litres réels                                   |
+| 9   |                       |                         | `stats-comparison`                                             | Duel de véhicules, catégorie par catégorie                                                                     |
+| 10  | Dépenses              | `/expenses`             | `expenses-filters`                                             | Filtres par catégorie, recherche dans les notes, fourchette de montants                                        |
+| 11  |                       |                         | `expenses-list`                                                | Historique mois par mois ; un clic pour le détail, ⋮ pour modifier                                             |
+| 12  |                       |                         | `expenses-csv`                                                 | Export CSV pour le comptable, l'assureur ou Excel ; carte centrée sur mobile                                   |
+| 13  | Entretiens et rappels | `/maintenance`          | `maintenance-suggestions`                                      | Échéances calculées depuis l'historique ; un clic crée le rappel                                               |
+| 14  |                       | `/reminders`            | `reminders-list`                                               | En retard, bientôt dus, à venir ; date estimée d'après votre rythme de conduite                                |
+| 15  | Assurance et garage   | `/insurance`            | `insurance-overview`                                           | Contrats, prochaine échéance, historique des tarifs ; mensualités ajoutées automatiquement aux dépenses        |
+| 16  |                       | `/garage?vehicleId=101` | `vehicle-health`                                               | Bilan de santé de la 308, facteur par facteur, avec quoi faire                                                 |
+| 17  | Famille               | `/family`               | `family-vehicles`                                              | Camille, Thomas et Léa partagent leurs véhicules ; droits lecture ou écriture par personne                     |
+| 18  | Pour finir            | `/family`               | `global-search`                                                | Ctrl+K, et c'est trouvé : véhicules, dépenses, rappels, pages                                                  |
+| 19  |                       | `/settings`             | `settings-panel` (`onEnter` : clic sur `settings-preferences`) | Thème clair ou sombre, filtres par défaut, ce que la famille voit de vos véhicules                             |
 
 **Carte finale :** « 🎉 Vous avez fait le tour ! Ajoutez un plein, terminez un rappel, cassez tout : la démo se réinitialise d'un clic. » Boutons **Créer mon compte** · **Continuer à explorer**.
 
@@ -456,16 +469,16 @@ Boutons : **Visite guidée (~3 min)** · **Explorer librement**.
 
 ## 9. Ancres `data-tour` à ajouter (≈ 20)
 
-| Composant | Ancres |
-|---|---|
+| Composant                                      | Ancres                                                                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `DashboardClient` / widgets du tableau de bord | `dashboard-stats`, `dashboard-insights`, `dashboard-vehicles`, `expense-button` (bouton desktop d'`ExpenseButton`) |
-| `Header` | `header-filters` (conteneurs desktop et mobile), `global-search` (boutons desktop et mobile) |
-| Statistiques | `stats-overview`, `stats-monthly`, `stats-carbon`, `stats-comparison` |
-| Dépenses | `expenses-filters`, `expenses-list`, `expenses-csv` |
-| Entretiens / Rappels | `maintenance-suggestions`, `reminders-list` |
-| Assurance / Garage | `insurance-overview`, `vehicle-health` |
-| Famille | `family-vehicles` |
-| Paramètres | `settings-preferences` (entrée du menu), `settings-panel` (conteneur du contenu) |
+| `Header`                                       | `header-filters` (conteneurs desktop et mobile), `global-search` (boutons desktop et mobile)                       |
+| Statistiques                                   | `stats-overview`, `stats-monthly`, `stats-carbon`, `stats-comparison`                                              |
+| Dépenses                                       | `expenses-filters`, `expenses-list`, `expenses-csv`                                                                |
+| Entretiens / Rappels                           | `maintenance-suggestions`, `reminders-list`                                                                        |
+| Assurance / Garage                             | `insurance-overview`, `vehicle-health`                                                                             |
+| Famille                                        | `family-vehicles`                                                                                                  |
+| Paramètres                                     | `settings-preferences` (entrée du menu), `settings-panel` (conteneur du contenu)                                   |
 
 Un test statique vérifie que chaque `target` référencé dans `steps.ts` existe dans le code source.
 
@@ -474,11 +487,13 @@ Un test statique vérifie que chaque `target` référencé dans `steps.ts` exist
 ## 10. Correctif assurance (inclus)
 
 **Problème.** `getActiveInsuranceVehicleIds` filtre sur `owner_id = utilisateur courant`.
+
 - Sur le tableau de bord, un véhicule familial assuré par son propriétaire est signalé en **critique** : « Aucun contrat d'assurance actif ».
 - La page Assurance, elle, affiche bien ce contrat actif.
 - `garage/page.tsx` ne passe que les véhicules personnels à la fonction. En fiche détail, les véhicules familiaux reçoivent donc toujours la pénalité −2 « Assurance ».
 
 **Correctif**
+
 1. Retirer le filtre `.eq('owner_id', user.id)`. Les `vehicleIds` passés sont déjà ceux auxquels l'utilisateur a accès, et la fonction ne renvoie qu'un booléen par véhicule. Mettre à jour son commentaire.
 2. `app/(app)/garage/page.tsx` : passer `allVehicleIds` au lieu de `vehicleIds` (branche « famille »).
 3. L'équivalent démo suit la sémantique corrigée.
@@ -518,6 +533,7 @@ Un test statique vérifie que chaque `target` référencé dans `steps.ts` exist
 8. **Correctif assurance :** test de la fonction corrigée (Supabase mocké).
 
 **Vérification avant de déclarer le travail terminé**
+
 - `npx tsc --noEmit` : 0 erreur hors `__tests__`, comme aujourd'hui.
 - `npx eslint . --ext .ts,.tsx` et `npx prettier --check` sur les fichiers modifiés.
 - `npm run build` réussit.
@@ -554,6 +570,7 @@ Un test statique vérifie que chaque `target` référencé dans `steps.ts` exist
    - lien mort `/history` dans les notes de version ;
    - `Preferences.tsx` est un fichier vide.
 10. **Tests** : 22 tests en échec sur `main` (tests obsolètes, par exemple le score santé passé de /100 à /10).
+11. **Véhicule vendu signalé sans assurance** : `InsightsPanel` calcule le score de santé de tous les véhicules sélectionnés, y compris ceux au statut `sold`. Un véhicule vendu, sans contrat actif, produit donc l'alerte critique « Aucun contrat d'assurance actif ». Correctif probable : ignorer les véhicules non actifs dans `InsightsPanel`. Constaté pendant la démo, d'où le retrait de la Clio (E2).
 
 ---
 
@@ -608,11 +625,35 @@ Un test statique vérifie que chaque `target` référencé dans `steps.ts` exist
 
 ## 14. Risques et parades
 
-| Risque | Parade |
-|---|---|
+| Risque                                                                 | Parade                                                                                                                                                 |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | La démo diverge quand l'app évolue : nouvelle route ou nouveau fetcher | Section dans `CLAUDE.md` ; 501 explicite pour les endpoints inconnus ; test de sécurité sur tous les fetchers ; types partagés (`Expense`, `Vehicle`…) |
-| Les ancres de la visite cassent quand l'UI change | Test statique d'existence des ancres ; repli en carte centrée à l'exécution |
-| Plafond du cookie atteint | Message 409 clair, avec « Réinitialiser » dans le bandeau ; deflate possible (×5) |
-| Écart entre le « aujourd'hui » du serveur (UTC) et celui du client | Au pire ±1 jour sur des libellés relatifs ; sans conséquence |
-| Visiteur qui utilise aussi l'app réelle dans le même navigateur | Sortie de démo à la connexion ; préférences démo avec un `updated_at` ancien ; identifiants de véhicules démo filtrés par `SelectorsContext` |
-| Accessibilité de la visite | Focus géré, `role="dialog"`, `aria-live`, clavier, `prefers-reduced-motion` |
+| Les ancres de la visite cassent quand l'UI change                      | Test statique d'existence des ancres ; repli en carte centrée à l'exécution                                                                            |
+| Plafond du cookie atteint                                              | Message 409 clair, avec « Réinitialiser » dans le bandeau ; deflate déjà actif (E1)                                                                    |
+| Écart entre le « aujourd'hui » du serveur (UTC) et celui du client     | Au pire ±1 jour sur des libellés relatifs ; sans conséquence                                                                                           |
+| Visiteur qui utilise aussi l'app réelle dans le même navigateur        | Sortie de démo à la connexion ; préférences démo avec un `updated_at` ancien ; identifiants de véhicules démo filtrés par `SelectorsContext`           |
+| Accessibilité de la visite                                             | Focus géré, `role="dialog"`, `aria-live`, clavier, `prefers-reduced-motion`                                                                            |
+
+---
+
+## 15. Écarts d'implémentation
+
+| #   | Section   | Écart                                                                                                                                                                                                                                                                                                        | Raison                                                                                                                        |
+| --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| E1  | §3.2, §5  | Le journal est compressé en deflate dès le départ : `v1.` + base64url(deflate(JSON)).                                                                                                                                                                                                                        | En base64 brut, des ops lisibles ne laissaient qu'une dizaine de modifications. Avec deflate, la capacité dépasse 40.         |
+| E2  | §4.2      | Pas de Clio vendue : 4 véhicules au lieu de 5.                                                                                                                                                                                                                                                               | Un véhicule vendu déclenche une fausse alerte d'assurance (§12, point 11).                                                    |
+| D1  | §3.6, §13 | `DemoProvider` / `useDemo()` vivent dans `contexts/DemoContext.tsx`, pas dans `components/demo/DemoProvider.tsx`.                                                                                                                                                                                            | Même convention que les autres contextes de l'app.                                                                            |
+| D2  | §3.4      | `getDemoSession()` (journal + état, mis en cache par requête) remplace `isDemoRequest()` + `getDemoState()`.                                                                                                                                                                                                 | Une seule lecture du cookie par requête, et la garde récupère l'état directement.                                             |
+| D3  | §4.3      | Volumes réels de la graine : 230 pleins et recharges, 20 entretiens, 20 dépenses « autres », 5 contrats, 6 rappels (5 pour Camille, 1 pour Léa).                                                                                                                                                             | Nombre d'entités fixe pour que les identifiants restent stables. Les invariants du §4.5 sont tous vérifiés.                   |
+| D4  | §3.3      | `/demo` est ajouté à `PUBLIC_PATHS` du middleware.                                                                                                                                                                                                                                                           | La route d'entrée doit rester accessible sans session, même le jour où `isPublicPath` sera corrigé.                           |
+| D5  | §3.5      | Pas de vérification de cohérence de l'op avant l'encodage.                                                                                                                                                                                                                                                   | `applyOps` ignore déjà une op invalide au rejeu. Les handlers valident les entrées avant de produire une op.                  |
+| D6  | §3.6      | `useAccountActions.updateProfile` affiche le message d'erreur du serveur au lieu d'un message générique.                                                                                                                                                                                                     | Explique en démo pourquoi un changement d'email est refusé. Profite aussi aux vrais utilisateurs.                             |
+| D7  | §11       | Pas de test pour `GET family/getByInvitToken` (404 en démo).                                                                                                                                                                                                                                                 | Réponse constante, sans logique.                                                                                              |
+| D8  | §3.6      | Le bouton « Visite guidée » du bandeau est ajouté en partie 2 (visite). Il passe par `useTour()`, et `useDemo()` n'expose pas `startTour()`.                                                                                                                                                                 | Le moteur de visite est générique (`components/tour`). `DemoShell` compose `DemoProvider`, `TourProvider` et `DemoTourLayer`. |
+| D9  | §6.3      | `DELETE family/members/[userId]` n'est pas émulé : le routeur répond 501 avec « Cette action n'est pas disponible dans la démo. ».                                                                                                                                                                           | Route absente du §6.3. L'interface affiche le même toast d'erreur dans les deux cas (seul le statut diffère de 403).          |
+| D10 | §3.4      | `getCurrentUser` (`auth.getUser()`) renvoie `null` en démo. `getCurrentUserInfo` renvoie l'utilisateur démo.                                                                                                                                                                                                 | `getCurrentUser` n'a aucun appelant ; `AppDataProvider` utilise `getCurrentUserInfo`.                                         |
+| T1  | §7.1      | `useTourTarget.ts` devient `dom.ts` (aides DOM pures) + `useTargetRect.ts` (hook). Les types vont dans `lib/demo/tour/types.ts`. Ajouts : `ResumePill`, `FinishCard`, `DemoTourLayer`, `DemoShell`.                                                                                                          | Fichiers plus petits, testables sans rendu.                                                                                   |
+| T2  | §7.3      | Pas de ref « navigation initiée par la visite » : un changement de pathname met la visite en pause s'il diffère du pathname de l'étape courante. Une route avec query (`/garage?vehicleId=101`) est poussée à chaque activation de l'étape.                                                                  | Règle plus simple, même effet. `GarageClient` ne lit la query qu'une fois.                                                    |
+| T3  | §7.4      | Les étapes interactives n'affichent que le halo, sans voile ni bloqueurs.                                                                                                                                                                                                                                    | Le header (`sticky z-30`) crée un contexte d'empilement : ses menus déroulants resteraient sous un voile en z-45.             |
+| T4  | §7.1, §9  | `TourAction` gagne `{ type: 'click-outside' }` (fermeture du menu « Ajouter une dépense » à la sortie de l'étape 5). L'ancre `expense-button` est posée sur le bouton lui-même, qui sert aussi de cible au clic `onEnter`.                                                                                   | Un second clic sur le bouton pourrait rouvrir le menu.                                                                        |
+| T5  | §9        | `header-filters` est posé une seule fois, sur le conteneur des sélecteurs dans `PrivateLayoutContent`. `Header` le rend deux fois (desktop et mobile). `StatOverviewGrid` transmet `data-tour`. `expenses-list` est un nouveau `<div>` autour des groupes mensuels, qui étaient dans un fragment sans boîte. | Une ancre par élément réellement mesurable.                                                                                   |
