@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { DEMO_PARTNER_ID, DEMO_USER_ID, DEMO_VEHICLE } from '@/lib/demo/constants';
 import { addDays, addMonths, toTimestamp } from '@/lib/demo/dates';
-import { applyOp, nextId } from '@/lib/demo/ops';
+import { createJournal, decodeJournal, encodeJournal } from '@/lib/demo/journal';
+import { applyOp, isDemoOp, nextId } from '@/lib/demo/ops';
 import { buildDemoSeed } from '@/lib/demo/seed';
 import { buildDemoState } from '@/lib/demo/state';
 
@@ -134,5 +135,72 @@ describe('buildDemoState', () => {
     expect(untouched).toBeDefined();
     expect(state.expenses.find((e) => e.id === 10_000)).toEqual(untouched);
     expect(state.users.find((u) => u.id === DEMO_USER_ID)?.name).toBe('Camille D.');
+  });
+});
+
+describe('tampered op payloads', () => {
+  const replay = (ops: unknown[]) => {
+    const raw = encodeJournal({ ...createJournal('s'), ops: ops as DemoOp[] });
+    return buildDemoState('2026-10-01', decodeJournal(raw).ops);
+  };
+
+  it('rejects ops whose payload is not a plain object', () => {
+    expect(isDemoOp({ t: 'vehicle.update', id: 101, d: 'x' })).toBe(false);
+    expect(isDemoOp({ t: 'vehicle.update', id: 101, d: null })).toBe(false);
+    expect(isDemoOp({ t: 'vehicle.update', id: 101, d: [] })).toBe(false);
+    expect(isDemoOp({ t: 'vehicle.update', id: 101 })).toBe(false);
+    expect(isDemoOp({ t: 'vehicle.update', id: 101, d: { name: 'Ok' } })).toBe(true);
+    expect(isDemoOp({ t: 'vehicle.delete', id: 101 })).toBe(true);
+  });
+
+  it('cannot change the owner or id of a vehicle', () => {
+    const state = replay([
+      {
+        t: 'vehicle.update',
+        id: DEMO_VEHICLE.peugeot308,
+        d: { name: 'Piratée', owner_id: 'attacker', id: 999 },
+      },
+    ]);
+    const vehicle = state.vehicles.find((v) => v.name === 'Piratée');
+    expect(vehicle).toMatchObject({ id: DEMO_VEHICLE.peugeot308, owner_id: DEMO_USER_ID });
+  });
+
+  it('cannot inject an owner through a created contract or reminder', () => {
+    const state = replay([
+      {
+        t: 'insurance.create',
+        id: 900,
+        d: {
+          vehicle_id: DEMO_VEHICLE.peugeot308,
+          monthly_cost: 1,
+          start_date: '2026-01-01',
+          end_date: null,
+          provider: null,
+          owner_id: 'attacker',
+          id: 1,
+        },
+      },
+      {
+        t: 'reminder.create',
+        id: 900,
+        at: '2026-10-01T08:00:00.000Z',
+        d: {
+          vehicle_id: DEMO_VEHICLE.peugeot308,
+          type: 'date',
+          title: 'Piraté',
+          description: null,
+          due_date: null,
+          due_odometer: null,
+          is_recurring: false,
+          recurrence_type: null,
+          recurrence_value: null,
+          maintenance_type_id: null,
+          user_id: 'attacker',
+          id: 1,
+        },
+      },
+    ]);
+    expect(state.insuranceContracts.find((c) => c.id === 900)?.owner_id).toBe(DEMO_USER_ID);
+    expect(state.reminders.find((r) => r.id === 900)?.user_id).toBe(DEMO_USER_ID);
   });
 });

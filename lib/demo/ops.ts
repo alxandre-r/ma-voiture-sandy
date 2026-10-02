@@ -146,10 +146,50 @@ const OP_TYPES: ReadonlySet<string> = new Set<DemoOp['t']>([
   'profile.update',
 ]);
 
+/** Op types carrying a `d` payload. */
+const PAYLOAD_OP_TYPES: ReadonlySet<string> = new Set<DemoOp['t']>([
+  'fill.add',
+  'fill.update',
+  'other.add',
+  'expense.update',
+  'maintenance.add',
+  'reminder.create',
+  'reminder.update',
+  'insurance.create',
+  'insurance.update',
+  'vehicle.add',
+  'vehicle.update',
+  'preferences.update',
+]);
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
 export function isDemoOp(value: unknown): value is DemoOp {
   if (typeof value !== 'object' || value === null) return false;
-  const type = (value as { t?: unknown }).t;
-  return typeof type === 'string' && OP_TYPES.has(type);
+  const { t: type, d } = value as { t?: unknown; d?: unknown };
+  if (typeof type !== 'string' || !OP_TYPES.has(type)) return false;
+  return !PAYLOAD_OP_TYPES.has(type) || isPlainObject(d);
+}
+
+/** Keys a payload must never carry: identity/ownership and prototype keys (the cookie can be tampered with). */
+const FORBIDDEN_PAYLOAD_KEYS: ReadonlySet<string> = new Set([
+  'id',
+  'owner_id',
+  'user_id',
+  '__proto__',
+  'constructor',
+  'prototype',
+]);
+
+/** Copy of a payload without forbidden keys, safe to spread or Object.assign onto an entity. */
+function sanitize<T extends object>(payload: T): T {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([key]) => !FORBIDDEN_PAYLOAD_KEYS.has(key)),
+  ) as T;
 }
 
 export function nextId(items: ReadonlyArray<{ id: number }>): number {
@@ -402,7 +442,7 @@ export function applyOp(state: DemoState, op: DemoOp): void {
       state.reminders.push({
         id: op.id,
         user_id: DEMO_USER_ID,
-        ...op.d,
+        ...sanitize(op.d),
         last_triggered_at: null,
         is_completed: false,
         estimated_due_date: null,
@@ -411,7 +451,7 @@ export function applyOp(state: DemoState, op: DemoOp): void {
       return;
     case 'reminder.update': {
       const reminder = state.reminders.find((r) => r.id === op.id);
-      if (reminder) Object.assign(reminder, op.d);
+      if (reminder) Object.assign(reminder, sanitize(op.d));
       return;
     }
     case 'reminder.delete':
@@ -421,11 +461,11 @@ export function applyOp(state: DemoState, op: DemoOp): void {
       completeReminder(state, op);
       return;
     case 'insurance.create':
-      state.insuranceContracts.push({ id: op.id, owner_id: DEMO_USER_ID, ...op.d });
+      state.insuranceContracts.push({ id: op.id, owner_id: DEMO_USER_ID, ...sanitize(op.d) });
       return;
     case 'insurance.update': {
       const contract = state.insuranceContracts.find((c) => c.id === op.id);
-      if (contract) Object.assign(contract, op.d);
+      if (contract) Object.assign(contract, sanitize(op.d));
       return;
     }
     case 'insurance.delete':
@@ -434,7 +474,7 @@ export function applyOp(state: DemoState, op: DemoOp): void {
     case 'vehicle.add':
       state.vehicles.push({
         ...EMPTY_VEHICLE,
-        ...op.d,
+        ...sanitize(op.d),
         id: op.id,
         owner_id: DEMO_USER_ID,
         created_at: op.at,
@@ -442,7 +482,7 @@ export function applyOp(state: DemoState, op: DemoOp): void {
       return;
     case 'vehicle.update': {
       const vehicle = state.vehicles.find((v) => v.id === op.id);
-      if (vehicle) Object.assign(vehicle, op.d);
+      if (vehicle) Object.assign(vehicle, sanitize(op.d));
       return;
     }
     case 'vehicle.delete':
@@ -473,7 +513,7 @@ export function applyOp(state: DemoState, op: DemoOp): void {
     }
     case 'preferences.update': {
       const prefs = state.preferences.find((p) => p.user_id === DEMO_USER_ID);
-      if (prefs) Object.assign(prefs, op.d, { updated_at: op.at });
+      if (prefs) Object.assign(prefs, sanitize(op.d), { updated_at: op.at });
       return;
     }
     case 'profile.update': {
