@@ -128,7 +128,10 @@ export default function InsightsPanel({
   if (visible.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-orange-100 dark:border-orange-900/40 bg-orange-50/60 dark:bg-orange-950/20 p-4 space-y-2">
+    <div
+      data-tour="dashboard-insights"
+      className="rounded-xl border border-orange-100 dark:border-orange-900/40 bg-orange-50/60 dark:bg-orange-950/20 p-4 space-y-2"
+    >
       <div className="flex items-center gap-2 mb-3">
         <Icon name="bell" size={15} className="text-orange-500" />
         <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">

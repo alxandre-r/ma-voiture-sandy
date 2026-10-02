@@ -462,6 +462,7 @@ function ExpensesContent({
         headerAction={
           <div className="flex items-center gap-2">
             <button
+              data-tour="expenses-csv"
               onClick={() => setShowCSVModal(true)}
               disabled={filteredExpenses.length === 0}
               className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"

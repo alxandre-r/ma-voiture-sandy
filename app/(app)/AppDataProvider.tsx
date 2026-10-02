@@ -7,11 +7,11 @@
  * Note: Family data is fetched directly in each page's Server Components
  * for proper granular streaming with Suspense boundaries.
  *
- * In demo mode (mv_demo cookie), the same fetchers answer from the demo state and the demo context is mounted.
+ * In demo mode (mv_demo cookie), the same fetchers answer from the demo state and the demo shell (demo controls + guided tour) is mounted.
  */
 import { redirect } from 'next/navigation';
 
-import { DemoProvider } from '@/contexts/DemoContext';
+import DemoShell from '@/components/demo/DemoShell';
 import { RemindersCountProvider } from '@/contexts/RemindersCountContext';
 import { SelectorsProvider } from '@/contexts/SelectorsContext';
 import { UserProvider } from '@/contexts/UserContext';
@@ -59,11 +59,7 @@ export default async function AppDataProvider({ children }: AppDataProviderProps
         currentUserId={safeUser.id}
       >
         <RemindersCountProvider overdue={reminderCounts.overdue} dueSoon={reminderCounts.dueSoon}>
-          {demo ? (
-            <DemoProvider sessionId={demo.journal.sessionId}>{children}</DemoProvider>
-          ) : (
-            children
-          )}
+          {demo ? <DemoShell sessionId={demo.journal.sessionId}>{children}</DemoShell> : children}
         </RemindersCountProvider>
       </SelectorsProvider>
     </UserProvider>

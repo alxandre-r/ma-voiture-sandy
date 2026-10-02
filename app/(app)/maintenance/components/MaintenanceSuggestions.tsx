@@ -22,7 +22,10 @@ export default function MaintenanceSuggestions({
   const overdueCount = suggestions.filter((s) => (s.monthsOverdue ?? 0) > 0).length;
 
   return (
-    <div className="rounded-xl border border-orange-100 dark:border-orange-900/40 bg-orange-50/60 dark:bg-orange-950/20 overflow-hidden">
+    <div
+      data-tour="maintenance-suggestions"
+      className="rounded-xl border border-orange-100 dark:border-orange-900/40 bg-orange-50/60 dark:bg-orange-950/20 overflow-hidden"
+    >
       {/* Header */}
       <button
         onClick={() => setCollapsed((v) => !v)}

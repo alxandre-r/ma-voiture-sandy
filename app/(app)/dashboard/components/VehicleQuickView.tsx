@@ -128,7 +128,7 @@ export default function VehicleQuickView({
   if (active.length === 0) return null;
 
   return (
-    <Card>
+    <Card data-tour="dashboard-vehicles">
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon name="car" size={18} />

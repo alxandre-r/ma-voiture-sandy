@@ -83,7 +83,7 @@ export default function HealthScoreCard({ health }: HealthScoreCardProps) {
   const hasFactors = factors.length > 0;
 
   return (
-    <Card>
+    <Card data-tour="vehicle-health">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2 text-lg">

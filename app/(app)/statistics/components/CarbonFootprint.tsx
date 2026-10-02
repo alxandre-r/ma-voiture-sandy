@@ -100,7 +100,7 @@ export default function CarbonFootprint({
   const currentYear = new Date().getFullYear();
 
   return (
-    <Card>
+    <Card data-tour="stats-carbon">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg shrink-0 flex items-center justify-center">

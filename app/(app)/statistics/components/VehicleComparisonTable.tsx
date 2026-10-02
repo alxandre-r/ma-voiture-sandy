@@ -74,7 +74,7 @@ export default function VehicleComparisonTable({
 
   return (
     // overflow-hidden clips the tfoot background to the card's rounded corners
-    <Card className="overflow-hidden">
+    <Card data-tour="stats-comparison" className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div className="flex items-center gap-2">
           <Icon name="stack" size={18} className="text-gray-400 dark:text-gray-500" />

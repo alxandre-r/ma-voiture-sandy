@@ -2,7 +2,7 @@
 
 /**
  * @file components/demo/DemoBanner.tsx
- * @description Thin banner above the header in demo mode: persona, reset, sign-up and exit.
+ * @description Thin banner above the header in demo mode: persona, guided tour, reset, sign-up and exit.
  * Renders nothing outside the demo.
  */
 
@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import { ConfirmationModal } from '@/components/common/ui/ConfirmationModal';
 import Icon from '@/components/common/ui/Icon';
+import { useTour } from '@/components/tour/TourProvider';
 import { useDemo } from '@/contexts/DemoContext';
 import { useUser } from '@/contexts/UserContext';
 
@@ -18,6 +19,7 @@ const BUTTON =
 
 export default function DemoBanner() {
   const demo = useDemo();
+  const tour = useTour();
   const user = useUser();
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -48,6 +50,20 @@ export default function DemoBanner() {
       </p>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        {tour && (
+          <button
+            type="button"
+            onClick={() => (tour.status === 'paused' ? tour.resume() : tour.start())}
+            disabled={tour.status === 'running'}
+            aria-label={tour.status === 'paused' ? 'Reprendre la visite' : 'Visite guidée'}
+            className={`${BUTTON} text-custom-1 hover:bg-white/60 disabled:cursor-default disabled:opacity-50 dark:text-custom-1-dark dark:hover:bg-gray-800`}
+          >
+            <span aria-hidden="true">🧭</span>
+            <span className="hidden sm:inline">
+              {tour.status === 'paused' ? 'Reprendre la visite' : 'Visite guidée'}
+            </span>
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setConfirmReset(true)}

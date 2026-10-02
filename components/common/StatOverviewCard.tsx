@@ -171,14 +171,17 @@ export function StatOverviewGrid({
   cards,
   gridClass = 'grid-cols-3',
   className,
+  'data-tour': tourAnchor,
 }: {
   cards: StatCardDef[];
   /** Tailwind grid-cols classes. Default: "grid-cols-3" */
   gridClass?: string;
   className?: string;
+  /** Guided-tour anchor (lib/demo/tour/steps.ts) */
+  'data-tour'?: string;
 }) {
   return (
-    <div className={`grid gap-2 sm:gap-3 ${gridClass} ${className ?? ''}`}>
+    <div data-tour={tourAnchor} className={`grid gap-2 sm:gap-3 ${gridClass} ${className ?? ''}`}>
       {cards.map((card, i) => {
         const { key, ...rest } = card;
         return <StatOverviewCard key={key ?? String(i)} {...rest} />;

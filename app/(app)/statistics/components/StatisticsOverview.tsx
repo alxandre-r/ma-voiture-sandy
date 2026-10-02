@@ -143,5 +143,11 @@ export default function StatisticsOverview({
       : []),
   ];
 
-  return <StatOverviewGrid cards={cards} gridClass="grid-cols-2 md:grid-cols-4" />;
+  return (
+    <StatOverviewGrid
+      data-tour="stats-overview"
+      cards={cards}
+      gridClass="grid-cols-2 md:grid-cols-4"
+    />
+  );
 }

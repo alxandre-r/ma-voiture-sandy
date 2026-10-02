@@ -147,7 +147,7 @@ export default function ExpenseList({
   return (
     <div className="flex gap-6 items-start">
       {/* Desktop sidebar */}
-      <aside className="max-lg:hidden w-48 shrink-0">
+      <aside data-tour="expenses-filters" className="max-lg:hidden w-48 shrink-0">
         <Card>
           <div className="p-3 space-y-1">
             <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">
@@ -177,7 +177,7 @@ export default function ExpenseList({
       {/* Main area */}
       <div className="flex-1 min-w-0 space-y-4">
         {/* Mobile: category pills + advanced filter toggle */}
-        <div className="lg:hidden space-y-2">
+        <div data-tour="expenses-filters" className="lg:hidden space-y-2">
           <div className="flex items-center gap-2">
             <div className="flex-1 overflow-x-auto">
               <CategoryFilters
@@ -238,7 +238,7 @@ export default function ExpenseList({
             </div>
           </Card>
         ) : (
-          <>
+          <div data-tour="expenses-list" className="space-y-4">
             {visibleGroups.map((group) => (
               <ExpenseMonthGroup
                 key={group.sortKey}
@@ -259,7 +259,7 @@ export default function ExpenseList({
                 Voir plus · {monthGroups.length - visibleMonths} mois restants
               </button>
             )}
-          </>
+          </div>
         )}
       </div>
 

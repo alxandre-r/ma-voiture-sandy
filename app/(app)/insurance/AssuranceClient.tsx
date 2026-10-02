@@ -186,7 +186,7 @@ export default function AssuranceClient({ vehicles, ownedVehicleIds }: Assurance
       />
 
       {/* ── My vehicles ── */}
-      <div className="space-y-1.5">
+      <div data-tour="insurance-overview" className="space-y-1.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Icon name="secure" size={15} className="text-gray-400" />

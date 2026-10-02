@@ -104,5 +104,5 @@ export default function StatsCards({
   const gridClass =
     cards.length <= 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4';
 
-  return <StatOverviewGrid cards={cards} gridClass={gridClass} />;
+  return <StatOverviewGrid data-tour="dashboard-stats" cards={cards} gridClass={gridClass} />;
 }

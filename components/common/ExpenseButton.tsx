@@ -148,6 +148,7 @@ export default function ExpenseButton({
       <div className="hidden sm:flex justify-end">
         <div className="relative" ref={menuRef}>
           <button
+            data-tour="expense-button"
             onClick={() => setShowMenu(!showMenu)}
             className="px-4 py-2 bg-custom-2 hover:bg-custom-2-hover text-white rounded-lg font-medium transition-colors flex items-center gap-2 cursor-pointer"
           >

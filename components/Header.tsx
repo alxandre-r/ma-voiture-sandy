@@ -62,6 +62,7 @@ export default function Header({ title, content, onMenuOpen, onSearchOpen }: Hea
             <>
               {/* Desktop: barre fantôme avec hint ⌘K */}
               <button
+                data-tour="global-search"
                 onClick={onSearchOpen}
                 className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-600 dark:hover:text-gray-400 bg-white dark:bg-gray-800 transition-colors min-w-[180px]"
                 aria-label="Ouvrir la recherche"
@@ -74,6 +75,7 @@ export default function Header({ title, content, onMenuOpen, onSearchOpen }: Hea
               </button>
               {/* Mobile: icône seule */}
               <button
+                data-tour="global-search"
                 onClick={onSearchOpen}
                 className="md:hidden p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 aria-label="Ouvrir la recherche"

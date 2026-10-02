@@ -64,7 +64,10 @@ export default function PrivateLayoutContent({
             onSearchOpen={() => setSearchOpen(true)}
             content={
               showFilters && (
-                <div className="flex flex-row gap-2 sm:gap-4 w-full sm:w-auto min-w-0">
+                <div
+                  data-tour="header-filters"
+                  className="flex flex-row gap-2 sm:gap-4 w-full sm:w-auto min-w-0"
+                >
                   <VehicleSelectorWrapper />
                   <PeriodSelectorWrapper />
                 </div>

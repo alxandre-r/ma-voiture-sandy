@@ -37,7 +37,7 @@ export default function SettingsClient({ initialPreferences }: SettingsClientPro
         </aside>
 
         {/* Active section content */}
-        <div className="lg:col-span-3">
+        <div data-tour="settings-panel" className="lg:col-span-3">
           {activeSection === 'account' && <AccountSection user={user} />}
           {activeSection === 'preferences' && (
             <PreferencesSection initialPreferences={initialPreferences} />

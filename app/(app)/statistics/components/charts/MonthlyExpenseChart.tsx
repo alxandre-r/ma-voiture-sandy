@@ -134,7 +134,7 @@ export default function MonthlyExpenseChart({
   const isVehicleMode = chartMode === 'vehicle';
 
   return (
-    <Card>
+    <Card data-tour="stats-monthly">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <CardTitle>Dépenses mensuelles</CardTitle>

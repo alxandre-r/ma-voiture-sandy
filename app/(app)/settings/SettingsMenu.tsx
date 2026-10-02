@@ -32,6 +32,7 @@ export default function SettingsMenu({
         {menuItems.map((item) => (
           <button
             key={item.id}
+            data-tour={item.id === 'preferences' ? 'settings-preferences' : undefined}
             onClick={() => onChange(item.id)}
             className={`w-full flex flex-row items-center gap-3 p-3 rounded-lg transition-colors hover:cursor-pointer
         ${

@@ -178,7 +178,7 @@ function RemindersContent({ reminders, vehicles, fillExpenses }: RemindersClient
           deletingAttachmentId={deletingAttachmentId}
         />
       ) : filter === 'all' ? (
-        <div className="space-y-6">
+        <div data-tour="reminders-list" className="space-y-6">
           <OverdueReminders
             reminders={overdueReminders}
             vehicles={vehicles}
@@ -220,7 +220,7 @@ function RemindersContent({ reminders, vehicles, fillExpenses }: RemindersClient
         </div>
       ) : (
         /* filter === 'active' */
-        <div className="space-y-6">
+        <div data-tour="reminders-list" className="space-y-6">
           <OverdueReminders
             reminders={overdueReminders}
             vehicles={vehicles}
