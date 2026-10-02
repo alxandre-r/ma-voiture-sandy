@@ -11,6 +11,21 @@ export interface InsuranceContract {
   attachments?: Attachment[];
 }
 
+/** Writable fields of a contract (API payloads, demo ops). */
+export interface InsuranceContractInput {
+  vehicle_id: number;
+  monthly_cost: number;
+  start_date: string;
+  end_date: string | null;
+  provider: string | null;
+}
+
+/** SSR insurance payload: visible contracts plus family vehicles whose owner hides insurance. */
+export interface InsuranceData {
+  contracts: InsuranceContract[];
+  hiddenVehicleIds: number[];
+}
+
 export interface InsuranceFormData {
   provider: string;
   monthly_cost: number | string;
