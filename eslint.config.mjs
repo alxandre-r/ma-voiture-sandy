@@ -100,6 +100,25 @@ const eslintConfig = [
       '@typescript-eslint/no-unsafe-assignment': 'off',
     },
   },
+  // -----------------------------
+  // DEMO MODE ISOLATION
+  // -----------------------------
+  {
+    files: ['lib/demo/**/*.{ts,tsx}', 'app/api/demo/**/*.{ts,tsx}', 'app/demo/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/lib/supabase/*', '@/lib/data/*'],
+              message: 'Demo code must never reach Supabase or the real data layer.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;
