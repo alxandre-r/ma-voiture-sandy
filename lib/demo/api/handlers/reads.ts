@@ -1,6 +1,6 @@
 import { DEMO_USER_ID } from '../../constants';
 import { expensesForDisplay, vehiclesForDisplay } from '../../views';
-import { byDateDesc, fail, parseIdList, reply, visibleVehicle } from '../helpers';
+import { byDateDesc, fail, parseIdList, reply } from '../helpers';
 
 import type { DemoState } from '../../types';
 import type { DemoApiHandler } from '../types';
@@ -28,18 +28,6 @@ export const readHandlers: Record<string, DemoApiHandler> = {
         (e) => e.type === 'maintenance',
       ),
     }),
-
-  'GET insurance/get': ({ state, query }) => {
-    const raw = query.get('vehicle_id');
-    if (!raw) return fail(400, 'Le paramètre vehicle_id est requis');
-    const vehicleId = Number(raw);
-    if (!visibleVehicle(state, vehicleId)) return fail(403, 'Véhicule introuvable ou accès refusé');
-    const contracts = state.insuranceContracts
-      .filter((c) => c.vehicle_id === vehicleId)
-      .sort((a, b) => b.start_date.localeCompare(a.start_date))
-      .map((c) => ({ ...c }));
-    return reply(200, { contracts });
-  },
 
   'GET search': ({ state, query }) => {
     const q = (query.get('q') ?? '').trim();

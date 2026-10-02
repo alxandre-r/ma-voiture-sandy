@@ -52,13 +52,6 @@ const FETCHERS: Array<[string, () => Promise<unknown>]> = [
     async () => (await import('@/lib/data/family/getUserFamilies')).getUserFamilies(),
   ],
   [
-    'getActiveInsuranceVehicleIds',
-    async () =>
-      (
-        await import('@/lib/data/insurance/getActiveInsuranceVehicleIds')
-      ).getActiveInsuranceVehicleIds(IDS),
-  ],
-  [
     'getInsuranceData',
     async () =>
       (await import('@/lib/data/insurance/getInsuranceData')).getInsuranceData(
@@ -149,8 +142,8 @@ beforeEach(() => {
 });
 
 describe('lib/data in demo mode', () => {
-  it('covers the 25 fetchers', () => {
-    expect(FETCHERS).toHaveLength(25);
+  it('covers the 24 fetchers', () => {
+    expect(FETCHERS).toHaveLength(24);
   });
 
   it.each(FETCHERS)('%s answers from demo data without touching Supabase', async (_name, call) => {

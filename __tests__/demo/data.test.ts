@@ -9,6 +9,7 @@ import {
 } from '@/lib/demo/constants';
 import * as demoData from '@/lib/demo/data';
 import { buildDemoSeed } from '@/lib/demo/seed';
+import { getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
 
 const TODAY = '2026-10-01';
 const state = () => buildDemoSeed(TODAY);
@@ -79,9 +80,14 @@ describe('demo data (lib/data equivalents)', () => {
   });
 
   it('considers a vehicle insured whoever holds the active contract', () => {
-    expect(demoData.getActiveInsuranceVehicleIds(state(), allIds).sort()).toEqual(
-      [...allIds].sort(),
-    );
+    const s = state();
+    const vehicles = s.vehicles.map((v) => ({ vehicle_id: v.id, owner_id: v.owner_id }));
+    const insurance = demoData.getInsuranceData(s, vehicles);
+    for (const id of allIds) {
+      expect(getHasActiveInsurance(insurance, { vehicle_id: id, status: 'active' }, TODAY)).toBe(
+        true,
+      );
+    }
   });
 
   it('returns copies so callers cannot corrupt the state', () => {

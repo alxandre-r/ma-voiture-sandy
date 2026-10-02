@@ -31,17 +31,6 @@ describe('demo read endpoints', () => {
     expect(expenses.every((e) => e.type === 'maintenance')).toBe(true);
   });
 
-  it('GET insurance/get validates input and access', () => {
-    expect(get('insurance/get').status).toBe(400);
-    expect(get('insurance/get', { vehicle_id: '999' })).toEqual({
-      status: 403,
-      json: { error: 'Véhicule introuvable ou accès refusé' },
-    });
-    const { json } = get('insurance/get', { vehicle_id: `${DEMO_VEHICLE.peugeot308}` });
-    const { contracts } = json as { contracts: { provider: string }[] };
-    expect(contracts.map((c) => c.provider)).toEqual(['Mutuelle des Routes', 'Assurance Horizon']);
-  });
-
   it('GET search finds owned-vehicle expenses and own reminders', () => {
     expect((get('search', { q: 'a' }).json as { expenses: unknown[] }).expenses).toEqual([]);
     const { json } = get('search', { q: 'péage' });

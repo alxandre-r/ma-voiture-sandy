@@ -188,20 +188,6 @@ export function getOverdueCount(state: DemoState, now: Date = new Date()) {
 
 /* ----- insurance & family ----- */
 
-/** Vehicles among `vehicleIds` with an active contract (no end_date, or end_date >= today), whoever holds it. */
-export function getActiveInsuranceVehicleIds(state: DemoState, vehicleIds: number[]): number[] {
-  return [
-    ...new Set(
-      state.insuranceContracts
-        .filter(
-          (c) =>
-            vehicleIds.includes(c.vehicle_id) && (c.end_date === null || c.end_date >= state.today),
-        )
-        .map((c) => c.vehicle_id),
-    ),
-  ];
-}
-
 export function getFamilyInfo(state: DemoState, familyId: string) {
   return familyRow(state, familyId);
 }
