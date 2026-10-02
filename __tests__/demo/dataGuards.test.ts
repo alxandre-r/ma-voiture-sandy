@@ -172,6 +172,14 @@ describe('lib/data in demo mode', () => {
     await expect(getUserFamilyId()).resolves.toBe(DEMO_FAMILY_ID);
   });
 
+  it('returns the demo user from getCurrentUserInfo (null would redirect to session_expired)', async () => {
+    const { getCurrentUserInfo } = await import('@/lib/data/user/getCurrentUserInfo');
+    const user = await getCurrentUserInfo();
+    expect(user).not.toBeNull();
+    expect(user?.id).toBe(DEMO_USER_ID);
+    expect(supabase.factory).not.toHaveBeenCalled();
+  });
+
   it('keeps the real empty-array semantics of the expenses maintenance fetcher', async () => {
     const { getMaintenanceExpenses } = await import('@/lib/data/expenses/getMaintenanceExpense');
     await expect(getMaintenanceExpenses([])).resolves.toEqual([]);
