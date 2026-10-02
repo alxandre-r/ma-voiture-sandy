@@ -55,7 +55,8 @@ export function handleDemoApiRequest(request: DemoHttpRequest): DemoHttpResponse
       return { status: 409, json: { error: DEMO_LIMIT_MESSAGE } };
     }
     return { status: result.status, json: result.json, cookie };
-  } catch {
+  } catch (error) {
+    console.error('[demo api]', request.method, request.path, error);
     return { status: 500, json: { error: 'Erreur serveur inattendue' } };
   }
 }
