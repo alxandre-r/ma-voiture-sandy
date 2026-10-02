@@ -6,47 +6,47 @@ import AttachmentSection from '@/components/common/attachments/AttachmentSection
 import { FormDate, FormField, FormInput } from '@/components/common/ui/form';
 import Icon from '@/components/common/ui/Icon';
 import Spinner from '@/components/common/ui/Spinner';
+import { formatInsuranceDate } from '@/lib/utils/insuranceUtils';
+import { addDaysIso, getLocalToday } from '@/lib/utils/isoDate';
 
 import type { InsuranceContract, InsuranceFormData } from '@/types/insurance';
 
+export type InsuranceFormMode = 'add' | 'change' | 'edit';
+
 interface InsuranceFormProps {
+  mode: InsuranceFormMode;
+  /** Contract being edited (edit mode) */
   initialContract?: InsuranceContract | null;
   onSave: (data: InsuranceFormData, pendingFiles: File[]) => Promise<boolean>;
   onCancel: () => void;
   saving?: boolean;
-  /** Show the end_date field (used when editing a historical contract) */
-  showEndDate?: boolean;
-  /** Custom label for the start_date field */
-  labelStartDate?: string;
-  /** Override the default start date (e.g. day after previous contract ended) */
   defaultStartDate?: string;
-  /** Pre-fill provider without pre-filling monthly_cost (used for rate change) */
   defaultProvider?: string;
-  /** Override the submit button label */
-  submitLabel?: string;
+  defaultMonthlyCost?: number;
+  /** Change mode: the contract that will be closed (for the helper line) */
+  currentContract?: Pick<InsuranceContract, 'provider' | 'monthly_cost'> | null;
 }
 
+const SUBMIT_LABELS: Record<InsuranceFormMode, string> = {
+  add: 'Ajouter',
+  change: 'Enregistrer le changement',
+  edit: 'Enregistrer',
+};
+
 export default function InsuranceForm({
+  mode,
   initialContract,
   onSave,
   onCancel,
   saving = false,
-  showEndDate = false,
-  labelStartDate = 'Date de début',
-  defaultStartDate: defaultStartDateProp,
+  defaultStartDate,
   defaultProvider,
-  submitLabel,
+  defaultMonthlyCost,
+  currentContract,
 }: InsuranceFormProps) {
-  const defaultStartDate =
-    defaultStartDateProp ??
-    (initialContract?.start_date
-      ? new Date(initialContract.start_date).toISOString().split('T')[0]
-      : new Date().toISOString().split('T')[0]);
-
-  const defaultEndDate = initialContract?.end_date
-    ? new Date(initialContract.end_date).toISOString().split('T')[0]
-    : '';
-
+  const [startDate, setStartDate] = useState(
+    defaultStartDate ?? initialContract?.start_date ?? getLocalToday(),
+  );
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -76,21 +76,36 @@ export default function InsuranceForm({
         <FormInput
           name="monthly_cost"
           type="number"
-          defaultValue={initialContract?.monthly_cost ?? ''}
+          defaultValue={initialContract?.monthly_cost ?? defaultMonthlyCost ?? ''}
           placeholder="Ex : 65"
-          min={0}
+          min={0.01}
           step="0.01"
           required
         />
       </FormField>
 
-      <FormField label={labelStartDate} required>
-        <FormDate name="start_date" defaultValue={defaultStartDate} required />
+      <FormField label={mode === 'change' ? "Date d'effet" : 'Date de début'} required>
+        <FormDate
+          name="start_date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          required
+        />
       </FormField>
 
-      {showEndDate && (
+      {mode === 'change' && currentContract && startDate && (
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Le contrat actuel (
+          {[currentContract.provider, `${currentContract.monthly_cost.toFixed(2)} €`]
+            .filter(Boolean)
+            .join(', ')}
+          ) prendra fin le {formatInsuranceDate(addDaysIso(startDate, -1))}.
+        </p>
+      )}
+
+      {mode !== 'change' && (
         <FormField label="Date de fin">
-          <FormDate name="end_date" defaultValue={defaultEndDate} />
+          <FormDate name="end_date" defaultValue={initialContract?.end_date ?? ''} />
         </FormField>
       )}
 
@@ -127,7 +142,7 @@ export default function InsuranceForm({
           ) : (
             <>
               <Icon name="check" size={16} />
-              {submitLabel ?? (initialContract ? 'Enregistrer' : 'Ajouter')}
+              {SUBMIT_LABELS[mode]}
             </>
           )}
         </button>

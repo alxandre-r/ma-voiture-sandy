@@ -1,56 +1,45 @@
 'use client';
 
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-
 import { StatOverviewGrid } from '@/components/common/StatOverviewCard';
+import { formatInsuranceDate } from '@/lib/utils/insuranceUtils';
 
 import type { StatCardDef } from '@/components/common/StatOverviewCard';
-import type { InsuranceContract } from '@/types/insurance';
-import type { Vehicle } from '@/types/vehicle';
 
 interface InsuranceStatsGridProps {
-  loading: boolean;
   totalMonthlyPremium: number;
-  vehiclesInsuredCount: number;
-  totalVehicleCount: number;
-  nextPaymentEntry: { contract: InsuranceContract; date: Date } | null;
-  nextPaymentVehicle: Vehicle | null;
+  insuredCount: number;
+  activeVehicleCount: number;
+  nextPayment: { date: string; vehicleName: string } | null;
 }
 
+/** Summary stats over the user's own vehicles in service. */
 export default function InsuranceStatsGrid({
-  loading,
   totalMonthlyPremium,
-  nextPaymentEntry,
-  nextPaymentVehicle,
+  insuredCount,
+  activeVehicleCount,
+  nextPayment,
 }: InsuranceStatsGridProps) {
-  const annualPremium = totalMonthlyPremium * 12;
-
-  const nextPaymentLabel = nextPaymentEntry
-    ? format(nextPaymentEntry.date, 'dd MMM yyyy', { locale: fr })
-    : '—';
-
-  const nextVehicleName =
-    nextPaymentVehicle
-      ? `${nextPaymentVehicle.make ?? ''} ${nextPaymentVehicle.model ?? ''}`.trim()
-      : undefined;
-
   const cards: StatCardDef[] = [
     {
       key: 'premium',
       label: 'Prime mensuelle',
-      value: loading ? '—' : totalMonthlyPremium.toFixed(2),
-      unit: loading ? undefined : '€',
+      value: totalMonthlyPremium.toFixed(2),
+      unit: '€',
       subtitle:
-        !loading && totalMonthlyPremium > 0 ? `${annualPremium.toFixed(0)} €/an` : undefined,
+        totalMonthlyPremium > 0 ? `${(totalMonthlyPremium * 12).toFixed(0)} €/an` : undefined,
+    },
+    {
+      key: 'insured',
+      label: 'Véhicules assurés',
+      value: `${insuredCount}/${activeVehicleCount}`,
     },
     {
       key: 'next-payment',
       label: 'Prochaine mensualité',
-      value: loading ? '—' : nextPaymentLabel,
-      subtitle: !loading && nextVehicleName ? nextVehicleName : undefined,
+      value: nextPayment ? formatInsuranceDate(nextPayment.date) : '—',
+      subtitle: nextPayment?.vehicleName,
     },
   ];
 
-  return <StatOverviewGrid cards={cards} gridClass="grid-cols-2" />;
+  return <StatOverviewGrid cards={cards} gridClass="grid-cols-2 sm:grid-cols-3" />;
 }
