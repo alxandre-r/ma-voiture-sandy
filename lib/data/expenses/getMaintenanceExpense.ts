@@ -4,9 +4,17 @@
 
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const getMaintenanceExpenses = cache(async (vehicleIds: number[]) => {
+  const demo = await getDemoSession();
+  if (demo) {
+    // demoData treats an empty list as 'all'; this fetcher's real query returns nothing for it
+    return vehicleIds.length === 0 ? [] : demoData.getMaintenanceExpenses(demo.state, vehicleIds);
+  }
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('expenses_for_display')

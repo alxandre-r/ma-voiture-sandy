@@ -1,5 +1,7 @@
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 import type { Reminder } from '@/types/reminder';
@@ -11,6 +13,9 @@ import type { Reminder } from '@/types/reminder';
  * Wrapped in React cache() for request-level deduplication.
  */
 export const getReminders = cache(async (vehicleIds: number[] = []): Promise<Reminder[]> => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getReminders(demo.state, vehicleIds);
+
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -42,6 +47,9 @@ export const getReminders = cache(async (vehicleIds: number[] = []): Promise<Rem
  * Fetch reminders for a specific vehicle.
  */
 export const getVehicleReminders = cache(async (vehicleId: number): Promise<Reminder[]> => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getVehicleReminders(demo.state, vehicleId);
+
   const supabase = await createSupabaseServerClient();
 
   const {

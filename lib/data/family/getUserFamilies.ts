@@ -1,5 +1,7 @@
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export interface FamilyInfo {
@@ -9,6 +11,9 @@ export interface FamilyInfo {
 
 /** Returns the list of families the current user belongs to (id + name). */
 export const getUserFamilies = cache(async (): Promise<FamilyInfo[]> => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getUserFamilies(demo.state);
+
   const supabase = await createSupabaseServerClient();
 
   const {

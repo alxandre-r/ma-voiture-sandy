@@ -4,11 +4,16 @@
 
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 import type { FamilyMemberDisplay } from '@/types/family';
 
 export const getFamilyMembers = cache(async (familyId: string): Promise<FamilyMemberDisplay[]> => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getFamilyMembers(demo.state, familyId);
+
   const supabase = await createSupabaseServerClient();
 
   // Get family members from the view

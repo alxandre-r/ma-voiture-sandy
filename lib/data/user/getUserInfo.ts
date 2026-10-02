@@ -3,9 +3,15 @@
 
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
+
 import { createSupabaseServerClient } from '../../supabase/server';
 
 export const getUserInfo = cache(async () => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getUserInfo(demo.state);
+
   const supabase = await createSupabaseServerClient();
 
   const {

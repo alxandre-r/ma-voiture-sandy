@@ -4,9 +4,14 @@
 
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const getFamilyInfo = cache(async (familyId: string) => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getFamilyInfo(demo.state, familyId);
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('families')

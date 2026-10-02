@@ -5,6 +5,8 @@
 
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 import type { Expense } from '@/types/expense';
@@ -20,6 +22,9 @@ import type { Expense } from '@/types/expense';
 export const getMaintenanceExpenses = cache(async function getMaintenanceExpenses(
   vehicleIds: number[] = [],
 ): Promise<Expense[]> {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getMaintenanceExpenses(demo.state, vehicleIds);
+
   const supabase = await createSupabaseServerClient();
 
   let query = supabase

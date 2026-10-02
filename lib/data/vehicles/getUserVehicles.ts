@@ -3,9 +3,15 @@
 
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
+
 import { createSupabaseServerClient } from '../../supabase/server';
 
 export const getUserVehicles = cache(async () => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getUserVehicles(demo.state);
+
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -27,6 +33,9 @@ export const getUserVehicles = cache(async () => {
 });
 
 export const getUserVehiclesMinimal = cache(async () => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getUserVehiclesMinimal(demo.state);
+
   const supabase = await createSupabaseServerClient();
 
   const {

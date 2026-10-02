@@ -4,9 +4,14 @@
 
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const getAllExpenses = cache(async (vehicleIds: number[]) => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getAllExpenses(demo.state, vehicleIds);
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('expenses_for_display')

@@ -3,9 +3,15 @@
 
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
+
 import { createSupabaseServerClient } from '../../supabase/server';
 
 export const getFamilyVehicles = cache(async (familyId?: string) => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getFamilyVehicles(demo.state, familyId);
+
   const supabase = await createSupabaseServerClient();
 
   if (!familyId) return [];
@@ -31,6 +37,9 @@ export const getFamilyVehicles = cache(async (familyId?: string) => {
 
 // Tous les véhicules de la famille pour affichage (incluant les véhicules de l'utilisateur courant)
 export const getFamilyAllVehicles = cache(async (familyId?: string) => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getFamilyAllVehicles(demo.state, familyId);
+
   const supabase = await createSupabaseServerClient();
 
   if (!familyId) return [];
@@ -49,6 +58,9 @@ export const getFamilyAllVehicles = cache(async (familyId?: string) => {
 });
 
 export const getFamilyVehiclesMinimal = cache(async (familyId?: string) => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getFamilyVehiclesMinimal(demo.state, familyId);
+
   const supabase = await createSupabaseServerClient();
 
   if (!familyId) return [];

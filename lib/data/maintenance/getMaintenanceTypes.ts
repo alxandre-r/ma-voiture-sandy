@@ -1,5 +1,7 @@
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export interface MaintenanceTypeInfo {
@@ -11,6 +13,9 @@ export interface MaintenanceTypeInfo {
 export const getMaintenanceTypes = cache(async function getMaintenanceTypes(): Promise<
   Record<string, MaintenanceTypeInfo>
 > {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getMaintenanceTypes(demo.state);
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('maintenance_types')

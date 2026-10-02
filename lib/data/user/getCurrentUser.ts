@@ -4,9 +4,13 @@
 
 import { cache } from 'react';
 
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const getCurrentUser = cache(async () => {
+  // The demo has no Supabase auth user (unused function, guarded for safety)
+  if (await getDemoSession()) return null;
+
   const supabase = await createSupabaseServerClient();
 
   const {

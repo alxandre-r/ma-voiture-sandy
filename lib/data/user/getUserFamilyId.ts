@@ -2,9 +2,15 @@
 
 'use server';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
+
 import { createSupabaseServerClient } from '../../supabase/server';
 
 export async function getUserFamilyId(): Promise<string | null> {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getUserFamilyId(demo.state);
+
   const supabase = await createSupabaseServerClient();
 
   const {

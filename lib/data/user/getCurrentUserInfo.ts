@@ -3,11 +3,16 @@
 
 import { cache } from 'react';
 
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 // Using React's cache() for proper intra-request memoization
 // Note: React cache() works with dynamic data (cookies) unlike unstable_cache
 export const getCurrentUserInfo = cache(async () => {
+  const demo = await getDemoSession();
+  if (demo) return demoData.getCurrentUserInfo(demo.state);
+
   try {
     const supabase = await createSupabaseServerClient();
 

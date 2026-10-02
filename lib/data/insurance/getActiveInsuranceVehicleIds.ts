@@ -1,3 +1,5 @@
+import * as demoData from '@/lib/demo/data';
+import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 /**
@@ -7,6 +9,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
  */
 export async function getActiveInsuranceVehicleIds(vehicleIds: number[]): Promise<number[]> {
   if (vehicleIds.length === 0) return [];
+
+  const demo = await getDemoSession();
+  if (demo) return demoData.getActiveInsuranceVehicleIds(demo.state, vehicleIds);
 
   const supabase = await createSupabaseServerClient();
   const {
