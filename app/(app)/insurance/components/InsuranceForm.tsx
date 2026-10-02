@@ -23,8 +23,10 @@ interface InsuranceFormProps {
   defaultStartDate?: string;
   defaultProvider?: string;
   defaultMonthlyCost?: number;
-  /** Change mode: the contract that will be closed (for the helper line) */
-  currentContract?: Pick<InsuranceContract, 'provider' | 'monthly_cost'> | null;
+  /** Change mode: the latest contract, closed by the change when it still runs (helper line) */
+  currentContract?:
+    | (Pick<InsuranceContract, 'provider' | 'monthly_cost'> & { end_date?: string | null })
+    | null;
 }
 
 const SUBMIT_LABELS: Record<InsuranceFormMode, string> = {
@@ -94,13 +96,7 @@ export default function InsuranceForm({
       </FormField>
 
       {mode === 'change' && currentContract && startDate && (
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Le contrat actuel (
-          {[currentContract.provider, `${currentContract.monthly_cost.toFixed(2)} €`]
-            .filter(Boolean)
-            .join(', ')}
-          ) prendra fin le {formatInsuranceDate(addDaysIso(startDate, -1))}.
-        </p>
+        <ChangeHint contract={currentContract} effectiveDate={startDate} />
       )}
 
       {mode !== 'change' && (
@@ -148,5 +144,33 @@ export default function InsuranceForm({
         </button>
       </div>
     </form>
+  );
+}
+
+/** Same rule as planContractChange: the latest contract is closed only if it still runs then. */
+function ChangeHint({
+  contract,
+  effectiveDate,
+}: {
+  contract: NonNullable<InsuranceFormProps['currentContract']>;
+  effectiveDate: string;
+}) {
+  const end = contract.end_date ?? null;
+  if (end === null || end >= effectiveDate) {
+    return (
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        Le contrat actuel (
+        {[contract.provider, `${contract.monthly_cost.toFixed(2)} €`].filter(Boolean).join(', ')})
+        prendra fin le {formatInsuranceDate(addDaysIso(effectiveDate, -1))}.
+      </p>
+    );
+  }
+  const gapStart = addDaysIso(end, 1);
+  if (gapStart >= effectiveDate) return null;
+  return (
+    <p className="text-xs text-amber-600 dark:text-amber-400">
+      Aucune couverture du {formatInsuranceDate(gapStart)} au{' '}
+      {formatInsuranceDate(addDaysIso(effectiveDate, -1))}.
+    </p>
   );
 }
