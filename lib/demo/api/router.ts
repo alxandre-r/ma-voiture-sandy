@@ -1,9 +1,11 @@
 import { DEMO_UNAVAILABLE_MESSAGE } from '../constants';
 
+import { accountHandlers } from './handlers/account';
 import { expenseHandlers } from './handlers/expenses';
 import { insuranceHandlers } from './handlers/insurance';
 import { readHandlers } from './handlers/reads';
 import { reminderHandlers } from './handlers/reminders';
+import { vehicleHandlers } from './handlers/vehicles';
 import { fail } from './helpers';
 
 import type { DemoApiContext, DemoApiHandler, DemoApiResult } from './types';
@@ -14,6 +16,8 @@ const HANDLERS: Record<string, DemoApiHandler> = {
   ...expenseHandlers,
   ...reminderHandlers,
   ...insuranceHandlers,
+  ...vehicleHandlers,
+  ...accountHandlers,
 };
 
 export function dispatchDemoApi(method: string, path: string, ctx: DemoApiContext): DemoApiResult {
