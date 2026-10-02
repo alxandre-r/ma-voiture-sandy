@@ -21,8 +21,11 @@ import { useGarageActions } from './hooks/useGarageActions';
 
 import type { Expense } from '@/types/expense';
 import type { FamilyMemberDisplay } from '@/types/family';
+import type { InsuranceData } from '@/types/insurance';
 import type { UserPreferences } from '@/types/userPreferences';
 import type { Vehicle } from '@/types/vehicle';
+
+const EMPTY_INSURANCE: InsuranceData = { contracts: [], hiddenVehicleIds: [] };
 
 interface FamilyGroup {
   familyId: string;
@@ -35,7 +38,7 @@ interface GarageClientProps {
   familyGroups?: FamilyGroup[];
   familyMembers?: FamilyMemberDisplay[] | null;
   expenses?: Expense[];
-  activeInsuranceVehicleIds?: number[];
+  insurance?: InsuranceData;
   familyOwnerPreferences?: Record<string, UserPreferences>;
 }
 
@@ -44,7 +47,7 @@ export default function GarageClient({
   familyGroups = [],
   familyMembers,
   expenses,
-  activeInsuranceVehicleIds,
+  insurance = EMPTY_INSURANCE,
   familyOwnerPreferences,
 }: GarageClientProps) {
   const searchParams = useSearchParams();
@@ -142,7 +145,7 @@ export default function GarageClient({
         isFamilyVehicle={isFamilyVehicle(selectedVehicle)}
         owner={detailOwnerInfo ?? undefined}
         expenses={expenses}
-        hasActiveInsurance={activeInsuranceVehicleIds?.includes(selectedVehicle.vehicle_id)}
+        insurance={insurance}
         ownerPreferences={ownerPrefs}
       />
     );
@@ -156,7 +159,7 @@ export default function GarageClient({
         vehicles={personalVehicles}
         onVehicleClick={handleVehicleClick}
         onAddVehicle={handleAddNew}
-        activeInsuranceVehicleIds={activeInsuranceVehicleIds}
+        insurance={insurance}
         onOdometerUpdate={updateOdometer}
       />
 
@@ -167,6 +170,7 @@ export default function GarageClient({
           familyName={group.familyName}
           vehicles={group.vehicles}
           familyMembers={familyMembers || []}
+          insurance={insurance}
           onVehicleClick={handleVehicleClick}
         />
       ))}

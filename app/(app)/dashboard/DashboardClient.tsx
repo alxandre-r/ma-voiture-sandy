@@ -32,6 +32,7 @@ import type { ExpenseType } from '@/components/common/ExpenseButton';
 import type { OtherFormData } from '@/hooks/other/useOtherActions';
 import type { Expense } from '@/types/expense';
 import type { Fill, FillFormData } from '@/types/fill';
+import type { InsuranceData } from '@/types/insurance';
 import type { Reminder, ReminderFormData } from '@/types/reminder';
 import type { Vehicle, VehicleMinimal } from '@/types/vehicle';
 
@@ -40,7 +41,7 @@ interface DashboardClientProps {
   expenses: Expense[];
   reminders: Reminder[];
   fillExpenses: Expense[];
-  activeInsuranceVehicleIds?: number[];
+  insurance?: InsuranceData;
 }
 
 function DashboardContent({
@@ -48,7 +49,7 @@ function DashboardContent({
   expenses,
   reminders,
   fillExpenses,
-  activeInsuranceVehicleIds,
+  insurance,
 }: DashboardClientProps) {
   const router = useRouter();
   const user = useUser();
@@ -342,7 +343,7 @@ function DashboardContent({
         vehicles={vehicles}
         reminders={reminders}
         expenses={expenses}
-        activeInsuranceVehicleIds={activeInsuranceVehicleIds}
+        insurance={insurance}
         anomalies={anomalies}
       />
 
@@ -359,7 +360,7 @@ function DashboardContent({
           vehicles={vehicles}
           reminders={reminders}
           expenses={expenses}
-          activeInsuranceVehicleIds={activeInsuranceVehicleIds}
+          insurance={insurance}
         />
       </div>
 
@@ -458,7 +459,7 @@ export default function DashboardClient({
   expenses,
   reminders,
   fillExpenses,
-  activeInsuranceVehicleIds,
+  insurance,
 }: DashboardClientProps) {
   return (
     <DashboardContent
@@ -466,7 +467,7 @@ export default function DashboardClient({
       expenses={expenses}
       reminders={reminders}
       fillExpenses={fillExpenses}
-      activeInsuranceVehicleIds={activeInsuranceVehicleIds}
+      insurance={insurance}
     />
   );
 }

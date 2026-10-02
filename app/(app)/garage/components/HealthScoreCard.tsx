@@ -9,6 +9,8 @@ import type { VehicleHealthScore } from '@/lib/utils/vehicleHealthUtils';
 
 interface HealthScoreCardProps {
   health: VehicleHealthScore;
+  /** Own vehicle id: deep-links the insurance factor to its card on /insurance */
+  vehicleId?: number;
 }
 
 function gradeLabel(score: number): string {
@@ -77,7 +79,7 @@ const METHODOLOGY_DETAILS = [
   'Les données manquantes ne sont pas prises en compte.',
 ];
 
-export default function HealthScoreCard({ health }: HealthScoreCardProps) {
+export default function HealthScoreCard({ health, vehicleId }: HealthScoreCardProps) {
   const { score, bgClass, textClass, factors } = health;
   const label = gradeLabel(score);
   const hasFactors = factors.length > 0;
@@ -148,11 +150,11 @@ export default function HealthScoreCard({ health }: HealthScoreCardProps) {
                 <p className="text-xs text-gray-500 dark:text-gray-400 pl-6">{factor.detail}</p>
                 {factor.recommendation && factor.status !== 'good' && (
                   <p className="text-xs text-gray-400 dark:text-gray-500 italic pl-6 mt-0.5">
-                    {factor.label === 'Assurance' ? (
+                    {factor.label === 'Assurance' && vehicleId ? (
                       <>
                         →{' '}
                         <Link
-                          href="/insurance"
+                          href={`/insurance?vehicleId=${vehicleId}`}
                           className="underline hover:text-gray-600 dark:hover:text-gray-300"
                         >
                           Gérer les assurances

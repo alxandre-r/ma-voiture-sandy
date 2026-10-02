@@ -12,6 +12,8 @@ import Icon from '@/components/common/ui/Icon';
 import InfoTooltip from '@/components/common/ui/InfoTooltip';
 import ProfilePicture from '@/components/user/ProfilePicture';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { contractsOf, getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
+import { getLocalToday } from '@/lib/utils/isoDate';
 import { computeHealthScore } from '@/lib/utils/vehicleHealthUtils';
 
 import { ConfirmationModal } from '../../../../components/common/ui/ConfirmationModal';
@@ -20,6 +22,7 @@ import HealthScoreCard from './HealthScoreCard';
 import InsuranceSection from './InsuranceSection';
 
 import type { Expense } from '@/types/expense';
+import type { InsuranceData } from '@/types/insurance';
 import type { Reminder } from '@/types/reminder';
 import type { UserPreferences } from '@/types/userPreferences';
 import type { Vehicle } from '@/types/vehicle';
@@ -38,7 +41,7 @@ interface VehicleDetailProps {
   owner?: VehicleOwner;
   expenses?: Expense[];
   reminders?: Reminder[];
-  hasActiveInsurance?: boolean;
+  insurance: InsuranceData;
   ownerPreferences?: UserPreferences | null;
 }
 
@@ -50,7 +53,7 @@ export default function VehicleDetail({
   owner,
   expenses,
   reminders,
-  hasActiveInsurance,
+  insurance,
   ownerPreferences,
 }: VehicleDetailProps) {
   const { showSuccess, showError } = useNotifications();
@@ -135,11 +138,14 @@ export default function VehicleDetail({
 
   const vehicleImage = vehicle.image;
   const vehicleName = vehicle.name || (vehicle.make ? `${vehicle.make} ${vehicle.model}` : '');
+  const hasActiveInsurance = getHasActiveInsurance(insurance, vehicle, getLocalToday());
   const health = computeHealthScore(vehicle, { expenses, reminders, hasActiveInsurance });
 
   // Visibility — owner's preferences control what family members can see
   const showConsumption = !isFamilyVehicle || (ownerPreferences?.show_consumption ?? true);
-  const showInsurance = !isFamilyVehicle || (ownerPreferences?.show_insurance ?? true);
+  const showInsurance =
+    !insurance.hiddenVehicleIds.includes(vehicle.vehicle_id) &&
+    (!isFamilyVehicle || (ownerPreferences?.show_insurance ?? true));
   const showVehicleDetails = !isFamilyVehicle || (ownerPreferences?.show_vehicle_details ?? true);
   const showFinancials = !isFamilyVehicle || (ownerPreferences?.show_financials ?? true);
 
@@ -279,7 +285,7 @@ export default function VehicleDetail({
 
       {/* Info Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <HealthScoreCard health={health} />
+        <HealthScoreCard health={health} vehicleId={isFamilyVehicle ? undefined : vehicle.vehicle_id} />
         {showConsumption && (
           <Card>
             <CardHeader className="pb-3">
@@ -384,7 +390,12 @@ export default function VehicleDetail({
         )}
 
         {showInsurance && (
-          <InsuranceSection vehicleId={vehicle.vehicle_id} isFamilyVehicle={isFamilyVehicle} />
+          <InsuranceSection
+            vehicleId={vehicle.vehicle_id}
+            contracts={contractsOf(insurance, vehicle.vehicle_id)}
+            vehicleActive={!vehicle.status || vehicle.status === 'active'}
+            isFamilyVehicle={isFamilyVehicle}
+          />
         )}
 
         {showFinancials && (

@@ -7,8 +7,11 @@
 import VehicleCard from '@/app/(app)/garage/components/cards/VehicleCard';
 import Icon from '@/components/common/ui/Icon';
 import SectionHeader from '@/components/common/ui/SectionHeader';
+import { getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
+import { getLocalToday } from '@/lib/utils/isoDate';
 
 import type { FamilyMemberDisplay } from '@/types/family';
+import type { InsuranceData } from '@/types/insurance';
 import type { Vehicle } from '@/types/vehicle';
 
 interface FamilyVehiclesListProps {
@@ -16,6 +19,7 @@ interface FamilyVehiclesListProps {
   vehicles: Vehicle[];
   familyMembers: FamilyMemberDisplay[];
   onVehicleClick: (vehicle: Vehicle) => void;
+  insurance?: InsuranceData;
 }
 
 export function FamilyVehiclesList({
@@ -23,7 +27,9 @@ export function FamilyVehiclesList({
   vehicles,
   familyMembers,
   onVehicleClick,
+  insurance,
 }: FamilyVehiclesListProps) {
+  const today = getLocalToday();
   // Helper to get owner info for a family vehicle
   const getOwnerInfo = (vehicle: Vehicle) => {
     if (!vehicle.owner_id || !familyMembers) return null;
@@ -54,6 +60,7 @@ export function FamilyVehiclesList({
               vehicle={vehicle}
               onClick={onVehicleClick}
               isFamilyVehicle={true}
+              hasActiveInsurance={insurance ? getHasActiveInsurance(insurance, vehicle, today) : undefined}
               owner={ownerInfo || undefined}
             />
           );

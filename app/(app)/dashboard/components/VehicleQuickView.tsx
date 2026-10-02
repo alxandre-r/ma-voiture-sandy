@@ -6,9 +6,12 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
 import { formatDate } from '@/lib/utils/format';
+import { getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
+import { getLocalToday } from '@/lib/utils/isoDate';
 import { computeHealthScore } from '@/lib/utils/vehicleHealthUtils';
 
 import type { Expense } from '@/types/expense';
+import type { InsuranceData } from '@/types/insurance';
 import type { Reminder } from '@/types/reminder';
 import type { Vehicle } from '@/types/vehicle';
 
@@ -117,13 +120,14 @@ export default function VehicleQuickView({
   vehicles,
   reminders,
   expenses,
-  activeInsuranceVehicleIds,
+  insurance,
 }: {
   vehicles: Vehicle[];
   reminders?: Reminder[];
   expenses?: Expense[];
-  activeInsuranceVehicleIds?: number[];
+  insurance?: InsuranceData;
 }) {
+  const today = getLocalToday();
   const active = vehicles.filter((v) => v.status === 'active' || v.status == null);
   if (active.length === 0) return null;
 
@@ -145,7 +149,9 @@ export default function VehicleQuickView({
             vehicle={vehicle}
             reminders={reminders}
             expenses={expenses}
-            hasActiveInsurance={activeInsuranceVehicleIds?.includes(vehicle.vehicle_id)}
+            hasActiveInsurance={
+              insurance ? getHasActiveInsurance(insurance, vehicle, today) : undefined
+            }
           />
         ))}
       </CardContent>

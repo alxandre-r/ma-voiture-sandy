@@ -5,7 +5,7 @@
  */
 import { getAllExpenses } from '@/lib/data/expenses/getAllExpenses';
 import { getFamilyInfo, getFamilyMembers } from '@/lib/data/family';
-import { getActiveInsuranceVehicleIds } from '@/lib/data/insurance/getActiveInsuranceVehicleIds';
+import { getInsuranceData } from '@/lib/data/insurance/getInsuranceData';
 import { getPreferencesByUserId } from '@/lib/data/user/getPreferencesByUserId';
 import { getUserFamilyIds } from '@/lib/data/user/getUserFamilyIds';
 import { getUserVehicles, getFamilyVehicles } from '@/lib/data/vehicles';
@@ -20,15 +20,15 @@ export default async function GaragePage() {
   const vehicleIds = vehicles.map((v) => v.vehicle_id);
 
   if (!familyIds.length) {
-    const [expenses, activeInsuranceVehicleIds] = await Promise.all([
+    const [expenses, insurance] = await Promise.all([
       vehicleIds.length > 0 ? getAllExpenses(vehicleIds) : Promise.resolve([]),
-      getActiveInsuranceVehicleIds(vehicleIds),
+      getInsuranceData(vehicles),
     ]);
     return (
       <GarageClient
         userVehicles={vehicles}
         expenses={expenses ?? []}
-        activeInsuranceVehicleIds={activeInsuranceVehicleIds}
+        insurance={insurance}
       />
     );
   }
@@ -63,9 +63,9 @@ export default async function GaragePage() {
 
   const allFamilyVehicles = familyGroups.flatMap((g) => g.vehicles);
   const allVehicleIds = [...vehicleIds, ...allFamilyVehicles.map((v) => v.vehicle_id)];
-  const [expenses, activeInsuranceVehicleIds] = await Promise.all([
+  const [expenses, insurance] = await Promise.all([
     allVehicleIds.length > 0 ? getAllExpenses(allVehicleIds) : Promise.resolve([]),
-    getActiveInsuranceVehicleIds(allVehicleIds),
+    getInsuranceData([...vehicles, ...allFamilyVehicles]),
   ]);
 
   // Fetch preferences for all unique family vehicle owners (for visibility control)
@@ -85,7 +85,7 @@ export default async function GaragePage() {
       familyGroups={familyGroups}
       familyMembers={familyMembers}
       expenses={expenses ?? []}
-      activeInsuranceVehicleIds={activeInsuranceVehicleIds}
+      insurance={insurance}
       familyOwnerPreferences={familyOwnerPreferences}
     />
   );

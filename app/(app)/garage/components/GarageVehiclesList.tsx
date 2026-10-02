@@ -7,14 +7,17 @@
 import VehicleCard from '@/app/(app)/garage/components/cards/VehicleCard';
 import Icon from '@/components/common/ui/Icon';
 import SectionHeader from '@/components/common/ui/SectionHeader';
+import { getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
+import { getLocalToday } from '@/lib/utils/isoDate';
 
+import type { InsuranceData } from '@/types/insurance';
 import type { Vehicle } from '@/types/vehicle';
 
 interface GarageVehiclesListProps {
   vehicles: Vehicle[];
   onVehicleClick: (vehicle: Vehicle) => void;
   onAddVehicle: () => void;
-  activeInsuranceVehicleIds?: number[];
+  insurance?: InsuranceData;
   onOdometerUpdate?: (vehicleId: number, value: number) => Promise<void>;
 }
 
@@ -22,9 +25,10 @@ export function GarageVehiclesList({
   vehicles,
   onVehicleClick,
   onAddVehicle,
-  activeInsuranceVehicleIds,
+  insurance,
   onOdometerUpdate,
 }: GarageVehiclesListProps) {
+  const today = getLocalToday();
   return (
     <section>
       <div className="mb-6">
@@ -41,7 +45,7 @@ export function GarageVehiclesList({
             key={vehicle.vehicle_id}
             vehicle={vehicle}
             onClick={onVehicleClick}
-            hasActiveInsurance={activeInsuranceVehicleIds?.includes(vehicle.vehicle_id)}
+            hasActiveInsurance={insurance ? getHasActiveInsurance(insurance, vehicle, today) : undefined}
             onOdometerUpdate={onOdometerUpdate}
           />
         ))}

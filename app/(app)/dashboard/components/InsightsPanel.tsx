@@ -6,10 +6,13 @@ import { useMemo, useState } from 'react';
 import Icon from '@/components/common/ui/Icon';
 import { useSelectors } from '@/contexts/SelectorsContext';
 import { formatDate } from '@/lib/utils/format';
+import { getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
+import { getLocalToday } from '@/lib/utils/isoDate';
 import { computeHealthScore } from '@/lib/utils/vehicleHealthUtils';
 
 import type { ConsumptionAnomaly } from '@/lib/utils/anomalyUtils';
 import type { Expense } from '@/types/expense';
+import type { InsuranceData } from '@/types/insurance';
 import type { Reminder } from '@/types/reminder';
 import type { Vehicle } from '@/types/vehicle';
 
@@ -25,7 +28,7 @@ interface InsightItem {
 
 const FACTOR_LINKS: Record<string, string> = {
   'Contrôle technique': '/garage',
-  Assurance: '/garage',
+  Assurance: '/insurance',
   'Rappels en retard': '/reminders',
   'Rappels imminents': '/reminders',
   'Entretien récent': '/maintenance',
@@ -37,7 +40,7 @@ interface InsightsPanelProps {
   vehicles: Vehicle[];
   reminders: Reminder[];
   expenses: Expense[];
-  activeInsuranceVehicleIds?: number[];
+  insurance?: InsuranceData;
   anomalies?: ConsumptionAnomaly[];
 }
 
@@ -45,7 +48,7 @@ export default function InsightsPanel({
   vehicles,
   reminders,
   expenses,
-  activeInsuranceVehicleIds = [],
+  insurance,
   anomalies = [],
 }: InsightsPanelProps) {
   const { selectedVehicleIds } = useSelectors();
@@ -58,14 +61,13 @@ export default function InsightsPanel({
 
   const insights = useMemo<InsightItem[]>(() => {
     const items: InsightItem[] = [];
+    const today = getLocalToday();
 
     // ── Health score factors ──────────────────────────────────────────────────
     for (const vehicle of filteredVehicles) {
-      const hasActiveInsurance = activeInsuranceVehicleIds.includes(vehicle.vehicle_id)
-        ? true
-        : activeInsuranceVehicleIds.length > 0
-          ? false
-          : undefined;
+      const hasActiveInsurance = insurance
+        ? getHasActiveInsurance(insurance, vehicle, today)
+        : undefined;
 
       const { factors } = computeHealthScore(vehicle, {
         reminders,
@@ -85,7 +87,10 @@ export default function InsightsPanel({
             detail: factor.detail,
             recommendation: factor.recommendation,
             status: factor.status,
-            href: FACTOR_LINKS[factor.label] ?? '/garage',
+            href:
+              factor.label === 'Assurance'
+                ? `/insurance?vehicleId=${vehicle.vehicle_id}`
+                : (FACTOR_LINKS[factor.label] ?? '/garage'),
           });
         }
       }
@@ -118,7 +123,7 @@ export default function InsightsPanel({
     filteredVehicles,
     reminders,
     expenses,
-    activeInsuranceVehicleIds,
+    insurance,
     anomalies,
     selectedVehicleIds,
   ]);
