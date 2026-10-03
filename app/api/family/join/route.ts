@@ -76,8 +76,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Add user to family members
-    const { error: memberError } = await supabase
+    // Add user to family members. Admin client: RLS only lets a family's creator insert their own
+    // row, so a member can join only through this route, after the invite token check above.
+    const { error: memberError } = await adminSupabase
       .from('family_members')
       .insert({
         family_id: family.id,
