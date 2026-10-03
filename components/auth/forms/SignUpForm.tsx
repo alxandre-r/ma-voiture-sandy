@@ -13,6 +13,7 @@ import { FormField, FormInput } from '@/components/common/ui/form';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { exitDemoSession } from '@/lib/demo/client';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { getSafeRedirect } from '@/lib/utils/safeRedirect';
 
 export default function SignUpForm() {
   const supabase = createSupabaseBrowserClient();
@@ -71,8 +72,7 @@ export default function SignUpForm() {
         return;
       }
 
-      const redirectUrl =
-        new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
+      const redirectUrl = getSafeRedirect(new URLSearchParams(window.location.search).get('redirect'));
       window.location.href = redirectUrl;
     } catch (err) {
       console.error('Erreur signup client:', err);

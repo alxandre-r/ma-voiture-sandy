@@ -7,9 +7,9 @@ import Spinner from '@/components/common/ui/Spinner';
 import { useDemo } from '@/contexts/DemoContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { DEMO_ATTACHMENTS_LABEL } from '@/lib/demo/constants';
+import { ATTACHMENT_ALLOWED_MIME, isAllowedAttachmentMime } from '@/types/attachment';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_MIME = /^(image\/.+|application\/pdf)$/;
 
 interface AttachmentUploaderProps {
   onFilesSelected: (files: File[]) => void;
@@ -39,7 +39,7 @@ export default function AttachmentUploader({
     const errors: string[] = [];
 
     Array.from(fileList).forEach((file) => {
-      if (!ALLOWED_MIME.test(file.type)) {
+      if (!isAllowedAttachmentMime(file.type)) {
         errors.push(`${file.name} : type non autorisé (images et PDF uniquement)`);
       } else if (file.size === 0) {
         errors.push(`${file.name} : fichier vide`);
@@ -92,7 +92,7 @@ export default function AttachmentUploader({
           ref={inputRef}
           type="file"
           multiple
-          accept="image/*,application/pdf"
+          accept={ATTACHMENT_ALLOWED_MIME.join(',')}
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />

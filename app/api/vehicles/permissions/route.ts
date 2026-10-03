@@ -76,6 +76,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'vehicleId et permissions sont requis' }, { status: 400 });
   }
 
+  const isValidEntry = (p: unknown): boolean => {
+    const entry = p as { userId?: unknown; level?: unknown } | null;
+    return (
+      typeof entry?.userId === 'string' &&
+      entry.userId.length > 0 &&
+      (entry.level === 'read' || entry.level === 'write' || entry.level === 'none')
+    );
+  };
+  if (!permissions.every(isValidEntry)) {
+    return NextResponse.json({ error: 'Niveau de permission invalide' }, { status: 400 });
+  }
+
   const supabase = await createSupabaseServerClient();
 
   const {

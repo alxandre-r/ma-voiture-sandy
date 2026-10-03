@@ -2,10 +2,10 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { isAllowedAttachmentMime } from '@/types/attachment';
 
 import type { AttachmentEntityType } from '@/types/attachment';
 
-const ALLOWED_MIME = /^(image\/.+|application\/pdf)$/;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_ENTITY_TYPES: AttachmentEntityType[] = [
   'vehicle',
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'entity_id invalide' }, { status: 400 });
     }
 
-    if (!ALLOWED_MIME.test(file.type)) {
+    if (!isAllowedAttachmentMime(file.type)) {
       return NextResponse.json(
         { error: 'Type de fichier non autorisé (images et PDF uniquement)' },
         { status: 400 },

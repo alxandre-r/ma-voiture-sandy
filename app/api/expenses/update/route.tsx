@@ -11,6 +11,8 @@ import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
+const UPDATABLE_EXPENSE_COLUMNS = ['vehicle_id', 'date', 'amount', 'notes'] as const;
+
 /**
  * PATCH /api/expenses/update
  *
@@ -67,23 +69,33 @@ export async function PATCH(request: Request) {
       }
     }
 
-    // Prepare update data — only keep columns that belong to the expenses table.
-    // Fill-specific fields (liters, price_per_liter, kwh, price_per_kwh, odometer) go to the
-    // fills table below. Maintenance/other fields are also excluded.
-    const {
-      id: _,
-      owner_id: __,
-      type: ___,
-      maintenance_type: _maintenance_type,
-      odometer: _odometer,
-      garage: _garage,
-      label: _label,
-      liters: _liters,
-      price_per_liter: _price_per_liter,
-      kwh: _kwh,
-      price_per_kwh: _price_per_kwh,
-      ...updateData
-    } = body;
+    // Whitelist the editable expenses columns. Fill/maintenance/other fields are handled below;
+    // owner_id, type, insurance_contract_id and timestamps are never client-writable.
+    const updateData: Record<string, unknown> = {};
+    for (const column of UPDATABLE_EXPENSE_COLUMNS) {
+      if (body[column] !== undefined) updateData[column] = body[column];
+    }
+
+    // Moving the expense to another vehicle requires write access on the target vehicle
+    if (updateData.vehicle_id != null && updateData.vehicle_id !== existingExpense.vehicle_id) {
+      if (existingExpense.type === 'insurance') {
+        return NextResponse.json(
+          { error: "Une mensualité d'assurance ne peut pas changer de véhicule" },
+          { status: 400 },
+        );
+      }
+      const { data: target } = await supabase
+        .from('vehicles_for_display')
+        .select('owner_id, permission_level')
+        .eq('vehicle_id', updateData.vehicle_id)
+        .maybeSingle();
+      if (!target || (target.owner_id !== user.id && target.permission_level !== 'write')) {
+        return NextResponse.json(
+          { error: "Vous n'êtes pas autorisé à déplacer cette dépense vers ce véhicule" },
+          { status: 403 },
+        );
+      }
+    }
 
     // Update expense record (ownership/permission already verified above)
     const { data: updatedExpense, error } = await supabase
@@ -95,7 +107,6 @@ export async function PATCH(request: Request) {
 
     if (error) {
       console.error('Error updating expense:', error);
-      console.error('Request body:', body);
       return NextResponse.json(
         { error: 'Erreur lors de la mise à jour de la dépense' },
         { status: 500 },

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { quoteFilterValue, toIlikePattern } from '@/lib/utils/postgrestFilter';
 
 /**
  * GET /api/search?q=<term>
@@ -34,6 +35,10 @@ export async function GET(request: Request) {
 
     const vehicleIds = (vehicles ?? []).map((v) => v.id);
 
+    // User input must not add filters to the .or() logic tree nor act as LIKE wildcards
+    const pattern = toIlikePattern(q);
+    const quoted = quoteFilterValue(pattern);
+
     const [expensesResult, remindersResult] = await Promise.all([
       // Search expenses by notes or label
       vehicleIds.length > 0
@@ -42,7 +47,7 @@ export async function GET(request: Request) {
             .select('id, type, amount, date, notes, label, vehicle_name, maintenance_type_label')
             .in('vehicle_id', vehicleIds)
             .or(
-              `notes.ilike.%${q}%,label.ilike.%${q}%,vehicle_name.ilike.%${q}%,maintenance_type_label.ilike.%${q}%`,
+              `notes.ilike.${quoted},label.ilike.${quoted},vehicle_name.ilike.${quoted},maintenance_type_label.ilike.${quoted}`,
             )
             .order('date', { ascending: false })
             .limit(8)
@@ -54,7 +59,7 @@ export async function GET(request: Request) {
         .select('id, title, due_date, vehicle_id')
         .eq('user_id', user.id)
         .eq('is_completed', false)
-        .ilike('title', `%${q}%`)
+        .ilike('title', pattern)
         .order('due_date', { ascending: true })
         .limit(5),
     ]);
