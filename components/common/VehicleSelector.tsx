@@ -6,6 +6,7 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import Icon from '@/components/common/ui/Icon';
 import { useSelectors } from '@/contexts/SelectorsContext';
 import { useUser } from '@/contexts/UserContext';
+import { vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 
 import type { VehicleMinimal } from '@/types/vehicle';
 
@@ -390,7 +391,7 @@ function VehicleRow({
         {vehicleDisplayName(vehicle)}
       </span>
 
-      {(vehicle.fuel_type === 'Électrique' || vehicle.fuel_type === 'Hybride rechargeable') && (
+      {vehicle.fuel_type && vehicleEnergy(vehicle.fuel_type).electric && (
         <span className="ml-auto shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
           EV
         </span>

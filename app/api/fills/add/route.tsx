@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { fillInputError } from '@/lib/utils/vehicleEnergy';
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -55,6 +56,11 @@ export async function POST(request: Request) {
     const isCharge = body.charge_type === 'charge';
     const expenseType = isCharge ? 'electric_charge' : 'fuel';
 
+    const inputError = fillInputError(vehicle.fuel_type, isCharge ? 'charge' : 'fill', body.amount);
+    if (inputError) {
+      return NextResponse.json({ error: inputError }, { status: 400 });
+    }
+
     // First, create the expense record
     const { data: expense, error: expenseError } = await supabase
       .from('expenses')
@@ -63,7 +69,7 @@ export async function POST(request: Request) {
           vehicle_id: body.vehicle_id,
           owner_id: user.id,
           type: expenseType,
-          amount: body.amount ? Number(body.amount) : 0,
+          amount: Number(body.amount),
           date: body.date,
           notes: body.notes || null,
         },
@@ -86,11 +92,11 @@ export async function POST(request: Request) {
         {
           expense_id: expense.id,
           odometer: body.odometer ?? null,
-          // For electric charges, use 0 instead of null (NOT NULL constraint)
-          liters: isCharge ? 0 : (body.liters ?? null),
+          // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
+          liters: isCharge ? null : (body.liters ?? null),
           price_per_liter: isCharge ? 0 : (body.price_per_liter ?? null),
           // Electric vehicle fields
-          charge_type: body.charge_type || 'fill',
+          charge_type: isCharge ? 'charge' : 'fill',
           kwh: isCharge ? (body.kwh ?? null) : null,
           price_per_kwh: isCharge ? (body.price_per_kwh ?? null) : null,
         },

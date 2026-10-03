@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 
 import Icon from '@/components/common/ui/Icon';
 import { useClickOutside } from '@/lib/utils/clickOutside';
+import { vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 
 import type { VehicleMinimal } from '@/types/vehicle';
 
@@ -35,15 +36,8 @@ export default function ExpenseButton({
     return isActive && canWrite;
   });
 
-  const fillVehicles = minimalVehicles.filter((v) => {
-    const fuelType = v.fuel_type;
-    return fuelType !== 'Électrique' && fuelType !== 'Hybride non rechargeable';
-  });
-
-  const chargeVehicles = minimalVehicles.filter((v) => {
-    const fuelType = v.fuel_type;
-    return fuelType === 'Électrique' || fuelType === 'Hybride rechargeable';
-  });
+  const fillVehicles = minimalVehicles.filter((v) => vehicleEnergy(v.fuel_type).fuel);
+  const chargeVehicles = minimalVehicles.filter((v) => vehicleEnergy(v.fuel_type).electric);
 
   const hasActiveFuelVehicle = fillVehicles.length > 0;
   const hasActiveElectricVehicle = chargeVehicles.length > 0;

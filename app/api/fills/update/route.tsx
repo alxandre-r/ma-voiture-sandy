@@ -1,6 +1,6 @@
 /**
  * @file app/api/fills/update/route.tsx
- * @fileoverview API endpoint for updating fuel fill-up records.
+ * @fileoverview API endpoint for updating fuel fills and electric charges.
  *
  * This endpoint handles PATCH requests to update existing fill-up records
  * with proper authentication and ownership verification.
@@ -10,16 +10,18 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { fillInputError } from '@/lib/utils/vehicleEnergy';
 
 /**
  * PATCH /api/fills/update
  *
- * Update an existing fuel fill-up record.
+ * Update an existing fuel fill or electric charge, and switch between the two.
  * Requires authentication and ownership verification.
  *
  * Request body should contain:
- * - id: number (required)
- * - Any other fields to update (date, odometer, liters, amount, etc.)
+ * - id: number (required) — the **expense** id of the fill (same convention as the demo backend)
+ * - vehicle_id (moves the fill; needs write access on the target vehicle)
+ * - date, amount, notes, odometer, charge_type, liters, price_per_liter, kwh, price_per_kwh
  */
 export async function PATCH(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -42,26 +44,20 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Le champ id est requis' }, { status: 400 });
     }
 
-    // Verify fill ownership - we need to get the expense_id too
-    const { data: existingFill, error: fillError } = await supabase
-      .from('fills')
-      .select('id, expense_id, vehicle_id')
-      .eq('id', body.id)
-      .single();
-
-    if (fillError || !existingFill) {
-      return NextResponse.json({ error: 'Plein non trouvé' }, { status: 404 });
-    }
-
-    // Get the expense to check ownership
-    const { data: existingExpense, error: expenseError } = await supabase
+    // The fills table has no vehicle_id/date: both live on the expense
+    const { data: existingExpense } = await supabase
       .from('expenses')
-      .select('owner_id, type, vehicle_id')
-      .eq('id', existingFill.expense_id)
-      .single();
+      .select('id, owner_id, type, vehicle_id, amount, date, notes')
+      .eq('id', body.id)
+      .in('type', ['fuel', 'electric_charge'])
+      .maybeSingle();
 
-    if (expenseError || !existingExpense) {
-      return NextResponse.json({ error: 'Dépense associée non trouvée' }, { status: 404 });
+    const { data: existingFill } = existingExpense
+      ? await supabase.from('fills').select('id').eq('expense_id', existingExpense.id).maybeSingle()
+      : { data: null };
+
+    if (!existingExpense || !existingFill) {
+      return NextResponse.json({ error: 'Plein non trouvé' }, { status: 404 });
     }
 
     if (existingExpense.owner_id !== user.id) {
@@ -78,52 +74,88 @@ export async function PATCH(request: Request) {
       }
     }
 
-    // Handle charge_type to set appropriate values for NOT NULL constraints
     const isCharge = body.charge_type === 'charge';
-    const newExpenseType = isCharge ? 'electric_charge' : 'fuel';
+    const vehicleId = Number(body.vehicle_id) || existingExpense.vehicle_id;
 
-    // Prepare final update data with proper handling for NOT NULL constraints
-    const finalUpdateData = {
-      // For electric charges, ensure liters is 0 (not null due to NOT NULL constraint)
-      liters: isCharge ? 0 : (body.liters ?? null),
-      // For electric charges, ensure price_per_liter is 0 (not null due to NOT NULL constraint)
-      price_per_liter: isCharge ? 0 : (body.price_per_liter ?? null),
-      odometer: body.odometer ?? null,
-      charge_type: body.charge_type ?? 'fill',
-      kwh: isCharge ? (body.kwh ?? null) : null,
-      price_per_kwh: isCharge ? (body.price_per_kwh ?? null) : null,
-    };
+    const { data: targetVehicle } = await supabase
+      .from('vehicles_for_display')
+      .select('owner_id, permission_level, name, fuel_type')
+      .eq('vehicle_id', vehicleId)
+      .maybeSingle();
 
-    // Update fill record
-    const { data: updatedFill, error } = await supabase
-      .from('fills')
-      .update(finalUpdateData)
-      .eq('id', body.id)
-      .select()
-      .single();
+    if (
+      vehicleId !== existingExpense.vehicle_id &&
+      (!targetVehicle ||
+        (targetVehicle.owner_id !== user.id && targetVehicle.permission_level !== 'write'))
+    ) {
+      return NextResponse.json(
+        { error: "Vous n'êtes pas autorisé à déplacer cette dépense vers ce véhicule" },
+        { status: 403 },
+      );
+    }
 
-    if (error) {
-      console.error('Error updating fill:', error);
-      console.error('Request body:', body);
+    const inputError = fillInputError(
+      targetVehicle?.fuel_type,
+      isCharge ? 'charge' : 'fill',
+      body.amount,
+    );
+    if (inputError) {
+      return NextResponse.json({ error: inputError }, { status: 400 });
+    }
+
+    // Expense first: trg_enforce_fills_charge_type checks the fill against the expense type,
+    // so a fill <-> charge switch only passes once the expense has the new type.
+    const { error: expenseUpdateError } = await supabase
+      .from('expenses')
+      .update({
+        vehicle_id: vehicleId,
+        type: isCharge ? 'electric_charge' : 'fuel',
+        amount: Number(body.amount),
+        date: body.date,
+        notes: body.notes || null,
+      })
+      .eq('id', existingExpense.id);
+
+    if (expenseUpdateError) {
+      console.error('Error updating expense:', expenseUpdateError);
       return NextResponse.json(
         { error: 'Erreur lors de la mise à jour du plein' },
         { status: 500 },
       );
     }
 
-    // Also update the expense record
-    const { error: expenseUpdateError } = await supabase
-      .from('expenses')
+    // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
+    const { data: updatedFill, error } = await supabase
+      .from('fills')
       .update({
-        type: newExpenseType,
-        amount: body.amount ? Number(body.amount) : 0,
-        date: body.date,
-        notes: body.notes || null,
+        liters: isCharge ? null : (body.liters ?? null),
+        price_per_liter: isCharge ? 0 : (body.price_per_liter ?? null),
+        odometer: body.odometer ?? null,
+        charge_type: isCharge ? 'charge' : 'fill',
+        kwh: isCharge ? (body.kwh ?? null) : null,
+        price_per_kwh: isCharge ? (body.price_per_kwh ?? null) : null,
       })
-      .eq('id', existingFill.expense_id);
+      .eq('id', existingFill.id)
+      .select()
+      .single();
 
-    if (expenseUpdateError) {
-      console.error('Error updating expense:', expenseUpdateError);
+    if (error) {
+      console.error('Error updating fill:', error);
+      // No transaction (roadmap P3.4): restore the expense so it stays consistent with its fill
+      await supabase
+        .from('expenses')
+        .update({
+          vehicle_id: existingExpense.vehicle_id,
+          type: existingExpense.type,
+          amount: existingExpense.amount,
+          date: existingExpense.date,
+          notes: existingExpense.notes,
+        })
+        .eq('id', existingExpense.id);
+      return NextResponse.json(
+        { error: 'Erreur lors de la mise à jour du plein' },
+        { status: 500 },
+      );
     }
 
     // Update vehicle odometer if fill has odometer data (RLS enforces write permission)
@@ -131,7 +163,7 @@ export async function PATCH(request: Request) {
       const { error: updateError } = await supabase
         .from('vehicles')
         .update({ odometer: body.odometer })
-        .eq('id', existingFill.vehicle_id);
+        .eq('id', vehicleId);
 
       if (updateError) {
         console.error('Error updating vehicle odometer:', updateError);
@@ -139,18 +171,10 @@ export async function PATCH(request: Request) {
       }
     }
 
-    // Get vehicle info for response
-    const { data: vehicle } = await supabase
-      .from('vehicles')
-      .select('name, fuel_type')
-      .eq('id', existingFill.vehicle_id)
-      .single();
-
-    // Add vehicle info to response
     const responseFill = {
       ...updatedFill,
-      vehicle_name: vehicle?.name || null,
-      fuel_type: vehicle?.fuel_type || null,
+      vehicle_name: targetVehicle?.name || null,
+      fuel_type: targetVehicle?.fuel_type || null,
     };
 
     revalidatePath('/', 'layout');

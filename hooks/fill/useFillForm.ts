@@ -1,29 +1,34 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import { useFillActions } from '@/hooks/fill/useFillActions';
+import { calculateFillValues } from '@/hooks/fill/useFillActions';
+import { defaultChargeType, vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 
 import type { Fill, FillFormData } from '@/types/fill';
 import type { VehicleMinimal } from '@/types/vehicle';
+
+const NUMERIC_FIELDS = new Set([
+  'amount',
+  'liters',
+  'price_per_liter',
+  'kwh',
+  'price_per_kwh',
+  'odometer',
+]);
 
 function getVehicleFuelType(vehicles: VehicleMinimal[], vehicleId: number) {
   return vehicles.find((v) => v.vehicle_id === vehicleId)?.fuel_type ?? null;
 }
 
-export function getAllowedTypes(fuelType: string | null) {
-  if (!fuelType) return { fill: true, charge: true };
-  if (fuelType === 'Électrique') return { fill: false, charge: true };
-  if (fuelType === 'Hybride rechargeable') return { fill: true, charge: true };
-  return { fill: true, charge: false };
-}
-
-function resolveDefaultChargeType(fuelType: string | null): 'fill' | 'charge' {
-  return fuelType === 'Électrique' ? 'charge' : 'fill';
+function getAllowedTypes(fuelType: string | null) {
+  const energy = vehicleEnergy(fuelType);
+  return { fill: energy.fuel, charge: energy.electric };
 }
 
 function buildInitialFormData(
   initialFill: Fill | null | undefined,
   vehicles: VehicleMinimal[],
   preselectedVehicleId?: number,
+  forcedType?: 'fill' | 'charge',
 ): FillFormData {
   const vehicleId =
     preselectedVehicleId ??
@@ -40,7 +45,7 @@ function buildInitialFormData(
     amount: initialFill?.amount ?? null,
     price_per_liter: initialFill?.price_per_liter ?? null,
     notes: initialFill?.notes ?? '',
-    charge_type: initialFill?.charge_type ?? resolveDefaultChargeType(fuelType),
+    charge_type: forcedType ?? initialFill?.charge_type ?? defaultChargeType(fuelType),
     kwh: initialFill?.kwh ?? 0,
     price_per_kwh: initialFill?.price_per_kwh ?? 0,
   };
@@ -52,16 +57,14 @@ export function useFillForm(
   preselectedVehicleId?: number,
   forcedType?: 'fill' | 'charge',
 ) {
-  const { calculateFillValues } = useFillActions();
-
   const [formData, setFormData] = useState<FillFormData>(() =>
-    buildInitialFormData(initialFill, vehicles, preselectedVehicleId),
+    buildInitialFormData(initialFill, vehicles, preselectedVehicleId, forcedType),
   );
 
   const fuelType = getVehicleFuelType(vehicles, formData.vehicle_id);
   const allowedTypes = getAllowedTypes(fuelType);
   const canChangeChargeType = allowedTypes.fill && allowedTypes.charge;
-  const activeChargeType = forcedType ?? formData.charge_type;
+  const activeChargeType = formData.charge_type;
   const isElectric = activeChargeType === 'charge';
 
   // Sync odometer when vehicle changes (création uniquement)
@@ -73,29 +76,22 @@ export function useFillForm(
     }
   }, [formData.vehicle_id, vehicles]);
 
-  // Sync charge_type when vehicle changes
+  // Keep charge_type consistent with the menu choice (forcedType) or the vehicle's energy.
+  // charge_type drives the calculation, the validation and the payload, so it must never lag.
   useEffect(() => {
-    if (!formData.vehicle_id || forcedType) return;
-    const newType = resolveDefaultChargeType(fuelType);
-    if (!canChangeChargeType && formData.charge_type !== newType) {
-      setFormData((prev) => ({ ...prev, charge_type: newType }));
+    const newType =
+      forcedType ??
+      (formData.vehicle_id && !canChangeChargeType ? defaultChargeType(fuelType) : null);
+    if (newType && formData.charge_type !== newType) {
+      setFormData((prev) => calculateFillValues({ ...prev, charge_type: newType }, prev));
     }
-  }, [formData.vehicle_id]);
-
-  const numericFields = new Set([
-    'amount',
-    'liters',
-    'price_per_liter',
-    'kwh',
-    'price_per_kwh',
-    'odometer',
-  ]);
+  }, [forcedType, formData.vehicle_id, formData.charge_type, fuelType, canChangeChargeType]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       const { name, value, type } = e.target;
 
-      if (type === 'number' || numericFields.has(name)) {
+      if (type === 'number' || NUMERIC_FIELDS.has(name)) {
         const parsed = value === '' ? null : parseFloat(value.replace(',', '.'));
         const numeric = Number.isNaN(parsed as number) ? null : parsed;
         setFormData((prev) => calculateFillValues({ ...prev, [name]: numeric }, prev));
@@ -107,7 +103,7 @@ export function useFillForm(
         return name === 'charge_type' ? next : calculateFillValues(next);
       });
     },
-    [calculateFillValues],
+    [],
   );
 
   return {

@@ -21,8 +21,8 @@ import { useFillActions } from '@/hooks/fill/useFillActions';
 import { useOtherActions } from '@/hooks/other/useOtherActions';
 import { exportExpensesCSV } from '@/lib/utils/exportCSV';
 import { filterByVehiclesAndPeriod } from '@/lib/utils/filterUtils';
+import { vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 import { PERIOD_PRESET_LABELS } from '@/types/period';
-
 
 import type { MaintenanceFormData } from '@/app/(app)/maintenance/hooks/useMaintenanceActions';
 import type { ExpenseType } from '@/components/common/ExpenseButton';
@@ -147,7 +147,7 @@ function ExpensesContent({
 
   const { showError } = useNotifications();
   const { deleteExpense } = useExpenseActions();
-  const { addFill, adding } = useFillActions();
+  const { addFill, adding, updateFill } = useFillActions();
   const { addMaintenance } = useMaintenanceActions();
   const { addOther, updateOther } = useOtherActions();
   const { selectedVehicleIds, selectedPeriod } = useSelectors();
@@ -237,42 +237,16 @@ function ExpensesContent({
     setEditingExpense(null);
   };
 
-  // Handle save for fill form
-  const handleSaveFill = async (data: FillFormData, _fillId?: number): Promise<boolean> => {
+  // Handle save for fill form — same path as the dashboard (fills/update handles fill <-> charge)
+  const handleSaveFill = async (data: FillFormData): Promise<boolean> => {
     setSavingForm(true);
-    try {
-      const payload = {
-        vehicle_id: data.vehicle_id,
-        date: data.date,
-        amount: Number(data.amount),
-        notes: data.notes || null,
-        odometer: data.odometer ? Number(data.odometer) : null,
-        liters: data.liters ?? null,
-        price_per_liter: data.price_per_liter ?? null,
-        kwh: data.kwh ?? null,
-        price_per_kwh: data.price_per_kwh ?? null,
-      };
-
-      const res = await fetch('/api/expenses/update', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingExpense!.id, ...payload }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? 'Erreur lors de la modification du plein');
-      }
-
+    const success = await updateFill(editingExpense!.id, data);
+    setSavingForm(false);
+    if (success) {
       handleSuccess();
       handleCancelEdit();
-      return true;
-    } catch (err) {
-      showError(err instanceof Error ? err.message : 'Erreur lors de la modification du plein');
-      return false;
-    } finally {
-      setSavingForm(false);
     }
+    return success;
   };
 
   // Handle save for other form
@@ -383,13 +357,11 @@ function ExpensesContent({
 
   // Vehicles for the add fill/charge form — writable + fuel-type filter
   const addFormVehicles = useMemo(() => {
-    return addExpenseType === 'charge'
-      ? writableVehicles.filter(
-          (v) => v.fuel_type === 'Électrique' || v.fuel_type === 'Hybride rechargeable',
-        )
-      : writableVehicles.filter(
-          (v) => v.fuel_type !== 'Électrique' && v.fuel_type !== 'Hybride non rechargeable',
-        );
+    return writableVehicles.filter((v) =>
+      addExpenseType === 'charge'
+        ? vehicleEnergy(v.fuel_type).electric
+        : vehicleEnergy(v.fuel_type).fuel,
+    );
   }, [writableVehicles, addExpenseType]);
 
   // Vehicles for edit forms — writable + always include the expense being edited

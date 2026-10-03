@@ -80,6 +80,20 @@ describe('POST fills/add', () => {
       call(state, 'POST', 'fills/add', { ...fill, vehicle_id: DEMO_VEHICLE.niro }).status,
     ).toBe(201);
   });
+
+  it("rejects an energy the vehicle can't use and a non-positive amount (same as the real route)", () => {
+    const state = seed();
+    expect(call(state, 'POST', 'fills/add', { ...fill, charge_type: 'charge', kwh: 30 })).toEqual({
+      status: 400,
+      json: { error: "Ce véhicule n'accepte pas les recharges électriques" },
+    });
+    expect(
+      call(state, 'POST', 'fills/add', { ...fill, vehicle_id: DEMO_VEHICLE.zoe }).json,
+    ).toEqual({ error: "Ce véhicule n'accepte pas les pleins de carburant" });
+    expect(call(state, 'POST', 'fills/add', { ...fill, amount: 0 }).json).toEqual({
+      error: 'Veuillez entrer un montant valide',
+    });
+  });
 });
 
 describe('PATCH fills/update', () => {
@@ -95,6 +109,47 @@ describe('PATCH fills/update', () => {
 
   it('refuses a fill the viewer cannot edit', () => {
     expect(call(seed(), 'PATCH', 'fills/update', { ...fill, id: 40_000 }).status).toBe(403);
+  });
+
+  it('switches a plug-in hybrid fill to a charge', () => {
+    const state = seed();
+    const added = commit(
+      state,
+      call(state, 'POST', 'fills/add', { ...fill, vehicle_id: DEMO_VEHICLE.niro }),
+    );
+    const id = (added.json as { fill: { expense_id: number } }).fill.expense_id;
+    const result = commit(
+      state,
+      call(state, 'PATCH', 'fills/update', {
+        ...fill,
+        id,
+        vehicle_id: DEMO_VEHICLE.niro,
+        charge_type: 'charge',
+        kwh: 8,
+        price_per_kwh: 0.25,
+      }),
+    );
+    expect(result.json).toMatchObject({ fill: { liters: null, price_per_liter: 0, kwh: 8 } });
+    expect(state.expenses.find((e) => e.id === id)?.type).toBe('electric_charge');
+  });
+
+  it('moves a fill to another writable vehicle, never to a read-only one', () => {
+    const state = seed();
+    expect(
+      call(state, 'PATCH', 'fills/update', {
+        ...fill,
+        id: 10_059,
+        vehicle_id: DEMO_VEHICLE.peugeot208,
+      }),
+    ).toEqual({
+      status: 403,
+      json: { error: "Vous n'êtes pas autorisé à déplacer cette dépense vers ce véhicule" },
+    });
+    commit(
+      state,
+      call(state, 'PATCH', 'fills/update', { ...fill, id: 10_059, vehicle_id: DEMO_VEHICLE.niro }),
+    );
+    expect(state.expenses.find((e) => e.id === 10_059)?.vehicle_id).toBe(DEMO_VEHICLE.niro);
   });
 });
 

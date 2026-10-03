@@ -26,6 +26,7 @@ import { useOtherActions } from '@/hooks/other/useOtherActions';
 import { useReminderActions } from '@/hooks/reminders/useReminderActions';
 import { detectAnomalies } from '@/lib/utils/anomalyUtils';
 import { getEffectivePeriodRange, getPreviousPeriodRange } from '@/lib/utils/filterUtils';
+import { vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 
 import type { MaintenanceFormData } from '@/app/(app)/maintenance/hooks/useMaintenanceActions';
 import type { ExpenseType } from '@/components/common/ExpenseButton';
@@ -203,12 +204,8 @@ function DashboardContent({
     return isActive && canWrite;
   });
 
-  const fillVehicles = writableActiveVehicles.filter(
-    (v) => v.fuel_type !== 'Électrique' && v.fuel_type !== 'Hybride non rechargeable',
-  );
-  const chargeVehicles = writableActiveVehicles.filter(
-    (v) => v.fuel_type === 'Électrique' || v.fuel_type === 'Hybride rechargeable',
-  );
+  const fillVehicles = writableActiveVehicles.filter((v) => vehicleEnergy(v.fuel_type).fuel);
+  const chargeVehicles = writableActiveVehicles.filter((v) => vehicleEnergy(v.fuel_type).electric);
   const formVehicles = selectedExpenseType === 'charge' ? chargeVehicles : fillVehicles;
 
   const vehiclesMinimal: VehicleMinimal[] = writableActiveVehicles.map((v) => ({

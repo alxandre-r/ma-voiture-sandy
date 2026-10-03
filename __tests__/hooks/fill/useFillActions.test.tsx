@@ -1,98 +1,61 @@
-// Test for the refactored useFillActions hook
-import { renderHook, act } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 
-import { useFillActions } from '@/hooks/fill/useFillActions';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+import { calculateFillValues, useFillActions } from '@/hooks/fill/useFillActions';
 
-import type { Fill, FillFormData } from '@/types/fill';
+import type { FillFormData } from '@/types/fill';
+import type { ReactNode } from 'react';
+
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <NotificationProvider>{children}</NotificationProvider>
+);
+
+const validFill: FillFormData = {
+  vehicle_id: 1,
+  date: '2023-01-01',
+  odometer: 10000,
+  liters: 50,
+  amount: 75,
+  price_per_liter: 1.5,
+  notes: 'Valid fill',
+};
 
 describe('useFillActions hook', () => {
-  it('should initialize with correct default values', () => {
-    const { result } = renderHook(() => useFillActions());
-
-    expect(result.current.editingId).toBeNull();
-    expect(result.current.editData).toBeNull();
-    expect(result.current.saving).toBe(false);
+  it('starts idle', () => {
+    const { result } = renderHook(() => useFillActions(), { wrapper });
     expect(result.current.adding).toBe(false);
-    expect(result.current.deletingId).toBeNull();
-    expect(result.current.showDeleteConfirm).toBe(false);
   });
 
-  it('should handle field changes with auto-calculations', () => {
-    const { result } = renderHook(() => useFillActions());
+  it('validates fill and charge data', () => {
+    const { result } = renderHook(() => useFillActions(), { wrapper });
+    const { validateFillData } = result.current;
 
-    // Start editing with some data
-    const mockFill: Fill = {
-      id: 1,
-      vehicle_id: 1,
-      date: '2023-01-01',
-      odometer: 10000,
-      liters: 50,
-      amount: 75,
-      price_per_liter: 1.5,
-      notes: 'Test fill',
-    };
+    expect(validateFillData(validFill)).toBe(true);
+    expect(validateFillData({ ...validFill, vehicle_id: 0 })).toBe(false);
+    expect(validateFillData({ ...validFill, amount: 0 })).toBe(false);
+    expect(validateFillData({ ...validFill, liters: 0, price_per_liter: 0 })).toBe(false);
+    expect(
+      validateFillData({ ...validFill, charge_type: 'charge', kwh: 0, price_per_kwh: 0 }),
+    ).toBe(false);
+    expect(validateFillData({ ...validFill, charge_type: 'charge', kwh: 40 })).toBe(true);
+  });
+});
 
-    act(() => {
-      result.current.startEdit(mockFill);
-    });
-
-    expect(result.current.editData).toEqual({
-      vehicle_id: 1,
-      date: '2023-01-01',
-      odometer: 10000,
-      liters: 50,
-      amount: 75,
-      price_per_liter: 1.5,
-      notes: 'Test fill',
-    });
-
-    // Test auto-calculation when changing liters
-    act(() => {
-      result.current.handleFieldChange('liters', 60);
-    });
-
-    // Should auto-calculate price_per_liter = amount / liters = 75 / 60 = 1.25
-    expect(result.current.editData?.price_per_liter).toBeCloseTo(1.25, 2);
+describe('calculateFillValues', () => {
+  it('derives liters from amount and price per liter', () => {
+    expect(calculateFillValues({ amount: 75, price_per_liter: 1.5 }).liters).toBe(50);
   });
 
-  it('should validate fill data correctly', () => {
-    const { result } = renderHook(() => useFillActions());
-
-    const invalidData: FillFormData = {
-      vehicle_id: 0, // Invalid: should be > 0
-      date: '', // Invalid: should not be empty
-      odometer: 0,
-      liters: 0,
-      amount: 0, // Invalid: should not be 0
-      price_per_liter: 0,
-      notes: '',
-    };
-
-    const validData: FillFormData = {
-      vehicle_id: 1,
-      date: '2023-01-01',
-      odometer: 10000,
-      liters: 50,
-      amount: 75,
-      price_per_liter: 1.5,
-      notes: 'Valid fill',
-    };
-
-    expect(result.current.validateFillData(invalidData)).toBe(false);
-    expect(result.current.validateFillData(validData)).toBe(true);
+  it('derives kWh for a charge, and never derives the price from the quantity', () => {
+    const result = calculateFillValues({ amount: 10, price_per_kwh: 0.25, charge_type: 'charge' });
+    expect(result.kwh).toBe(40);
+    expect(calculateFillValues({ amount: 75, liters: 50 }).price_per_liter).toBe(0);
   });
 
-  it('should calculate fill values correctly', () => {
-    const { result } = renderHook(() => useFillActions());
-
-    const partialData: Partial<FillFormData> = {
-      amount: 75,
-      liters: 50,
-    };
-
-    const calculated = result.current.calculateFillValues(partialData);
-
-    // Should auto-calculate price_per_liter = amount / liters = 75 / 50 = 1.5
-    expect(calculated.price_per_liter).toBeCloseTo(1.5, 2);
+  it('takes identity fields from the base but never numeric ones', () => {
+    const result = calculateFillValues({ amount: null }, validFill);
+    expect(result.vehicle_id).toBe(1);
+    expect(result.amount).toBe(0);
   });
 });
