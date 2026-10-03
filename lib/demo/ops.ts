@@ -409,10 +409,9 @@ export function applyOp(state: DemoState, op: DemoOp): void {
       const current = state.expenses[index];
       state.expenses[index] = {
         ...fillExpense(op.id, current.created_at, op.d),
-        vehicle_id: current.vehicle_id,
         owner_id: current.owner_id,
       };
-      if (op.d.odometer) setVehicleOdometer(state, current.vehicle_id, op.d.odometer);
+      if (op.d.odometer) setVehicleOdometer(state, op.d.vehicle_id, op.d.odometer);
       return;
     }
     case 'other.add':

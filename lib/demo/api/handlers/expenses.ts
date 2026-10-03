@@ -1,3 +1,5 @@
+import { fillInputError } from '@/lib/utils/vehicleEnergy';
+
 import { DEMO_USER_ID } from '../../constants';
 import { nextId } from '../../ops';
 import { expensesForDisplay, isDerivedInsuranceId } from '../../views';
@@ -16,7 +18,7 @@ import type { ExpensePatch, FillData, MaintenanceData, OtherData } from '../../o
 import type { DemoState } from '../../types';
 import type { DemoApiHandler, DemoApiResult, JsonBody } from '../types';
 
-/** Same 0/null rules as fills/add, except liters stay null for a charge (see spec §12). */
+/** Same 0/null rules as fills/add (fills_energy_consistency: a charge has no liters). */
 function toFillData(vehicleId: number, date: string, body: JsonBody): FillData {
   const isCharge = body.charge_type === 'charge';
   return {
@@ -27,7 +29,7 @@ function toFillData(vehicleId: number, date: string, body: JsonBody): FillData {
     odometer: toNumber(body.odometer),
     charge_type: isCharge ? 'charge' : 'fill',
     liters: isCharge ? null : toNumber(body.liters),
-    price_per_liter: isCharge ? null : toNumber(body.price_per_liter),
+    price_per_liter: isCharge ? 0 : toNumber(body.price_per_liter),
     kwh: isCharge ? toNumber(body.kwh) : null,
     price_per_kwh: isCharge ? toNumber(body.price_per_kwh) : null,
   };
@@ -94,6 +96,8 @@ export const expenseHandlers: Record<string, DemoApiHandler> = {
     if (!isIsoDate(body.date)) return fail(500, 'Erreur lors de la création de la dépense');
     const vehicle = visibleVehicle(state, vehicleId);
     const data = toFillData(vehicleId, body.date.slice(0, 10), body);
+    const inputError = fillInputError(vehicle?.fuel_type, data.charge_type, body.amount);
+    if (inputError) return fail(400, inputError);
     const id = nextId(state.expenses);
     return reply(
       201,
@@ -119,15 +123,21 @@ export const expenseHandlers: Record<string, DemoApiHandler> = {
   'PATCH fills/update': ({ state, body }) => {
     const id = toNumber(body.id);
     if (!id) return fail(400, 'Le champ id est requis');
-    // The dashboard sends the expense id: in the demo a fill is identified by its expense
+    // A fill is identified by its expense id, as in the real route
     const expense = state.expenses.find((e) => e.id === id && e.fill);
     if (!expense) return fail(404, 'Plein non trouvé');
     if (!canEditExpense(state, expense)) {
       return fail(403, "Vous n'êtes pas autorisé à modifier ce plein");
     }
+    const vehicleId = toNumber(body.vehicle_id) || expense.vehicle_id;
+    const vehicle = visibleVehicle(state, vehicleId);
+    if (vehicleId !== expense.vehicle_id && !canWriteVehicle(vehicle)) {
+      return fail(403, "Vous n'êtes pas autorisé à déplacer cette dépense vers ce véhicule");
+    }
     const date = isIsoDate(body.date) ? body.date.slice(0, 10) : expense.date;
-    const data = toFillData(expense.vehicle_id, date, body);
-    const vehicle = visibleVehicle(state, expense.vehicle_id);
+    const data = toFillData(vehicleId, date, body);
+    const inputError = fillInputError(vehicle?.fuel_type, data.charge_type, body.amount);
+    if (inputError) return fail(400, inputError);
     return reply(
       200,
       {

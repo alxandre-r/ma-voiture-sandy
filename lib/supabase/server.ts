@@ -4,8 +4,6 @@
  *              via next/headers pour permettre au serveur (middleware, server components)
  *              d'accéder à la session Supabase.
  */
-'use server';
-
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 

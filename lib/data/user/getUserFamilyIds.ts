@@ -1,5 +1,3 @@
-'use server';
-
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 

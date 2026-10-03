@@ -105,6 +105,9 @@ export const vehicleHandlers: Record<string, DemoApiHandler> = {
     if (!vehicleId || !Array.isArray(body.permissions)) {
       return fail(400, 'vehicleId et permissions sont requis');
     }
+    if (!body.permissions.every(isPermissionEntry)) {
+      return fail(400, 'Niveau de permission invalide');
+    }
     if (!state.vehicles.some((v) => v.id === vehicleId && v.owner_id === DEMO_USER_ID)) {
       return fail(403, 'Véhicule introuvable ou accès refusé');
     }
