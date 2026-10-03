@@ -19,14 +19,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    'bg-custom-1 hover:bg-custom-1-hover text-white disabled:opacity-50',
-  secondary:
-    'bg-custom-2 hover:bg-custom-2-hover text-white disabled:opacity-50',
+  primary: 'bg-custom-1 hover:bg-custom-1-hover text-white disabled:opacity-50',
+  secondary: 'bg-custom-2 hover:bg-custom-2-hover text-white disabled:opacity-50',
   ghost:
     'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-50',
-  danger:
-    'bg-red-600 hover:bg-red-700 text-white disabled:opacity-50',
+  danger: 'bg-red-600 hover:bg-red-700 text-white disabled:opacity-50',
   outline:
     'border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50',
 };
@@ -36,6 +33,22 @@ const sizeClasses: Record<ButtonSize, string> = {
   md: 'px-4 py-2 text-sm gap-2',
   lg: 'px-5 py-2.5 text-base gap-2',
 };
+
+/** Class list of a Button, for elements that must look like one (e.g. a plain <a>). */
+export function buttonClasses(
+  variant: ButtonVariant = 'primary',
+  size: ButtonSize = 'md',
+  className = '',
+): string {
+  return [
+    'inline-flex items-center justify-center font-medium rounded-lg transition-colors cursor-pointer',
+    variantClasses[variant],
+    sizeClasses[size],
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -56,14 +69,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || isLoading}
-        className={[
-          'inline-flex items-center justify-center font-medium rounded-lg transition-colors cursor-pointer',
-          variantClasses[variant],
-          sizeClasses[size],
-          className,
-        ]
-          .filter(Boolean)
-          .join(' ')}
+        className={buttonClasses(variant, size, className)}
         {...props}
       >
         {isLoading ? (

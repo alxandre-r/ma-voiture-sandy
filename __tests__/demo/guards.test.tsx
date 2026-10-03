@@ -64,9 +64,16 @@ describe('demo guards', () => {
   });
 
   it('links to /demo with a plain <a> so it is never prefetched (Review Focus #5)', () => {
-    const source = readFileSync('app/LandingPageClient.tsx', 'utf8');
-    expect(source).toContain('href="/demo"');
-    expect(source).not.toMatch(/<Link[^>]*href="\/demo"/);
+    expect(readFileSync('components/landing/DemoLink.tsx', 'utf8')).toContain('<a href="/demo"');
+    for (const file of [
+      'app/LandingPageClient.tsx',
+      'components/landing/AuthCard.tsx',
+      'components/landing/LandingHero.tsx',
+      'components/landing/FinalCta.tsx',
+    ]) {
+      // Every entry goes through DemoLink, so no <Link href="/demo"> can slip in
+      expect(readFileSync(file, 'utf8')).not.toMatch(/href="\/demo"/);
+    }
   });
 
   it('leaves the demo before any real authentication call', () => {

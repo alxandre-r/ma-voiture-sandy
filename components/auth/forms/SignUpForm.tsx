@@ -8,7 +8,8 @@
 
 import { useState } from 'react';
 
-import Spinner from '@/components/common/ui/Spinner';
+import Button from '@/components/common/ui/Button';
+import { FormField, FormInput } from '@/components/common/ui/form';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { exitDemoSession } from '@/lib/demo/client';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -82,48 +83,41 @@ export default function SignUpForm() {
   }
 
   return (
-    <form onSubmit={handleSignUp} className="space-y-4 px-6 w-full max-w-md">
-      <h2 className="text-xl font-bold text-gray-800 dark:text-white text-center">
-        Créer un compte
-      </h2>
+    <form onSubmit={handleSignUp} className="space-y-4" noValidate>
+      <FormField label="Nom ou pseudo" htmlFor="signup-name">
+        <FormInput
+          id="signup-name"
+          type="text"
+          autoComplete="nickname"
+          placeholder="Sandy"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </FormField>
+      <FormField label="Email" htmlFor="signup-email">
+        <FormInput
+          id="signup-email"
+          type="email"
+          autoComplete="email"
+          placeholder="vous@exemple.fr"
+          value={email}
+          onChange={(e) => setEmail(e.target.value.toLowerCase())}
+        />
+      </FormField>
+      <FormField label="Mot de passe" htmlFor="signup-password" hint="6 caractères minimum">
+        <FormInput
+          id="signup-password"
+          type="password"
+          autoComplete="new-password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </FormField>
 
-      <input
-        type="text"
-        placeholder="Nom ou pseudo"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="w-full px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-white focus:outline-none inset-shadow-sm"
-      />
-
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value.toLowerCase())}
-        className="w-full px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-white focus:outline-none inset-shadow-sm"
-      />
-      <input
-        type="password"
-        placeholder="Mot de passe"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="w-full px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-white focus:outline-none inset-shadow-sm"
-      />
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg transition-colors shadow-lg disabled:opacity-60 hover:cursor-pointer"
-      >
-        {loading ? (
-          <div className="flex items-center justify-center gap-2">
-            <Spinner color="white" />
-            Création de compte...
-          </div>
-        ) : (
-          "Valider l'inscription"
-        )}
-      </button>
+      <Button type="submit" size="lg" isLoading={loading} className="w-full">
+        {loading ? 'Création de compte...' : 'Créer mon compte'}
+      </Button>
     </form>
   );
 }
