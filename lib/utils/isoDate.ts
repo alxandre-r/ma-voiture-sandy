@@ -13,6 +13,15 @@ export function getLocalToday(now: Date = new Date()): string {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
+/**
+ * Today's date in France, for server code: Vercel runs in UTC, so getLocalToday() there is the
+ * UTC date. Matches the DB's `(now() at time zone 'Europe/Paris')::date` (insurance triggers).
+ */
+export function getParisToday(now: Date = new Date()): string {
+  // en-CA formats as YYYY-MM-DD
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(now);
+}
+
 export function addDaysIso(iso: string, days: number): string {
   return format(new Date(parse(iso).getTime() + days * DAY_MS));
 }

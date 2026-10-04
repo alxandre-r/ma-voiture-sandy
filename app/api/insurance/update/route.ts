@@ -2,7 +2,13 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { findOverlap, formatOverlapError, validateContractInput } from '@/lib/utils/insuranceUtils';
+import {
+  findOverlap,
+  formatOverlapError,
+  INSURANCE_ERRORS,
+  OVERLAP_VIOLATION,
+  validateContractInput,
+} from '@/lib/utils/insuranceUtils';
 import {
   badRequest,
   check,
@@ -18,8 +24,8 @@ import type { InsuranceContract } from '@/types/insurance';
 /**
  * PATCH /api/insurance/update
  * Updates an insurance contract (no overlap allowed with the vehicle's other contracts).
- * The DB trigger sync_insurance_expenses_after_update regenerates the contract's monthly
- * expenses when cost, dates or vehicle change.
+ * The DB trigger sync_insurance_expenses_after_update re-syncs the contract's monthly
+ * expenses when cost, dates or vehicle change, keeping receipts and manual edits.
  */
 export async function PATCH(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -93,6 +99,9 @@ export async function PATCH(request: Request) {
       .select()
       .single();
 
+    if (error?.code === OVERLAP_VIOLATION) {
+      return NextResponse.json({ error: INSURANCE_ERRORS.overlap }, { status: 409 });
+    }
     if (error) {
       console.error('Error updating insurance contract:', error);
       return NextResponse.json(

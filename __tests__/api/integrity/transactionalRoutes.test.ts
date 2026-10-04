@@ -205,6 +205,20 @@ describe('insurance RPCs', () => {
     expect((args.p_instalments as string[])[0]).toBe('2026-08-15');
   });
 
+  it('create: the DB overlap constraint (23P01) becomes a 409', async () => {
+    db.tables.vehicles = { data: { id: 1 }, error: null };
+    db.tables.insurance_contracts = { data: [], error: null };
+    db.rpcResults.save_insurance_contract = {
+      data: null,
+      error: { code: '23P01', message: 'conflicting key value violates exclusion constraint' },
+    };
+    const res = await createInsurance(
+      json('POST', { vehicle_id: 1, monthly_cost: 40, start_date: '2026-08-15' }),
+    );
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe('Ce contrat chevauche un autre contrat de ce véhicule.');
+  });
+
   it('delete: one RPC; false (nothing deleted) is an error', async () => {
     db.tables.insurance_contracts = { data: { id: 77, owner_id: 'me' }, error: null };
     db.rpcResults.delete_insurance_contract = { data: false, error: null };

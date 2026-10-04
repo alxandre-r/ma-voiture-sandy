@@ -2,8 +2,13 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { getInstalmentDates, planContractChange } from '@/lib/utils/insuranceUtils';
-import { getLocalToday } from '@/lib/utils/isoDate';
+import {
+  getInstalmentDates,
+  INSURANCE_ERRORS,
+  OVERLAP_VIOLATION,
+  planContractChange,
+} from '@/lib/utils/insuranceUtils';
+import { getParisToday } from '@/lib/utils/isoDate';
 import {
   badRequest,
   check,
@@ -86,12 +91,15 @@ export async function POST(request: Request) {
       'save_insurance_contract',
       {
         p_contract: create,
-        p_instalments: getInstalmentDates(create.start_date, null, getLocalToday()),
+        p_instalments: getInstalmentDates(create.start_date, null, getParisToday()),
         p_close_id: close?.id ?? null,
         p_close_end: close?.end_date ?? null,
       },
     );
 
+    if (createError?.code === OVERLAP_VIOLATION) {
+      return NextResponse.json({ error: INSURANCE_ERRORS.overlap }, { status: 409 });
+    }
     if (createError) {
       console.error('Error changing insurance contract:', createError);
       return NextResponse.json(

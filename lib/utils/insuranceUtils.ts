@@ -3,11 +3,7 @@ import { fr } from 'date-fns/locale';
 
 import { addDaysIso, addMonthsIso, daysBetweenIso } from '@/lib/utils/isoDate';
 
-import type {
-  InsuranceContract,
-  InsuranceContractInput,
-  InsuranceData,
-} from '@/types/insurance';
+import type { InsuranceContract, InsuranceContractInput, InsuranceData } from '@/types/insurance';
 import type { Vehicle } from '@/types/vehicle';
 
 export function formatInsuranceDate(dateStr: string | null | undefined): string {
@@ -113,7 +109,10 @@ export function getInsuranceBadge(
   switch (status.state) {
     case 'insured':
       return status.upcoming
-        ? { label: `Changement le ${formatInsuranceDate(status.upcoming.start_date)}`, tone: 'info' }
+        ? {
+            label: `Changement le ${formatInsuranceDate(status.upcoming.start_date)}`,
+            tone: 'info',
+          }
         : { label: 'Assuré', tone: 'success' };
     case 'expiring':
       return {
@@ -140,7 +139,12 @@ export const INSURANCE_ERRORS = {
   endBeforeStart: 'La date de fin doit être postérieure à la date de début',
   laterContractExists:
     'Un contrat commence déjà à cette date ou après. Modifiez-le ou supprimez-le.',
+  /** DB constraint insurance_contracts_no_overlap (23P01), e.g. two concurrent requests */
+  overlap: 'Ce contrat chevauche un autre contrat de ce véhicule.',
 } as const;
+
+/** Postgres exclusion_violation: insurance_contracts_no_overlap */
+export const OVERLAP_VIOLATION = '23P01';
 
 const OPEN_END = '9999-12-31';
 
@@ -218,7 +222,10 @@ export function planContractChange(
     return { ok: false, status: 400, error: INSURANCE_ERRORS.effectiveRequired };
   }
   const effective = input.effective_date.slice(0, 10);
-  const invalid = validateContractInput({ monthly_cost: input.monthly_cost, start_date: effective });
+  const invalid = validateContractInput({
+    monthly_cost: input.monthly_cost,
+    start_date: effective,
+  });
   if (invalid) return { ok: false, status: 400, error: invalid };
   if (contracts.some((c) => c.start_date >= effective)) {
     return { ok: false, status: 409, error: INSURANCE_ERRORS.laterContractExists };

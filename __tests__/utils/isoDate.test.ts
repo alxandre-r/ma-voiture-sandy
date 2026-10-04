@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { addDaysIso, addMonthsIso, daysBetweenIso, getLocalToday } from '@/lib/utils/isoDate';
+import {
+  addDaysIso,
+  addMonthsIso,
+  daysBetweenIso,
+  getLocalToday,
+  getParisToday,
+} from '@/lib/utils/isoDate';
 
 describe('isoDate', () => {
   it('formats the local calendar date, not the UTC one', () => {
@@ -22,5 +28,13 @@ describe('isoDate', () => {
   it('counts days between two dates', () => {
     expect(daysBetweenIso('2026-10-01', '2026-10-31')).toBe(30);
     expect(daysBetweenIso('2026-10-02', '2026-10-01')).toBe(-1);
+  });
+
+  it('getParisToday gives the French date whatever the server timezone', () => {
+    // 22:30 UTC is already the next day in Paris (summer, UTC+2) …
+    expect(getParisToday(new Date('2026-10-04T22:30:00Z'))).toBe('2026-10-05');
+    // … and 23:30 UTC in winter (UTC+1)
+    expect(getParisToday(new Date('2026-12-31T23:30:00Z'))).toBe('2027-01-01');
+    expect(getParisToday(new Date('2026-10-04T12:00:00Z'))).toBe('2026-10-04');
   });
 });

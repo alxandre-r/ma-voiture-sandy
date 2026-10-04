@@ -6,9 +6,11 @@ import {
   findOverlap,
   formatOverlapError,
   getInstalmentDates,
+  INSURANCE_ERRORS,
+  OVERLAP_VIOLATION,
   validateContractInput,
 } from '@/lib/utils/insuranceUtils';
-import { getLocalToday } from '@/lib/utils/isoDate';
+import { getParisToday } from '@/lib/utils/isoDate';
 import {
   badRequest,
   check,
@@ -98,9 +100,12 @@ export async function POST(request: Request) {
         end_date: endDate,
         provider: typeof body.provider === 'string' ? body.provider.trim() || null : null,
       },
-      p_instalments: getInstalmentDates(startDate, endDate, getLocalToday()),
+      p_instalments: getInstalmentDates(startDate, endDate, getParisToday()),
     });
 
+    if (contractError?.code === OVERLAP_VIOLATION) {
+      return NextResponse.json({ error: INSURANCE_ERRORS.overlap }, { status: 409 });
+    }
     if (contractError) {
       console.error('Error creating insurance contract:', contractError);
       return NextResponse.json(
