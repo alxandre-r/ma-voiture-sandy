@@ -23,7 +23,10 @@ export async function POST(request: Request) {
       error: userError,
     } = await supabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Non autorisé - utilisateur non connecté' },
+        { status: 401 },
+      );
     }
 
     const body = await readJsonObject(request);
@@ -119,9 +122,9 @@ export async function POST(request: Request) {
     }
 
     revalidatePath('/', 'layout');
-    return NextResponse.json({ message: 'Vehicle created successfully', vehicle: data });
+    return NextResponse.json({ message: 'Véhicule ajouté avec succès', vehicle: data });
   } catch (err) {
     console.error('Unexpected error in /vehicles/add:', err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Erreur serveur inattendue' }, { status: 500 });
   }
 }

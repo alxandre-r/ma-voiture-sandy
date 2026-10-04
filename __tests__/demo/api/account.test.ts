@@ -40,7 +40,7 @@ describe('vehicles endpoints', () => {
     );
     expect(result.status).toBe(200);
     expect(result.json).toMatchObject({
-      message: 'Vehicle created successfully',
+      message: 'Véhicule ajouté avec succès',
       vehicle: {
         make: 'Renault',
         plate: 'AB-123-CD',
@@ -68,7 +68,7 @@ describe('vehicles endpoints', () => {
     });
     expect(call(state, 'PATCH', 'vehicles/update', { vehicle_id: 101 })).toEqual({
       status: 400,
-      json: { error: 'No valid fields to update' },
+      json: { error: 'Aucune donnée à mettre à jour' },
     });
   });
 
@@ -95,7 +95,7 @@ describe('vehicles endpoints', () => {
     const state = seed();
     expect(call(state, 'DELETE', 'vehicles/delete', { vehicle_id: DEMO_VEHICLE.niro })).toEqual({
       status: 404,
-      json: { error: 'Vehicle not found or you do not have permission to delete it' },
+      json: { error: 'Véhicule introuvable ou accès refusé' },
     });
     expect(
       commit(state, call(state, 'DELETE', 'vehicles/delete', { vehicle_id: DEMO_VEHICLE.zoe }))

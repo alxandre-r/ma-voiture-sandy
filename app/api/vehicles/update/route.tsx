@@ -66,7 +66,10 @@ export async function PATCH(request: Request) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Non autorisé - utilisateur non connecté' },
+        { status: 401 },
+      );
     }
 
     // Parse body
@@ -75,7 +78,7 @@ export async function PATCH(request: Request) {
     const { vehicle_id: id, ...inputData } = body;
 
     if (!isId(id)) {
-      return NextResponse.json({ error: 'Vehicle ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Le champ vehicle_id est requis' }, { status: 400 });
     }
 
     const validationError = vehicleFieldsError(inputData);
@@ -109,7 +112,7 @@ export async function PATCH(request: Request) {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+      return NextResponse.json({ error: 'Aucune donnée à mettre à jour' }, { status: 400 });
     }
 
     // Verify ownership or write permission
@@ -121,7 +124,10 @@ export async function PATCH(request: Request) {
 
     if (fetchError) {
       console.error('Error fetching vehicle:', fetchError);
-      return NextResponse.json({ error: 'Failed to verify vehicle ownership' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Erreur lors de la vérification du véhicule' },
+        { status: 500 },
+      );
     }
 
     if (!vehicle) {
@@ -163,11 +169,11 @@ export async function PATCH(request: Request) {
 
     revalidatePath('/', 'layout');
     return NextResponse.json(
-      { message: 'Vehicle updated successfully', vehicle: data },
+      { message: 'Véhicule mis à jour avec succès', vehicle: data },
       { status: 200 },
     );
   } catch (err) {
     console.error('Unexpected error in /vehicles/update:', err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Erreur serveur inattendue' }, { status: 500 });
   }
 }

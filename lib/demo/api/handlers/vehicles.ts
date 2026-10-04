@@ -69,14 +69,14 @@ export const vehicleHandlers: Record<string, DemoApiHandler> = {
     const vehicle = { ...EMPTY_VEHICLE, ...data, id, owner_id: DEMO_USER_ID, created_at: now };
     return reply(
       200,
-      { message: 'Vehicle created successfully', vehicle },
+      { message: 'Véhicule ajouté avec succès', vehicle },
       { t: 'vehicle.add', id, at: now, d: data },
     );
   },
 
   'PATCH vehicles/update': ({ state, body }) => {
     const id = toNumber(body.vehicle_id);
-    if (!id) return fail(400, 'Vehicle ID is required');
+    if (!id) return fail(400, 'Le champ vehicle_id est requis');
     if (invalidFuelType(body)) return fail(400, 'Type de carburant invalide');
     const vehicle = state.vehicles.find((v) => v.id === id);
     const visible = visibleVehicle(state, id);
@@ -85,25 +85,25 @@ export const vehicleHandlers: Record<string, DemoApiHandler> = {
       return fail(403, 'Non autorisé');
     }
     const data = toVehicleData(body);
-    if (Object.keys(data).length === 0) return fail(400, 'No valid fields to update');
+    if (Object.keys(data).length === 0) return fail(400, 'Aucune donnée à mettre à jour');
     if ('make' in data && !data.make) return fail(500, 'La marque est requise');
     if ('model' in data && !data.model) return fail(500, 'Le modèle est requis');
     return reply(
       200,
-      { message: 'Vehicle updated successfully', vehicle: { ...vehicle, ...data } },
+      { message: 'Véhicule mis à jour avec succès', vehicle: { ...vehicle, ...data } },
       { t: 'vehicle.update', id, d: data },
     );
   },
 
   'DELETE vehicles/delete': ({ state, body }) => {
     const id = toNumber(body.vehicle_id);
-    if (!id) return fail(400, 'Vehicle ID is required');
+    if (!id) return fail(400, 'Le champ vehicle_id est requis');
     if (!state.vehicles.some((v) => v.id === id && v.owner_id === DEMO_USER_ID)) {
-      return fail(404, 'Vehicle not found or you do not have permission to delete it');
+      return fail(404, 'Véhicule introuvable ou accès refusé');
     }
     return reply(
       200,
-      { message: 'Vehicle deleted successfully', vehicle_id: id },
+      { message: 'Véhicule supprimé avec succès', vehicle_id: id },
       { t: 'vehicle.delete', id },
     );
   },

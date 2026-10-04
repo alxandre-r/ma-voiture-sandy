@@ -93,7 +93,7 @@ describe('vehicles routes body validation', () => {
   it('rejects a malformed vehicle id and a bad date on update', async () => {
     const badId = await updateVehicle(json({ vehicle_id: 'abc', odometer: 1 }));
     expect(badId.status).toBe(400);
-    expect(await badId.json()).toEqual({ error: 'Vehicle ID is required' });
+    expect(await badId.json()).toEqual({ error: 'Le champ vehicle_id est requis' });
 
     const badDate = await updateVehicle(json({ vehicle_id: 4, purchase_date: '2026-13-01' }));
     expect(badDate.status).toBe(400);

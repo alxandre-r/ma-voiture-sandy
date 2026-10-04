@@ -31,7 +31,10 @@ export async function DELETE(request: Request) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Non autorisé - utilisateur non connecté' },
+        { status: 401 },
+      );
     }
 
     // Parse request body
@@ -40,7 +43,7 @@ export async function DELETE(request: Request) {
     const { vehicle_id } = body;
 
     if (!isId(vehicle_id)) {
-      return NextResponse.json({ error: 'Vehicle ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Le champ vehicle_id est requis' }, { status: 400 });
     }
 
     // First, verify the vehicle exists and is owned by the user
@@ -53,14 +56,14 @@ export async function DELETE(request: Request) {
 
     if (fetchError) {
       console.error('Error fetching vehicle:', fetchError);
-      return NextResponse.json({ error: 'Failed to verify vehicle ownership' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Erreur lors de la vérification du véhicule' },
+        { status: 500 },
+      );
     }
 
     if (!vehicle) {
-      return NextResponse.json(
-        { error: 'Vehicle not found or you do not have permission to delete it' },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: 'Véhicule introuvable ou accès refusé' }, { status: 404 });
     }
 
     // Delete the vehicle
@@ -77,11 +80,11 @@ export async function DELETE(request: Request) {
 
     revalidatePath('/', 'layout');
     return NextResponse.json(
-      { message: 'Vehicle deleted successfully', vehicle_id },
+      { message: 'Véhicule supprimé avec succès', vehicle_id },
       { status: 200 },
     );
   } catch (err) {
     console.error('Unexpected error in /vehicles/delete:', err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Erreur serveur inattendue' }, { status: 500 });
   }
 }
