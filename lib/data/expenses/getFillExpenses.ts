@@ -4,6 +4,7 @@
 
 import { cache } from 'react';
 
+import { fetchAllRows } from '@/lib/data/fetchAllRows';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -17,12 +18,16 @@ export const getFillExpenses = cache(async (vehicleIds: number[]): Promise<Expen
   if (demo) return demoData.getFillExpenses(demo.state, vehicleIds);
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('expenses_for_display')
-    .select('vehicle_id, type, date, odometer')
-    .in('vehicle_id', vehicleIds)
-    .in('type', ['fuel', 'electric_charge'])
-    .order('date', { ascending: true });
+  const { data, error } = await fetchAllRows((from, to) =>
+    supabase
+      .from('expenses_for_display')
+      .select('vehicle_id, type, date, odometer')
+      .in('vehicle_id', vehicleIds)
+      .in('type', ['fuel', 'electric_charge'])
+      .order('date', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, to),
+  );
 
   if (error) {
     console.error('Error fetching fill expenses:', error);

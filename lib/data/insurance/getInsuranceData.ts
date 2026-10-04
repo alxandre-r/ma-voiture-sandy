@@ -1,3 +1,4 @@
+import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import { getPreferencesByUserId } from '@/lib/data/user/getPreferencesByUserId';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
@@ -20,9 +21,7 @@ export async function getInsuranceData(vehicles: InsuranceVehicleRef[]): Promise
   if (demo) return demoData.getInsuranceData(demo.state, vehicles);
 
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return empty;
 
   const otherOwnerIds = [

@@ -1,5 +1,6 @@
 // SSR utilities for authentication and user profile retrieval
 
+import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 
@@ -11,9 +12,7 @@ export async function getUserFamilyId(): Promise<string | null> {
 
   const supabase = await createSupabaseServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return null;
 
   const { data, error } = await supabase

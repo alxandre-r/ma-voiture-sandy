@@ -3,6 +3,7 @@
 
 import { cache } from 'react';
 
+import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -16,13 +17,9 @@ export const getCurrentUserInfo = cache(async () => {
   try {
     const supabase = await createSupabaseServerClient();
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    // Rate limit or other auth API errors — treat as unauthenticated
-    if (authError || !user) return null;
+    // Rate limit or other auth API errors: getCurrentUser() returns null
+    const user = await getCurrentUser();
+    if (!user) return null;
 
     const { data, error } = await supabase
       .from('users_info')

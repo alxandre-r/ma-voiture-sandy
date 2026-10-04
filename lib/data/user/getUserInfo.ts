@@ -3,6 +3,7 @@
 
 import { cache } from 'react';
 
+import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 
@@ -14,9 +15,7 @@ export const getUserInfo = cache(async () => {
 
   const supabase = await createSupabaseServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await supabase.from('users_info').select('*').eq('id', user.id).single();

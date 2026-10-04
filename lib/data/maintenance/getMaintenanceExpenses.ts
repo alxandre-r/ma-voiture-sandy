@@ -5,6 +5,7 @@
 
 import { cache } from 'react';
 
+import { fetchAllRows } from '@/lib/data/fetchAllRows';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -27,17 +28,16 @@ export const getMaintenanceExpenses = cache(async function getMaintenanceExpense
 
   const supabase = await createSupabaseServerClient();
 
-  let query = supabase
-    .from('expenses_for_display')
-    .select('*')
-    .eq('type', 'maintenance')
-    .order('date', { ascending: false });
-
-  if (vehicleIds.length > 0) {
-    query = query.in('vehicle_id', vehicleIds);
-  }
-
-  const { data: expenses, error } = await query;
+  const { data: expenses, error } = await fetchAllRows((from, to) => {
+    let query = supabase
+      .from('expenses_for_display')
+      .select('*')
+      .eq('type', 'maintenance')
+      .order('date', { ascending: false })
+      .order('id', { ascending: false });
+    if (vehicleIds.length > 0) query = query.in('vehicle_id', vehicleIds);
+    return query.range(from, to);
+  });
 
   if (error) {
     console.error('Error fetching maintenance expenses:', error);
