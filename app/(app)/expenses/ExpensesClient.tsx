@@ -93,7 +93,8 @@ function CSVExportModal({
           <div className="pt-1 border-t border-gray-100 dark:border-gray-800">
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Colonnes</p>
             <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
-              Date · Véhicule · Catégorie · Montant · Notes
+              Date · Véhicule · Catégorie · Montant · Kilométrage · Quantité · Unité · Prix unitaire
+              · Notes
             </p>
           </div>
         </div>
