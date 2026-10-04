@@ -9,6 +9,15 @@ import {
   validateContractInput,
 } from '@/lib/utils/insuranceUtils';
 import { getLocalToday } from '@/lib/utils/isoDate';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isId,
+  isOptionalText,
+  readJsonObject,
+} from '@/lib/validation/body';
 
 import type { InsuranceContract } from '@/types/insurance';
 
@@ -29,12 +38,25 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
     if (!body.vehicle_id) {
       return NextResponse.json({ error: 'Le champ vehicle_id est requis' }, { status: 400 });
     }
-    const invalid = validateContractInput(body);
+    const fieldError = firstError(
+      check(isId(body.vehicle_id), 'Le champ vehicle_id est requis'),
+      check(
+        isOptionalText(body.provider, 100),
+        "Le nom de l'assureur ne peut pas dépasser 100 caractères",
+      ),
+    );
+    if (fieldError) return badRequest(fieldError);
+    const invalid = validateContractInput({
+      monthly_cost: body.monthly_cost,
+      start_date: body.start_date,
+      end_date: body.end_date,
+    });
     if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
 
     const vehicleId = Number(body.vehicle_id);
@@ -67,18 +89,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: formatOverlapError(overlap) }, { status: 409 });
     }
 
-    const { data: contract, error: contractError } = await supabase
-      .from('insurance_contracts')
-      .insert({
+    // Contract + backfilled instalments in one transaction (P3.4)
+    const { data: contract, error: contractError } = await supabase.rpc('save_insurance_contract', {
+      p_contract: {
         vehicle_id: vehicleId,
-        owner_id: user.id,
         monthly_cost: Number(body.monthly_cost),
         start_date: startDate,
         end_date: endDate,
-        provider: body.provider?.trim() || null,
-      })
-      .select()
-      .single();
+        provider: typeof body.provider === 'string' ? body.provider.trim() || null : null,
+      },
+      p_instalments: getInstalmentDates(startDate, endDate, getLocalToday()),
+    });
 
     if (contractError) {
       console.error('Error creating insurance contract:', contractError);
@@ -86,23 +107,6 @@ export async function POST(request: Request) {
         { error: "Erreur lors de la création du contrat d'assurance" },
         { status: 500 },
       );
-    }
-
-    const expenses = getInstalmentDates(startDate, endDate, getLocalToday()).map((date) => ({
-      owner_id: user.id,
-      vehicle_id: vehicleId,
-      type: 'insurance',
-      amount: Number(body.monthly_cost),
-      date,
-      insurance_contract_id: contract.id,
-      notes: 'Mensualité',
-    }));
-    if (expenses.length > 0) {
-      const { error: expensesError } = await supabase.from('expenses').insert(expenses);
-      if (expensesError) {
-        // Contract created but expenses failed — non-blocking
-        console.error('Error backfilling insurance expenses:', expensesError);
-      }
     }
 
     revalidatePath('/', 'layout');

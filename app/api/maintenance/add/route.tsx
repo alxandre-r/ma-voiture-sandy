@@ -11,6 +11,20 @@ import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isId,
+  isNonNegativeNumber,
+  isOptionalText,
+  optional,
+  readJsonObject,
+} from '@/lib/validation/body';
+import { expenseBaseError } from '@/lib/validation/expense';
+
+import type { SavedExpense } from '@/types/rpc';
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -25,8 +39,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Parse request body
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
     // Validate required fields
     if (!body.vehicle_id) {
@@ -38,6 +52,18 @@ export async function POST(request: Request) {
     if (body.amount === undefined || body.amount === null) {
       return NextResponse.json({ error: 'Le champ amount est requis' }, { status: 400 });
     }
+    const fieldError = firstError(
+      check(isId(body.vehicle_id), 'Le champ vehicle_id est requis'),
+      check(isNonNegativeNumber(body.amount), 'Veuillez entrer un montant valide'),
+      expenseBaseError(body),
+      check(optional(isNonNegativeNumber)(body.odometer), 'Veuillez entrer un kilométrage valide'),
+      check(
+        isOptionalText(body.garage, 100),
+        'Le nom du garage ne peut pas dépasser 100 caractères',
+      ),
+      check(isOptionalText(body.maintenance_type, 100), "Type d'entretien invalide"),
+    );
+    if (fieldError) return badRequest(fieldError);
 
     // Verify vehicle access (owner or family member with write permission)
     const { data: vehicle, error: vehicleError } = await supabase
@@ -58,54 +84,38 @@ export async function POST(request: Request) {
       );
     }
 
-    // First, create the expense record
-    const { data: expense, error: expenseError } = await supabase
-      .from('expenses')
-      .insert([
-        {
-          vehicle_id: body.vehicle_id,
-          owner_id: user.id,
-          type: 'maintenance',
-          amount: Number(body.amount),
-          date: body.date,
-          notes: body.notes || null,
-        },
-      ])
-      .select()
-      .single();
-
-    if (expenseError) {
-      console.error('Error creating expense:', expenseError);
-      return NextResponse.json(
-        { error: 'Erreur lors de la création de la dépense' },
-        { status: 500 },
-      );
-    }
-
-    // Then, create the maintenance_expenses record
+    // Expense + maintenance row in one transaction (P3.4); the maintenance insert trigger
+    // creates or updates the auto-reminder
     // Note: schema uses maintenance_type_id, not maintenance_type
-    const { data: maintenanceExpense, error: maintenanceError } = await supabase
-      .from('maintenance_expenses')
-      .insert([
-        {
-          expense_id: expense.id,
-          maintenance_type_id: body.maintenance_type || 'other',
-          odometer: body.odometer ? Number(body.odometer) : null,
-          garage: body.garage || null,
-        },
-      ])
-      .select()
-      .single();
+    const { data: saved, error } = await supabase.rpc('save_expense_with_detail', {
+      p_expense_id: null,
+      p_expense: {
+        vehicle_id: body.vehicle_id,
+        type: 'maintenance',
+        amount: Number(body.amount),
+        date: body.date,
+        notes: body.notes || null,
+      },
+      p_detail: {
+        maintenance_type_id: body.maintenance_type || 'other',
+        odometer: body.odometer ? Number(body.odometer) : null,
+        garage: body.garage || null,
+      },
+    });
 
-    if (maintenanceError) {
-      console.error('Error creating maintenance_expense:', maintenanceError);
-      // Rollback: delete the expense if maintenance creation fails
-      await supabase.from('expenses').delete().eq('id', expense.id);
+    if (error) {
+      console.error('Error creating maintenance expense:', error);
       return NextResponse.json(
         { error: "Erreur lors de la création de l'entretien" },
         { status: 500 },
       );
     }
+    const { expense, detail } = saved as SavedExpense<{
+      maintenance_type_id: string | null;
+      odometer: number | null;
+      garage: string | null;
+    }>;
+    const maintenanceExpense = detail!;
 
     const odometer = parseOdometer(Number(body.odometer));
     if (odometer) await raiseVehicleOdometer(supabase, Number(body.vehicle_id), odometer);

@@ -9,9 +9,22 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { canWriteRow } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { ODOMETER_REQUIRED, parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
 import { fillInputError } from '@/lib/utils/vehicleEnergy';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isId,
+  optional,
+  readJsonObject,
+} from '@/lib/validation/body';
+import { expenseBaseError, fillFieldsError } from '@/lib/validation/expense';
+
+import type { SavedExpense } from '@/types/rpc';
 
 /**
  * PATCH /api/fills/update
@@ -37,18 +50,21 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    // Parse request body
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
-    // Validate required field
-    if (!body.id) {
-      return NextResponse.json({ error: 'Le champ id est requis' }, { status: 400 });
-    }
+    const fieldError = firstError(
+      check(isId(body.id), 'Le champ id est requis'),
+      check(optional(isId)(body.vehicle_id), 'Véhicule invalide'),
+      expenseBaseError(body),
+      fillFieldsError(body),
+    );
+    if (fieldError) return badRequest(fieldError);
 
     // The fills table has no vehicle_id/date: both live on the expense
     const { data: existingExpense } = await supabase
       .from('expenses')
-      .select('id, owner_id, type, vehicle_id, amount, date, notes')
+      .select('id, owner_id, vehicle_id')
       .eq('id', body.id)
       .in('type', ['fuel', 'electric_charge'])
       .maybeSingle();
@@ -61,18 +77,11 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Plein non trouvé' }, { status: 404 });
     }
 
-    if (existingExpense.owner_id !== user.id) {
-      const { data: vehicle } = await supabase
-        .from('vehicles_for_display')
-        .select('permission_level')
-        .eq('vehicle_id', existingExpense.vehicle_id)
-        .maybeSingle();
-      if (vehicle?.permission_level !== 'write') {
-        return NextResponse.json(
-          { error: "Vous n'êtes pas autorisé à modifier ce plein" },
-          { status: 403 },
-        );
-      }
+    if (!(await canWriteRow(supabase, existingExpense, user.id))) {
+      return NextResponse.json(
+        { error: "Vous n'êtes pas autorisé à modifier ce plein" },
+        { status: 403 },
+      );
     }
 
     const isCharge = body.charge_type === 'charge';
@@ -108,60 +117,37 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: ODOMETER_REQUIRED }, { status: 400 });
     }
 
-    // Expense first: trg_enforce_fills_charge_type checks the fill against the expense type,
-    // so a fill <-> charge switch only passes once the expense has the new type.
-    const { error: expenseUpdateError } = await supabase
-      .from('expenses')
-      .update({
+    // Expense + fill in one transaction (P3.4). The RPC writes the expense first:
+    // trg_enforce_fills_charge_type checks the fill against the expense type, so a
+    // fill <-> charge switch only passes once the expense has the new type.
+    const { data: saved, error } = await supabase.rpc('save_expense_with_detail', {
+      p_expense_id: existingExpense.id,
+      p_expense: {
         vehicle_id: vehicleId,
         type: isCharge ? 'electric_charge' : 'fuel',
         amount: Number(body.amount),
         date: body.date,
         notes: body.notes || null,
-      })
-      .eq('id', existingExpense.id);
-
-    if (expenseUpdateError) {
-      console.error('Error updating expense:', expenseUpdateError);
-      return NextResponse.json(
-        { error: 'Erreur lors de la mise à jour du plein' },
-        { status: 500 },
-      );
-    }
-
-    // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
-    const { data: updatedFill, error } = await supabase
-      .from('fills')
-      .update({
+      },
+      // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
+      p_detail: {
         liters: isCharge ? null : (body.liters ?? null),
         price_per_liter: isCharge ? 0 : (body.price_per_liter ?? null),
         odometer,
         charge_type: isCharge ? 'charge' : 'fill',
         kwh: isCharge ? (body.kwh ?? null) : null,
         price_per_kwh: isCharge ? (body.price_per_kwh ?? null) : null,
-      })
-      .eq('id', existingFill.id)
-      .select()
-      .single();
+      },
+    });
 
     if (error) {
       console.error('Error updating fill:', error);
-      // No transaction (roadmap P3.4): restore the expense so it stays consistent with its fill
-      await supabase
-        .from('expenses')
-        .update({
-          vehicle_id: existingExpense.vehicle_id,
-          type: existingExpense.type,
-          amount: existingExpense.amount,
-          date: existingExpense.date,
-          notes: existingExpense.notes,
-        })
-        .eq('id', existingExpense.id);
       return NextResponse.json(
         { error: 'Erreur lors de la mise à jour du plein' },
         { status: 500 },
       );
     }
+    const updatedFill = (saved as SavedExpense).detail;
 
     await raiseVehicleOdometer(supabase, vehicleId, odometer);
 

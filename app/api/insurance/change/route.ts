@@ -4,6 +4,15 @@ import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getInstalmentDates, planContractChange } from '@/lib/utils/insuranceUtils';
 import { getLocalToday } from '@/lib/utils/isoDate';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isId,
+  isOptionalText,
+  readJsonObject,
+} from '@/lib/validation/body';
 
 import type { InsuranceContract } from '@/types/insurance';
 
@@ -26,11 +35,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
     if (!body.vehicle_id) {
       return NextResponse.json({ error: 'Le champ vehicle_id est requis' }, { status: 400 });
     }
+    const fieldError = firstError(
+      check(isId(body.vehicle_id), 'Le champ vehicle_id est requis'),
+      check(
+        isOptionalText(body.provider, 100),
+        "Le nom de l'assureur ne peut pas dépasser 100 caractères",
+      ),
+    );
+    if (fieldError) return badRequest(fieldError);
     const vehicleId = Number(body.vehicle_id);
 
     const { data: vehicle } = await supabase
@@ -61,55 +79,25 @@ export async function POST(request: Request) {
     if (!plan.ok) return NextResponse.json({ error: plan.error }, { status: plan.status });
 
     const { close, create } = plan;
-    const previousEnd = close ? (contracts.find((c) => c.id === close.id)?.end_date ?? null) : null;
 
-    if (close) {
-      const { error: closeError } = await supabase
-        .from('insurance_contracts')
-        .update({ end_date: close.end_date })
-        .eq('id', close.id);
-      if (closeError) {
-        console.error('Error closing insurance contract:', closeError);
-        return NextResponse.json(
-          { error: 'Erreur lors de la clôture du contrat actuel' },
-          { status: 500 },
-        );
-      }
-    }
-
-    const { data: newContract, error: createError } = await supabase
-      .from('insurance_contracts')
-      .insert({ ...create, owner_id: user.id })
-      .select()
-      .single();
+    // Close the current contract, create the new one and backfill its instalments in one
+    // transaction (P3.4): the vehicle is never left uninsured by a half-done change
+    const { data: newContract, error: createError } = await supabase.rpc(
+      'save_insurance_contract',
+      {
+        p_contract: create,
+        p_instalments: getInstalmentDates(create.start_date, null, getLocalToday()),
+        p_close_id: close?.id ?? null,
+        p_close_end: close?.end_date ?? null,
+      },
+    );
 
     if (createError) {
-      console.error('Error creating new insurance contract:', createError);
-      if (close) {
-        // Restore the closed contract so the vehicle is not left uninsured
-        await supabase
-          .from('insurance_contracts')
-          .update({ end_date: previousEnd })
-          .eq('id', close.id);
-      }
+      console.error('Error changing insurance contract:', createError);
       return NextResponse.json(
         { error: 'Erreur lors de la création du nouveau contrat' },
         { status: 500 },
       );
-    }
-
-    const expenses = getInstalmentDates(create.start_date, null, getLocalToday()).map((date) => ({
-      owner_id: user.id,
-      vehicle_id: vehicleId,
-      type: 'insurance',
-      amount: create.monthly_cost,
-      date,
-      insurance_contract_id: newContract.id,
-      notes: 'Mensualité',
-    }));
-    if (expenses.length > 0) {
-      const { error: expensesError } = await supabase.from('expenses').insert(expenses);
-      if (expensesError) console.error('Error backfilling insurance expenses:', expensesError);
     }
 
     revalidatePath('/', 'layout');

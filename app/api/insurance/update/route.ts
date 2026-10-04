@@ -2,11 +2,16 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { findOverlap, formatOverlapError, validateContractInput } from '@/lib/utils/insuranceUtils';
 import {
-  findOverlap,
-  formatOverlapError,
-  validateContractInput,
-} from '@/lib/utils/insuranceUtils';
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isId,
+  isOptionalText,
+  readJsonObject,
+} from '@/lib/validation/body';
 
 import type { InsuranceContract } from '@/types/insurance';
 
@@ -28,11 +33,20 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
     if (!body.id) {
       return NextResponse.json({ error: "L'identifiant du contrat est requis" }, { status: 400 });
     }
+    const fieldError = firstError(
+      check(isId(body.id), "L'identifiant du contrat est requis"),
+      check(
+        isOptionalText(body.provider, 100),
+        "Le nom de l'assureur ne peut pas dépasser 100 caractères",
+      ),
+    );
+    if (fieldError) return badRequest(fieldError);
 
     // Verify contract ownership before updating
     const { data: existing, error: fetchError } = await supabase
@@ -50,7 +64,9 @@ export async function PATCH(request: Request) {
     }
 
     const updates: Record<string, unknown> = {};
-    if (body.provider !== undefined) updates.provider = body.provider?.trim() || null;
+    if (body.provider !== undefined) {
+      updates.provider = typeof body.provider === 'string' ? body.provider.trim() || null : null;
+    }
     if (body.monthly_cost !== undefined) updates.monthly_cost = Number(body.monthly_cost);
     if (body.start_date !== undefined) updates.start_date = String(body.start_date).slice(0, 10);
     if (body.end_date !== undefined) {

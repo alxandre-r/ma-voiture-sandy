@@ -12,6 +12,17 @@ import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { ODOMETER_REQUIRED, parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
 import { fillInputError } from '@/lib/utils/vehicleEnergy';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isId,
+  readJsonObject,
+} from '@/lib/validation/body';
+import { expenseBaseError, fillFieldsError } from '@/lib/validation/expense';
+
+import type { SavedExpense } from '@/types/rpc';
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -26,13 +37,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Parse request body
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
-    // Validate required fields
-    if (!body.vehicle_id) {
-      return NextResponse.json({ error: 'Le champ vehicle_id est requis' }, { status: 400 });
-    }
+    const fieldError = firstError(
+      check(isId(body.vehicle_id), 'Le champ vehicle_id est requis'),
+      expenseBaseError(body),
+      fillFieldsError(body),
+    );
+    if (fieldError) return badRequest(fieldError);
 
     // Verify vehicle access (owner or family member with write permission)
     const { data: vehicle, error: vehicleError } = await supabase
@@ -66,55 +79,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: ODOMETER_REQUIRED }, { status: 400 });
     }
 
-    // First, create the expense record
-    const { data: expense, error: expenseError } = await supabase
-      .from('expenses')
-      .insert([
-        {
-          vehicle_id: body.vehicle_id,
-          owner_id: user.id,
-          type: expenseType,
-          amount: Number(body.amount),
-          date: body.date,
-          notes: body.notes || null,
-        },
-      ])
-      .select()
-      .single();
-
-    if (expenseError) {
-      console.error('Error creating expense:', expenseError);
-      return NextResponse.json(
-        { error: 'Erreur lors de la création de la dépense' },
-        { status: 500 },
-      );
-    }
-
-    // Then, create the fill record with the expense_id
-    const { data: fill, error } = await supabase
-      .from('fills')
-      .insert([
-        {
-          expense_id: expense.id,
-          odometer,
-          // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
-          liters: isCharge ? null : (body.liters ?? null),
-          price_per_liter: isCharge ? 0 : (body.price_per_liter ?? null),
-          // Electric vehicle fields
-          charge_type: isCharge ? 'charge' : 'fill',
-          kwh: isCharge ? (body.kwh ?? null) : null,
-          price_per_kwh: isCharge ? (body.price_per_kwh ?? null) : null,
-        },
-      ])
-      .select()
-      .single();
+    // Expense + fill in one transaction (P3.4)
+    const { data: saved, error } = await supabase.rpc('save_expense_with_detail', {
+      p_expense_id: null,
+      p_expense: {
+        vehicle_id: body.vehicle_id,
+        type: expenseType,
+        amount: Number(body.amount),
+        date: body.date,
+        notes: body.notes || null,
+      },
+      p_detail: {
+        odometer,
+        // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
+        liters: isCharge ? null : (body.liters ?? null),
+        price_per_liter: isCharge ? 0 : (body.price_per_liter ?? null),
+        // Electric vehicle fields
+        charge_type: isCharge ? 'charge' : 'fill',
+        kwh: isCharge ? (body.kwh ?? null) : null,
+        price_per_kwh: isCharge ? (body.price_per_kwh ?? null) : null,
+      },
+    });
 
     if (error) {
       console.error('Error adding fill:', error);
-      // Rollback: delete the expense if fill creation fails
-      await supabase.from('expenses').delete().eq('id', expense.id);
       return NextResponse.json({ error: "Erreur lors de l'ajout du plein" }, { status: 500 });
     }
+    const fill = (saved as SavedExpense).detail;
 
     await raiseVehicleOdometer(supabase, vehicle.vehicle_id, odometer);
 

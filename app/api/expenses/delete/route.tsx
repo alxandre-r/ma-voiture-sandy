@@ -9,7 +9,9 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { canWriteRow } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
 
 /**
  * DELETE /api/expenses/delete
@@ -33,11 +35,11 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    // Parse request body
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
     // Validate required field
-    if (!body.expenseId) {
+    if (!isId(body.expenseId)) {
       return NextResponse.json({ error: 'Le champ expenseId est requis' }, { status: 400 });
     }
 
@@ -52,18 +54,12 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Dépense non trouvée' }, { status: 404 });
     }
 
-    if (existingExpense.owner_id !== user.id) {
-      const { data: vehicle } = await supabase
-        .from('vehicles_for_display')
-        .select('permission_level')
-        .eq('vehicle_id', existingExpense.vehicle_id)
-        .maybeSingle();
-      if (vehicle?.permission_level !== 'write') {
-        return NextResponse.json(
-          { error: "Vous n'êtes pas autorisé à supprimer cette dépense" },
-          { status: 403 },
-        );
-      }
+    // Creator, vehicle owner or write permission (P3.9)
+    if (!(await canWriteRow(supabase, existingExpense, user.id))) {
+      return NextResponse.json(
+        { error: "Vous n'êtes pas autorisé à supprimer cette dépense" },
+        { status: 403 },
+      );
     }
 
     // Don't allow deleting insurance expenses
@@ -74,82 +70,25 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Delete from specialized tables first to avoid orphaned records
-
-    // 1. Check and delete from fills (for fuel and electric_charge expenses)
-    const { data: fillData } = await supabase
-      .from('fills')
-      .select('id')
-      .eq('expense_id', body.expenseId)
-      .maybeSingle();
-
-    if (fillData) {
-      const { error: fillDeleteError } = await supabase
-        .from('fills')
-        .delete()
-        .eq('id', fillData.id);
-
-      if (fillDeleteError) {
-        console.error('Error deleting fill:', fillDeleteError);
-        return NextResponse.json(
-          { error: 'Erreur lors de la suppression du plein associé' },
-          { status: 500 },
-        );
-      }
-    }
-
-    // 2. Check and delete from maintenance_expenses (for maintenance expenses)
-    const { data: maintenanceData } = await supabase
-      .from('maintenance_expenses')
-      .select('expense_id')
-      .eq('expense_id', body.expenseId)
-      .maybeSingle();
-
-    if (maintenanceData) {
-      const { error: maintenanceDeleteError } = await supabase
-        .from('maintenance_expenses')
-        .delete()
-        .eq('expense_id', body.expenseId);
-
-      if (maintenanceDeleteError) {
-        console.error('Error deleting maintenance expense:', maintenanceDeleteError);
-        return NextResponse.json(
-          { error: "Erreur lors de la suppression de l'entretien associé" },
-          { status: 500 },
-        );
-      }
-    }
-
-    // 3. Check and delete from other_expenses (for other expenses)
-    const { data: otherData } = await supabase
-      .from('other_expenses')
-      .select('expense_id')
-      .eq('expense_id', body.expenseId)
-      .maybeSingle();
-
-    if (otherData) {
-      const { error: otherDeleteError } = await supabase
-        .from('other_expenses')
-        .delete()
-        .eq('expense_id', body.expenseId);
-
-      if (otherDeleteError) {
-        console.error('Error deleting other expense:', otherDeleteError);
-        return NextResponse.json(
-          { error: 'Erreur lors de la suppression de la dépense associée' },
-          { status: 500 },
-        );
-      }
-    }
-
-    // 4. Finally delete the main expense record
-    const { error } = await supabase.from('expenses').delete().eq('id', body.expenseId);
+    // fills / maintenance_expenses / other_expenses cascade from expenses: one atomic delete
+    const { data: deleted, error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', body.expenseId)
+      .select('id');
 
     if (error) {
       console.error('Error deleting expense:', error);
       return NextResponse.json(
         { error: 'Erreur lors de la suppression de la dépense' },
         { status: 500 },
+      );
+    }
+    // RLS turns a forbidden delete into a silent no-op
+    if (!deleted?.length) {
+      return NextResponse.json(
+        { error: "Vous n'êtes pas autorisé à supprimer cette dépense" },
+        { status: 403 },
       );
     }
 

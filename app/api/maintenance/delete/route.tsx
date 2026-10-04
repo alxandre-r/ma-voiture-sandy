@@ -9,7 +9,9 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { canWriteRow } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
 
 export async function DELETE(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -24,11 +26,11 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    // Parse request body
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
     const { expenseId } = body;
 
-    if (!expenseId) {
+    if (!isId(expenseId)) {
       return NextResponse.json({ error: 'Le champ expenseId est requis' }, { status: 400 });
     }
 
@@ -44,22 +46,20 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Entretien non trouvé' }, { status: 404 });
     }
 
-    if (expense.owner_id !== user.id) {
-      const { data: vehicle } = await supabase
-        .from('vehicles_for_display')
-        .select('permission_level')
-        .eq('vehicle_id', expense.vehicle_id)
-        .maybeSingle();
-      if (vehicle?.permission_level !== 'write') {
-        return NextResponse.json(
-          { error: "Vous n'êtes pas autorisé à supprimer cet entretien" },
-          { status: 403 },
-        );
-      }
-    }
+    // Creator, vehicle owner or write permission (P3.9)
+    const forbidden = () =>
+      NextResponse.json(
+        { error: "Vous n'êtes pas autorisé à supprimer cet entretien" },
+        { status: 403 },
+      );
+    if (!(await canWriteRow(supabase, expense, user.id))) return forbidden();
 
     // Delete the expense (cascade will handle maintenance_expenses deletion)
-    const { error: deleteError } = await supabase.from('expenses').delete().eq('id', expenseId);
+    const { data: deleted, error: deleteError } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', expenseId)
+      .select('id');
 
     if (deleteError) {
       console.error('Error deleting maintenance expense:', deleteError);
@@ -68,6 +68,8 @@ export async function DELETE(request: Request) {
         { status: 500 },
       );
     }
+    // RLS turns a forbidden delete into a silent no-op
+    if (!deleted?.length) return forbidden();
 
     revalidatePath('/', 'layout');
     return NextResponse.json(

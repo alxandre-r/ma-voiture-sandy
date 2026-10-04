@@ -2,6 +2,19 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isId,
+  isNonNegativeNumber,
+  isText,
+  readJsonObject,
+} from '@/lib/validation/body';
+import { expenseBaseError } from '@/lib/validation/expense';
+
+import type { SavedExpense } from '@/types/rpc';
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -15,7 +28,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
     if (!body.vehicle_id) {
       return NextResponse.json({ error: 'Le champ vehicle_id est requis' }, { status: 400 });
@@ -29,6 +43,13 @@ export async function POST(request: Request) {
     if (!body.label) {
       return NextResponse.json({ error: 'Le champ label est requis' }, { status: 400 });
     }
+    const fieldError = firstError(
+      check(isId(body.vehicle_id), 'Le champ vehicle_id est requis'),
+      check(isNonNegativeNumber(body.amount), 'Veuillez entrer un montant valide'),
+      expenseBaseError(body),
+      check(isText(body.label, 100), 'Le libellé doit faire entre 1 et 100 caractères'),
+    );
+    if (fieldError) return badRequest(fieldError);
 
     const { data: vehicle, error: vehicleError } = await supabase
       .from('vehicles_for_display')
@@ -48,52 +69,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: expense, error: expenseError } = await supabase
-      .from('expenses')
-      .insert([
-        {
-          vehicle_id: body.vehicle_id,
-          owner_id: user.id,
-          type: 'other',
-          amount: Number(body.amount),
-          date: body.date,
-          notes: body.notes || null,
-        },
-      ])
-      .select()
-      .single();
+    // Expense + label row in one transaction (P3.4)
+    const { data: saved, error } = await supabase.rpc('save_expense_with_detail', {
+      p_expense_id: null,
+      p_expense: {
+        vehicle_id: body.vehicle_id,
+        type: 'other',
+        amount: Number(body.amount),
+        date: body.date,
+        notes: body.notes || null,
+      },
+      p_detail: { label: body.label },
+    });
 
-    if (expenseError) {
-      console.error('Error creating expense:', expenseError);
+    if (error) {
+      console.error('Error creating other expense:', error);
       return NextResponse.json(
         { error: 'Erreur lors de la création de la dépense' },
         { status: 500 },
       );
     }
-
-    const { data: otherExpense, error: otherError } = await supabase
-      .from('other_expenses')
-      .insert([
-        {
-          expense_id: expense.id,
-          label: body.label,
-        },
-      ])
-      .select()
-      .single();
-
-    if (otherError) {
-      console.error('Error creating other_expense:', otherError);
-      await supabase.from('expenses').delete().eq('id', expense.id);
-      return NextResponse.json(
-        { error: 'Erreur lors de la création de la dépense' },
-        { status: 500 },
-      );
-    }
+    const { expense, detail: otherExpense } = saved as SavedExpense<{ label: string }>;
 
     const response = {
       ...expense,
-      label: otherExpense.label,
+      label: otherExpense!.label,
       vehicle_name: vehicle.name || `${vehicle.make} ${vehicle.model}`,
     };
 
