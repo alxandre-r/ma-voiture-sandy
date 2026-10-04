@@ -12,6 +12,7 @@ import Icon from '@/components/common/ui/Icon';
 import InfoTooltip from '@/components/common/ui/InfoTooltip';
 import ProfilePicture from '@/components/user/ProfilePicture';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { formatVehicleConsumption } from '@/lib/utils/consumption';
 import { contractsOf, getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
 import { getLocalToday } from '@/lib/utils/isoDate';
 import { fuelTypeLabel } from '@/lib/utils/vehicleEnergy';
@@ -364,17 +365,16 @@ export default function VehicleDetail({
                     <InfoTooltip
                       title="Consommation calculée"
                       details={[
-                        'Calculée depuis vos pleins enregistrés.',
-                        'Formule : (litres totaux / km parcourus) × 100',
+                        'Calculée depuis vos pleins et recharges enregistrés.',
+                        'Formule : (litres ou kWh des pleins suivant le premier / km parcourus) × 100',
                         'Plus vous enregistrez de pleins, plus la valeur est précise.',
                       ]}
                     />
                   </span>
                 }
                 value={
-                  vehicle.calculated_consumption
-                    ? `${vehicle.calculated_consumption} L/100km`
-                    : '— (calculée depuis les pleins)'
+                  formatVehicleConsumption(vehicle)?.replaceAll('/100', '/100 km') ??
+                  '— (calculée depuis les pleins)'
                 }
               />
               {vehicle.co2_emission != null && (

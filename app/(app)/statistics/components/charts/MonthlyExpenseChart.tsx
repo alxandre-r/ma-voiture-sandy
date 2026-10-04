@@ -26,6 +26,7 @@ interface MonthlyExpenseChartProps {
   data: Array<{
     month: string;
     Carburant: number;
+    Électricité: number;
     Assurance: number;
     Entretien: number;
     Autre: number;
@@ -132,6 +133,10 @@ export default function MonthlyExpenseChart({
   };
 
   const isVehicleMode = chartMode === 'vehicle';
+  // Électricité only shows up for users who log charges
+  const categories = data.some((d) => d.Électricité > 0)
+    ? ['Assurance', 'Carburant', 'Électricité', 'Entretien', 'Autre']
+    : ['Assurance', 'Carburant', 'Entretien', 'Autre'];
 
   return (
     <Card data-tour="stats-monthly">
@@ -230,7 +235,7 @@ export default function MonthlyExpenseChart({
                             </span>
                           </div>
                         ))
-                      : ['Assurance', 'Carburant', 'Entretien', 'Autre'].map((category) => (
+                      : categories.map((category) => (
                           <div key={category} className="flex items-center gap-1 sm:gap-2">
                             <span
                               className="w-2 h-2 sm:w-3 sm:h-3 rounded-full"
@@ -245,55 +250,33 @@ export default function MonthlyExpenseChart({
                 )}
               />
               {/* Stack order depends on mode */}
-              {isVehicleMode ? (
-                vehicles?.map((vehicle, index) => (
-                  <Bar
-                    key={vehicle.vehicle_id}
-                    dataKey={vehicle.name}
-                    name={vehicle.name}
-                    stackId="a"
-                    fill={getVehicleColor(vehicle.vehicle_id)}
-                    radius={[
-                      index === (vehicles?.length || 1) - 1 ? 4 : 0,
-                      index === (vehicles?.length || 1) - 1 ? 4 : 0,
-                      0,
-                      0,
-                    ]}
-                  />
-                ))
-              ) : (
-                <>
-                  {/* Stack order: Assurance (bottom), Carburant, Entretien, Autre (top) */}
-                  <Bar
-                    dataKey="Assurance"
-                    name="Assurance"
-                    stackId="a"
-                    fill={getCategoryColor('Assurance')}
-                    radius={[0, 0, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="Carburant"
-                    name="Carburant"
-                    stackId="a"
-                    fill={getCategoryColor('Carburant')}
-                    radius={[0, 0, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="Entretien"
-                    name="Entretien"
-                    stackId="a"
-                    fill={getCategoryColor('Entretien')}
-                    radius={[0, 0, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="Autre"
-                    name="Autre"
-                    stackId="a"
-                    fill={getCategoryColor('Autre')}
-                    radius={[4, 4, 0, 0]}
-                  />
-                </>
-              )}
+              {isVehicleMode
+                ? vehicles?.map((vehicle, index) => (
+                    <Bar
+                      key={vehicle.vehicle_id}
+                      dataKey={vehicle.name}
+                      name={vehicle.name}
+                      stackId="a"
+                      fill={getVehicleColor(vehicle.vehicle_id)}
+                      radius={[
+                        index === (vehicles?.length || 1) - 1 ? 4 : 0,
+                        index === (vehicles?.length || 1) - 1 ? 4 : 0,
+                        0,
+                        0,
+                      ]}
+                    />
+                  ))
+                : // Stack order: Assurance (bottom) … Autre (top)
+                  categories.map((category, index) => (
+                    <Bar
+                      key={category}
+                      dataKey={category}
+                      name={category}
+                      stackId="a"
+                      fill={getCategoryColor(category)}
+                      radius={index === categories.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                    />
+                  ))}
             </BarChart>
           </ResponsiveContainer>
         </div>

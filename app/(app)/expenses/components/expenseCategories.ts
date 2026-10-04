@@ -15,6 +15,12 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
     iconPath: '/icons/expenseCategories/carburant.svg',
   },
   {
+    name: 'Électricité',
+    color: '#3B82F6',
+    bgColor: 'bg-blue-100/50',
+    iconPath: '/icons/elec-blue.svg',
+  },
+  {
     name: 'Assurance',
     color: '#10B981',
     bgColor: 'bg-green-100/50',

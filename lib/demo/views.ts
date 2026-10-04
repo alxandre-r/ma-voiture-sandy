@@ -3,7 +3,7 @@
  * @description Demo equivalents of the SQL views (__info__/current_schema/views.sql), same column names.
  */
 
-import { fuelConsumption } from '@/lib/utils/consumption';
+import { energyConsumption } from '@/lib/utils/consumption';
 import { getInstalmentDates } from '@/lib/utils/insuranceUtils';
 
 import { DERIVED_INSURANCE_ID_BASE } from './constants';
@@ -50,12 +50,17 @@ function lastFillDate(state: DemoState, vehicleId: number): string | null {
     >((latest, e) => (latest && latest > e.created_at ? latest : e.created_at), null);
 }
 
-/** Same formula as vehicles_for_display.calculated_consumption (rounded to 0.1). */
-function calculatedConsumption(state: DemoState, vehicleId: number): number | null {
-  const { per100 } = fuelConsumption(
+/** Same formulas as vehicles_for_display.calculated_consumption(_kwh), rounded to 0.1. */
+function calculatedConsumption(
+  state: DemoState,
+  vehicleId: number,
+  energy: 'fuel' | 'electric',
+): number | null {
+  const { per100 } = energyConsumption(
     state.expenses
       .filter((e) => e.vehicle_id === vehicleId && e.fill)
       .map((e) => ({ vehicle_id: e.vehicle_id, type: e.type, ...e.fill })),
+    energy,
   );
   return per100 == null ? null : Math.round(per100 * 10) / 10;
 }
@@ -97,7 +102,8 @@ export function vehiclesForDisplay(state: DemoState, viewerId: string): DemoVehi
       purchase_price: vehicle.purchase_price,
       co2_emission: vehicle.co2_emission,
       last_fill_date: lastFillDate(state, vehicle.id),
-      calculated_consumption: calculatedConsumption(state, vehicle.id),
+      calculated_consumption: calculatedConsumption(state, vehicle.id, 'fuel'),
+      calculated_consumption_kwh: calculatedConsumption(state, vehicle.id, 'electric'),
       insurance_id: contract?.id ?? null,
       insurance_owner_id: contract?.owner_id ?? null,
       insurance_monthly_cost: contract?.monthly_cost ?? null,

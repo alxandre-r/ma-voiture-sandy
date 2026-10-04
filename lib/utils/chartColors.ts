@@ -5,11 +5,11 @@
 
 /**
  * Couleurs par catégorie de dépense — alignées sur expenseCategories.ts.
- * custom-2 (orange) pour l'énergie, amber pour entretien, emerald pour assurance, violet pour autre.
+ * custom-2 (orange) pour le carburant, blue pour l'électricité, amber pour entretien, emerald pour assurance, violet pour autre.
  */
 export const CATEGORY_COLORS: Record<string, string> = {
   fuel: '#f26e52', // custom-2 orange
-  electric_charge: '#f26e52', // custom-2 orange (énergie = même groupe)
+  electric_charge: '#3b82f6', // blue (same as the Électricité category)
   energy: '#f26e52', // custom-2 orange
   maintenance: '#f59e0b', // amber
   insurance: '#10b981', // emerald

@@ -61,7 +61,7 @@ export const getCategoryName = (type: string): string => {
     case 'fuel':
       return 'Carburant';
     case 'electric_charge':
-      return 'Carburant'; // Electric is part of fuel/energy category
+      return 'Électricité';
     case 'insurance':
       return 'Assurance';
     case 'maintenance':

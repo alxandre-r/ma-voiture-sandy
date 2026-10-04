@@ -15,11 +15,18 @@ interface ExpenseBreakdownProps {
 
 const CATEGORIES = [
   {
-    key: 'energy',
-    label: 'Énergie',
-    types: ['fuel', 'electric_charge'],
+    key: 'fuel',
+    label: 'Carburant',
+    types: ['fuel'],
     icon: 'car',
-    color: CATEGORY_COLORS.energy,
+    color: CATEGORY_COLORS.fuel,
+  },
+  {
+    key: 'electric_charge',
+    label: 'Électricité',
+    types: ['electric_charge'],
+    icon: 'elec',
+    color: CATEGORY_COLORS.electric_charge,
   },
   {
     key: 'maintenance',

@@ -12,12 +12,18 @@ interface StatsCardsProps {
   prevTotalExpenses?: number | null;
   avgConsumption: number;
   prevAvgConsumption?: number | null;
+  /** kWh/100 km from charges (null without 2 charges on one vehicle) */
+  avgElectricConsumption?: number | null;
+  prevAvgElectricConsumption?: number | null;
   costPer100km?: number | null;
   lastFill?: Expense | null;
   onEditLastFill?: () => void;
 }
 
-function formatTrend(current: number, previous: number | null | undefined): { trend: string; trendColor: string } | null {
+function formatTrend(
+  current: number,
+  previous: number | null | undefined,
+): { trend: string; trendColor: string } | null {
   if (previous == null || previous === 0) return null;
   const delta = ((current - previous) / previous) * 100;
   if (Math.abs(delta) < 1) return null;
@@ -31,12 +37,23 @@ export default function StatsCards({
   prevTotalExpenses,
   avgConsumption,
   prevAvgConsumption,
+  avgElectricConsumption,
+  prevAvgElectricConsumption,
   costPer100km,
   lastFill,
   onEditLastFill,
 }: StatsCardsProps) {
   const expenseTrend = formatTrend(totalExpenses, prevTotalExpenses);
-  const consumptionTrend = formatTrend(avgConsumption, prevAvgConsumption);
+
+  // Main value in L/100 when fuel data exists, else kWh/100; the other one goes in the subtitle
+  const hasFuel = avgConsumption > 0;
+  const hasElectric = avgElectricConsumption != null && avgElectricConsumption > 0;
+  const consumption = hasFuel
+    ? { value: avgConsumption, prev: prevAvgConsumption, unit: 'L/100' }
+    : hasElectric
+      ? { value: avgElectricConsumption, prev: prevAvgElectricConsumption, unit: 'kWh/100' }
+      : null;
+  const consumptionTrend = consumption && formatTrend(consumption.value, consumption.prev);
 
   const cards: StatCardDef[] = [
     // First card: coût/100km when distance data is available, otherwise expense count
@@ -68,12 +85,15 @@ export default function StatsCards({
     {
       key: 'consumption',
       label: 'Consommation moy.',
-      value: avgConsumption > 0 ? avgConsumption.toFixed(1) : '—',
-      unit: avgConsumption > 0 ? 'L/100' : undefined,
+      value: consumption ? consumption.value.toFixed(1) : '—',
+      unit: consumption?.unit,
+      subtitle: hasFuel && hasElectric ? `${avgElectricConsumption.toFixed(1)} kWh/100` : undefined,
       ...(consumptionTrend
         ? {
             trend: consumptionTrend.trend,
-            trendColor: consumptionTrend.trend.startsWith('+') ? 'text-red-500' : 'text-emerald-500',
+            trendColor: consumptionTrend.trend.startsWith('+')
+              ? 'text-red-500'
+              : 'text-emerald-500',
           }
         : {}),
     },
@@ -101,8 +121,7 @@ export default function StatsCards({
     });
   }
 
-  const gridClass =
-    cards.length <= 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4';
+  const gridClass = cards.length <= 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4';
 
   return <StatOverviewGrid data-tour="dashboard-stats" cards={cards} gridClass={gridClass} />;
 }

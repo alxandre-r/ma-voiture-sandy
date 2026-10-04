@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 
 import Icon from '@/components/common/ui/Icon';
 import ProfilePicture from '@/components/user/ProfilePicture';
+import { formatVehicleConsumption } from '@/lib/utils/consumption';
 import { fuelTypeLabel } from '@/lib/utils/vehicleEnergy';
 import { computeHealthScore } from '@/lib/utils/vehicleHealthUtils';
 
@@ -206,7 +207,7 @@ export default function VehicleCard({
           <div className="flex flex-col">
             <span className="text-[10px] text-gray-400 font-bold uppercase">Consommation</span>
             <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-              {vehicle.calculated_consumption ? `${vehicle.calculated_consumption} L/100` : '—'}
+              {formatVehicleConsumption(vehicle) ?? '—'}
             </span>
           </div>
           {vehicle.co2_emission != null && (

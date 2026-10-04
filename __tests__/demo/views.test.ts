@@ -39,13 +39,17 @@ describe('vehiclesForDisplay', () => {
     expect(rows[2].owner_name).toBe('Thomas Durand');
   });
 
-  it('computes consumption like the SQL view (null for the EV)', () => {
+  it('computes L/100 and kWh/100 like the SQL view', () => {
     const rows = vehiclesForDisplay(seed(), DEMO_USER_ID);
     const p308 = rows.find((r) => r.vehicle_id === DEMO_VEHICLE.peugeot308)!;
     const zoe = rows.find((r) => r.vehicle_id === DEMO_VEHICLE.zoe)!;
     expect(p308.calculated_consumption).toBeGreaterThan(5.5);
     expect(p308.calculated_consumption).toBeLessThan(6.5);
     expect(zoe.calculated_consumption).toBeNull();
+    // kWh/100 from charges (P2.12): the Zoé is seeded at ~15.5, the diesel 308 has none
+    expect(zoe.calculated_consumption_kwh).toBeGreaterThan(14);
+    expect(zoe.calculated_consumption_kwh).toBeLessThan(17);
+    expect(p308.calculated_consumption_kwh).toBeNull();
     expect(p308.last_fill_date?.slice(0, 10)).toBe('2026-09-28');
     expect(p308.insurance_provider).toBe('Mutuelle des Routes');
   });

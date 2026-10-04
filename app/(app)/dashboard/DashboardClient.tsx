@@ -25,7 +25,7 @@ import { useFillActions } from '@/hooks/fill/useFillActions';
 import { useOtherActions } from '@/hooks/other/useOtherActions';
 import { useReminderActions } from '@/hooks/reminders/useReminderActions';
 import { detectAnomalies } from '@/lib/utils/anomalyUtils';
-import { fuelConsumption } from '@/lib/utils/consumption';
+import { electricConsumption, fuelConsumption } from '@/lib/utils/consumption';
 import { getEffectivePeriodRange, getPreviousPeriodRange } from '@/lib/utils/filterUtils';
 import { vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 
@@ -144,6 +144,16 @@ function DashboardContent({
 
   const prevAvgConsumption = useMemo(
     () => fuelConsumption(previousPeriodExpenses).per100,
+    [previousPeriodExpenses],
+  );
+
+  const avgElectricConsumption = useMemo(
+    () => electricConsumption(filteredExpenses).per100,
+    [filteredExpenses],
+  );
+
+  const prevAvgElectricConsumption = useMemo(
+    () => electricConsumption(previousPeriodExpenses).per100,
     [previousPeriodExpenses],
   );
 
@@ -291,6 +301,8 @@ function DashboardContent({
         prevTotalExpenses={prevTotalExpenses}
         avgConsumption={avgConsumption}
         prevAvgConsumption={prevAvgConsumption}
+        avgElectricConsumption={avgElectricConsumption}
+        prevAvgElectricConsumption={prevAvgElectricConsumption}
         costPer100km={costPer100km}
         lastFill={lastFill}
         onEditLastFill={lastFill ? () => handleEditFill(lastFill) : undefined}

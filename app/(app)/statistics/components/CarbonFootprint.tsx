@@ -11,6 +11,7 @@ interface CarbonFootprintProps {
   co2PerKm: number; // g/km
   totalKilometers: number;
   totalLiters?: number;
+  totalKwh?: number;
   co2Method?: 'official' | 'ademe' | 'mixed';
   officialCO2VehicleNames?: string[];
   annualKmProjection?: number;
@@ -29,6 +30,7 @@ function buildMethodDetails(
   totalKilometers: number,
   co2PerKm: number,
   totalLiters: number,
+  totalKwh: number,
 ): string[] {
   if (co2Method === 'official') {
     return [
@@ -40,7 +42,7 @@ function buildMethodDetails(
   if (co2Method === 'mixed') {
     return [
       `${officialNames.join(', ')} : données constructeur (g/km × km)`,
-      `Autres véhicules : facteurs ADEME 2023`,
+      `Autres véhicules (dont hybrides rechargeables et électriques) : facteurs ADEME 2023`,
       `Essence : 2,28 kg CO₂/L · Diesel : 2,67 kg CO₂/L`,
       `Électrique : 0,052 kg CO₂/kWh (réseau français)`,
     ];
@@ -48,9 +50,13 @@ function buildMethodDetails(
   // ademe
   return [
     `Calculé depuis les volumes consommés × facteurs ADEME 2023`,
-    totalLiters > 0
-      ? `Formule : ${Math.round(totalLiters)} L × facteur selon carburant`
-      : `Formule : kWh consommés × 0,052 kg CO₂/kWh`,
+    `Formule : ${[
+      totalLiters > 0 ? `${Math.round(totalLiters)} L × facteur selon carburant` : null,
+      totalKwh > 0 ? `${Math.round(totalKwh)} kWh × 0,052 kg CO₂/kWh` : null,
+    ]
+      .filter(Boolean)
+      .join(' + ')}`,
+    `Hybrides rechargeables et électriques : toujours depuis l'énergie enregistrée`,
     `Essence : 2,28 kg CO₂/L · Diesel : 2,67 kg CO₂/L`,
     `Électrique : 0,052 kg CO₂/kWh (réseau français)`,
     `Source : ADEME (Agence de la transition écologique)`,
@@ -62,6 +68,7 @@ export default function CarbonFootprint({
   co2PerKm,
   totalKilometers,
   totalLiters = 0,
+  totalKwh = 0,
   co2Method = 'ademe',
   officialCO2VehicleNames = [],
   annualKmProjection = 0,
@@ -89,6 +96,7 @@ export default function CarbonFootprint({
     totalKilometers,
     co2PerKm,
     totalLiters,
+    totalKwh,
   );
 
   // Bar comparison: annualized projection vs FR annual reference
@@ -144,12 +152,17 @@ export default function CarbonFootprint({
                 {totalKilometers.toLocaleString('fr-FR')} km
               </span>{' '}
               parcourus
-              {totalLiters > 0 && (
+              {(totalLiters > 0 || totalKwh > 0) && (
                 <>
                   {' '}
                   ·{' '}
                   <span className="font-semibold text-gray-700 dark:text-gray-300">
-                    {Math.round(totalLiters)} L
+                    {[
+                      totalLiters > 0 ? `${Math.round(totalLiters)} L` : null,
+                      totalKwh > 0 ? `${Math.round(totalKwh)} kWh` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' + ')}
                   </span>{' '}
                   consommés
                 </>

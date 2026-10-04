@@ -16,7 +16,8 @@ export interface Vehicle {
   plate?: string | null;
   created_at?: string | null;
   last_fill_date: string | null; // timestamptz
-  calculated_consumption?: number | null; // L/100km (calculated from fills)
+  calculated_consumption?: number | null; // L/100km (calculated from fuel fills)
+  calculated_consumption_kwh?: number | null; // kWh/100km (calculated from charges)
   co2_emission?: number | null; // g/km, official homologated value from technical sheet
 
   // New fields from garage_model

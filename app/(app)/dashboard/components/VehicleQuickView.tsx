@@ -5,10 +5,11 @@ import Link from 'next/link';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
+import { formatVehicleConsumption } from '@/lib/utils/consumption';
 import { formatDate } from '@/lib/utils/format';
 import { getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
 import { getLocalToday } from '@/lib/utils/isoDate';
-import { fuelTypeLabel, vehicleEnergy } from '@/lib/utils/vehicleEnergy';
+import { fuelTypeLabel } from '@/lib/utils/vehicleEnergy';
 import { computeHealthScore } from '@/lib/utils/vehicleHealthUtils';
 
 import type { Expense } from '@/types/expense';
@@ -45,7 +46,7 @@ function VehicleRow({
 }) {
   const vehicleName =
     (vehicle.name ?? `${vehicle.make ?? ''} ${vehicle.model ?? ''}`.trim()) || 'Véhicule';
-  const isElectric = !vehicleEnergy(vehicle.fuel_type).fuel;
+  const consumption = formatVehicleConsumption(vehicle);
   const techStatus = getTechControlStatus(vehicle.tech_control_expiry);
   const health = computeHealthScore(vehicle, { reminders, expenses, hasActiveInsurance });
 
@@ -103,11 +104,7 @@ function VehicleRow({
             {vehicle.odometer != null ? vehicle.odometer.toLocaleString('fr-FR') : '—'}
             <span className="text-xs font-normal text-gray-400 dark:text-gray-500 ml-1">km</span>
           </p>
-          {vehicle.calculated_consumption != null && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {vehicle.calculated_consumption}&nbsp;{isElectric ? 'kWh' : 'L/100'}
-            </p>
-          )}
+          {consumption && <p className="text-xs text-gray-500 dark:text-gray-400">{consumption}</p>}
           {/* Health score badge */}
           <span
             title={`Score de suivi : ${health.score}/10`}

@@ -22,7 +22,6 @@ import Icon from '@/components/common/ui/Icon';
 import { useSelectors } from '@/contexts/SelectorsContext';
 import { filterExpenses, computeStatistics } from '@/lib/utils/statisticsUtils';
 
-
 import { useExpenses } from './hooks/useExpenses';
 import Loading from './loading';
 
@@ -114,11 +113,13 @@ export default function StatisticsClient({ vehicles }: StatisticsClientProps) {
         <BottomStats
           totalLiters={stats.totalLiters}
           avgFillAmount={stats.avgFillAmount}
+          avgChargeAmount={stats.avgChargeAmount}
           avgPricePerLiter={0}
           totalKilometers={stats.totalKilometers}
           electricShare={stats.electricShare}
           hasElectricVehicle={stats.hasElectricVehicle}
           avgConsumption={stats.avgConsumption}
+          avgElectricConsumption={stats.avgElectricConsumption}
           costPerKm={stats.costPerKm}
         />
       </div>
@@ -128,6 +129,7 @@ export default function StatisticsClient({ vehicles }: StatisticsClientProps) {
         co2PerKm={stats.co2PerKm}
         totalKilometers={stats.totalKilometers}
         totalLiters={stats.totalLiters}
+        totalKwh={stats.totalKwh}
         co2Method={stats.co2Method}
         officialCO2VehicleNames={stats.officialCO2VehicleNames}
         annualKmProjection={stats.annualKmProjection}

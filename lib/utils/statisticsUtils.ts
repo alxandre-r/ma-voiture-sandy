@@ -5,7 +5,7 @@
  */
 
 import { EXPENSE_CATEGORIES } from '@/app/(app)/expenses/components/expenseCategories';
-import { fuelConsumption } from '@/lib/utils/consumption';
+import { electricConsumption, fuelConsumption } from '@/lib/utils/consumption';
 import { filterByVehiclesAndPeriod, getEffectivePeriodRange } from '@/lib/utils/filterUtils';
 import { normalizeFuelType, vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 import { getCategoryName } from '@/types/expense';
@@ -23,6 +23,7 @@ export type MonthKey = { sortKey: string; displayKey: string };
 export interface MonthlyData {
   month: string;
   Carburant: number;
+  Électricité: number;
   Assurance: number;
   Entretien: number;
   Autre: number;
@@ -87,8 +88,15 @@ export interface StatisticsData {
   trendPercentage: number;
   totalKilometers: number;
   totalLiters: number;
+  totalKwh: number;
+  /** Average cost of a fuel fill */
   avgFillAmount: number;
+  /** Average cost of an electric charge */
+  avgChargeAmount: number;
+  /** L/100 km (fuel fills) */
   avgConsumption: number;
+  /** kWh/100 km (charges) */
+  avgElectricConsumption: number;
   electricShare: number;
   hasElectricVehicle: boolean;
   firstExpenseDate: string | null;
@@ -220,14 +228,21 @@ export function computeStatistics(
     totalCost,
     monthsNum,
   );
-  const { totalKilometers, totalLiters, avgConsumption, electricShare, hasElectricVehicle } =
-    computeDistanceEnergy(filteredExpenses, vehicles, selectedVehicleIds);
+  const {
+    totalKilometers,
+    totalLiters,
+    totalKwh,
+    avgConsumption,
+    avgElectricConsumption,
+    electricShare,
+    hasElectricVehicle,
+  } = computeDistanceEnergy(filteredExpenses, vehicles, selectedVehicleIds);
 
-  const energyExpenses = filteredExpenses.filter(
-    (e) => e.type === 'fuel' || e.type === 'electric_charge',
-  );
-  const fillsCount = energyExpenses.length;
-  const avgFillAmount = fillsCount > 0 ? energyCost / fillsCount : 0;
+  const fuelCount = filteredExpenses.filter((e) => e.type === 'fuel').length;
+  const chargeCount = filteredExpenses.filter((e) => e.type === 'electric_charge').length;
+  const fillsCount = fuelCount + chargeCount;
+  const avgFillAmount = fuelCount > 0 ? fuelCost / fuelCount : 0;
+  const avgChargeAmount = chargeCount > 0 ? electricChargeCost / chargeCount : 0;
 
   const { totalCO2Kg, co2PerKm, costPerKm, co2Method, officialCO2VehicleNames } =
     computeCarbonAndCost(filteredExpenses, vehicles, totalKilometers, totalCost);
@@ -250,14 +265,17 @@ export function computeStatistics(
     trendPercentage,
     totalKilometers,
     totalLiters,
+    totalKwh,
     avgFillAmount,
+    avgChargeAmount,
     avgConsumption,
+    avgElectricConsumption,
     electricShare,
     hasElectricVehicle,
     firstExpenseDate: sorted[0]?.date ?? null,
     lastExpenseDate: sorted[sorted.length - 1]?.date ?? null,
     expensesByMonth: computeMonthlyData(filteredExpenses, monthKeys),
-    expenseByCategory: computeExpenseByCategory(costs, energyCost),
+    expenseByCategory: computeExpenseByCategory(costs),
     vehicleStats,
     vehicleExpensesByMonth: computeVehicleMonthlyData(
       filteredExpenses,
@@ -292,8 +310,11 @@ function emptyStats(monthsNum: number, odometerSeries: OdometerSeries[]): Statis
     trendPercentage: 0,
     totalKilometers: 0,
     totalLiters: 0,
+    totalKwh: 0,
     avgFillAmount: 0,
+    avgChargeAmount: 0,
     avgConsumption: 0,
+    avgElectricConsumption: 0,
     electricShare: 0,
     hasElectricVehicle: false,
     firstExpenseDate: null,
@@ -374,7 +395,15 @@ function computeMonthlyData(expenses: Expense[], monthKeys: MonthKey[]): Monthly
   const map = new Map<string, MonthlyData>(
     monthKeys.map(({ sortKey, displayKey }) => [
       sortKey,
-      { month: displayKey, Carburant: 0, Assurance: 0, Entretien: 0, Autre: 0, total: 0 },
+      {
+        month: displayKey,
+        Carburant: 0,
+        Électricité: 0,
+        Assurance: 0,
+        Entretien: 0,
+        Autre: 0,
+        total: 0,
+      },
     ]),
   );
   for (const e of expenses) {
@@ -385,6 +414,7 @@ function computeMonthlyData(expenses: Expense[], monthKeys: MonthKey[]): Monthly
     const cat = getCategoryName(e.type);
     const amount = e.amount ?? 0;
     if (cat === 'Carburant') row.Carburant += amount;
+    else if (cat === 'Électricité') row.Électricité += amount;
     else if (cat === 'Assurance') row.Assurance += amount;
     else if (cat === 'Entretien') row.Entretien += amount;
     else row.Autre += amount;
@@ -607,7 +637,9 @@ function computeDistanceEnergy(
 ): {
   totalKilometers: number;
   totalLiters: number;
+  totalKwh: number;
   avgConsumption: number;
+  avgElectricConsumption: number;
   electricShare: number;
   hasElectricVehicle: boolean;
 } {
@@ -632,6 +664,9 @@ function computeDistanceEnergy(
   const totalLiters = expenses
     .filter((e) => e.type === 'fuel')
     .reduce((s, e) => s + (e.liters ?? 0), 0);
+  const totalKwh = expenses
+    .filter((e) => e.type === 'electric_charge')
+    .reduce((s, e) => s + (e.kwh ?? 0), 0);
 
   let fuelCost = 0;
   let electricChargeCost = 0;
@@ -648,26 +683,33 @@ function computeDistanceEnergy(
   return {
     totalKilometers,
     totalLiters,
-    // Fuel fills only: distance from all expense odometers would mix in maintenance and charges
+    totalKwh,
+    // Fills/charges only: distance from all expense odometers would mix in maintenance
     avgConsumption: fuelConsumption(expenses).per100 ?? 0,
+    avgElectricConsumption: electricConsumption(expenses).per100 ?? 0,
     electricShare: energyCost > 0 ? (electricChargeCost / energyCost) * 100 : 0,
     hasElectricVehicle,
   };
 }
 
-function computeExpenseByCategory(costs: CostsByCategory, energyCost: number): CategoryDataPoint[] {
-  return EXPENSE_CATEGORIES.map((cat) => ({
-    name: cat.name,
-    color: cat.color,
-    value:
-      cat.name === 'Carburant'
-        ? energyCost
-        : cat.name === 'Assurance'
-          ? costs.insuranceCost
-          : cat.name === 'Entretien'
-            ? costs.maintenanceCost
-            : costs.otherCost,
-  }));
+const CATEGORY_COST: Record<string, keyof CostsByCategory> = {
+  Carburant: 'fuelCost',
+  Électricité: 'electricChargeCost',
+  Assurance: 'insuranceCost',
+  Entretien: 'maintenanceCost',
+  Autre: 'otherCost',
+};
+
+function computeExpenseByCategory(costs: CostsByCategory): CategoryDataPoint[] {
+  return (
+    EXPENSE_CATEGORIES.map((cat) => ({
+      name: cat.name,
+      color: cat.color,
+      value: costs[CATEGORY_COST[cat.name]],
+    }))
+      // Électricité only shows up for users who log charges
+      .filter((cat) => cat.name !== 'Électricité' || cat.value > 0)
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -716,7 +758,10 @@ function computeCarbonAndCost(
 
   for (const vehicleId of vehicleIds) {
     const vehicle = vehicles.find((v) => v.vehicle_id === vehicleId);
-    const officialGKm = vehicle && 'co2_emission' in vehicle ? vehicle.co2_emission : null;
+    // Homologated g/km ignores how much a PHEV/EV is charged: use the energy logged instead
+    const rechargeable = vehicleEnergy(vehicle?.fuel_type).electric;
+    const officialGKm =
+      !rechargeable && vehicle && 'co2_emission' in vehicle ? vehicle.co2_emission : null;
     const km = vehicleKm.get(vehicleId) ?? 0;
 
     if (officialGKm != null && officialGKm > 0 && km > 0) {
