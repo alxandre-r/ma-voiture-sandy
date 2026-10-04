@@ -231,9 +231,10 @@ export const EMPTY_VEHICLE: Omit<DemoVehicle, 'id' | 'owner_id' | 'created_at'> 
   co2_emission: null,
 };
 
+/** Same rule as raiseVehicleOdometer: the vehicle odometer only goes up. */
 function setVehicleOdometer(state: DemoState, vehicleId: number, odometer: number): void {
   const vehicle = state.vehicles.find((v) => v.id === vehicleId);
-  if (vehicle) vehicle.odometer = odometer;
+  if (vehicle && odometer > vehicle.odometer) vehicle.odometer = odometer;
 }
 
 /** Port of update_maintenance_reminder + compute_next_due (functions.sql). */

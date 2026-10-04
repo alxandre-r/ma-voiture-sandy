@@ -58,3 +58,11 @@ describe('useFillForm — forcedType (E1)', () => {
     expect(result.current.formData.charge_type).toBe('charge');
   });
 });
+
+describe('useFillForm — odometer (E8)', () => {
+  it('does not pre-fill the odometer, and exposes the current one as a hint', () => {
+    const { result } = renderHook(() => useFillForm(ev), { wrapper });
+    expect(result.current.formData.odometer).toBe(0);
+    expect(result.current.currentOdometer).toBe(1000);
+  });
+});

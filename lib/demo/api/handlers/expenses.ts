@@ -1,3 +1,4 @@
+import { ODOMETER_REQUIRED, parseOdometer } from '@/lib/utils/odometer';
 import { fillInputError } from '@/lib/utils/vehicleEnergy';
 
 import { DEMO_USER_ID } from '../../constants';
@@ -26,7 +27,7 @@ function toFillData(vehicleId: number, date: string, body: JsonBody): FillData {
     date,
     amount: toNumber(body.amount) ?? 0,
     notes: toText(body.notes),
-    odometer: toNumber(body.odometer),
+    odometer: parseOdometer(body.odometer),
     charge_type: isCharge ? 'charge' : 'fill',
     liters: isCharge ? null : toNumber(body.liters),
     price_per_liter: isCharge ? 0 : toNumber(body.price_per_liter),
@@ -98,6 +99,7 @@ export const expenseHandlers: Record<string, DemoApiHandler> = {
     const data = toFillData(vehicleId, body.date.slice(0, 10), body);
     const inputError = fillInputError(vehicle?.fuel_type, data.charge_type, body.amount);
     if (inputError) return fail(400, inputError);
+    if (!data.odometer) return fail(400, ODOMETER_REQUIRED);
     const id = nextId(state.expenses);
     return reply(
       201,
@@ -138,6 +140,7 @@ export const expenseHandlers: Record<string, DemoApiHandler> = {
     const data = toFillData(vehicleId, date, body);
     const inputError = fillInputError(vehicle?.fuel_type, data.charge_type, body.amount);
     if (inputError) return fail(400, inputError);
+    if (!data.odometer) return fail(400, ODOMETER_REQUIRED);
     return reply(
       200,
       {

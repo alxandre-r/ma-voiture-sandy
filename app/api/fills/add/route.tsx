@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { ODOMETER_REQUIRED, parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
 import { fillInputError } from '@/lib/utils/vehicleEnergy';
 
 export async function POST(request: Request) {
@@ -60,6 +61,10 @@ export async function POST(request: Request) {
     if (inputError) {
       return NextResponse.json({ error: inputError }, { status: 400 });
     }
+    const odometer = parseOdometer(body.odometer);
+    if (!odometer) {
+      return NextResponse.json({ error: ODOMETER_REQUIRED }, { status: 400 });
+    }
 
     // First, create the expense record
     const { data: expense, error: expenseError } = await supabase
@@ -91,7 +96,7 @@ export async function POST(request: Request) {
       .insert([
         {
           expense_id: expense.id,
-          odometer: body.odometer ?? null,
+          odometer,
           // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
           liters: isCharge ? null : (body.liters ?? null),
           price_per_liter: isCharge ? 0 : (body.price_per_liter ?? null),
@@ -111,17 +116,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Erreur lors de l'ajout du plein" }, { status: 500 });
     }
 
-    // Update vehicle odometer if fill has odometer data (RLS enforces write permission)
-    if (body.odometer) {
-      const { error: updateError } = await supabase
-        .from('vehicles')
-        .update({ odometer: body.odometer })
-        .eq('id', body.vehicle_id);
-
-      if (updateError) {
-        console.error('Error updating vehicle odometer:', updateError);
-      }
-    }
+    await raiseVehicleOdometer(supabase, vehicle.vehicle_id, odometer);
 
     // Add vehicle info to response for UI
     const responseFill = {

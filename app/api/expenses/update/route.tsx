@@ -153,6 +153,10 @@ export async function PATCH(request: Request) {
 
           if (fillError) {
             console.error('Error updating fill:', fillError);
+            return NextResponse.json(
+              { error: 'Erreur lors de la mise à jour du plein' },
+              { status: 500 },
+            );
           }
         }
       }

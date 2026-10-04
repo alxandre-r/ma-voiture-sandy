@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { ODOMETER_REQUIRED, parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
 import { fillInputError } from '@/lib/utils/vehicleEnergy';
 
 /**
@@ -102,6 +103,10 @@ export async function PATCH(request: Request) {
     if (inputError) {
       return NextResponse.json({ error: inputError }, { status: 400 });
     }
+    const odometer = parseOdometer(body.odometer);
+    if (!odometer) {
+      return NextResponse.json({ error: ODOMETER_REQUIRED }, { status: 400 });
+    }
 
     // Expense first: trg_enforce_fills_charge_type checks the fill against the expense type,
     // so a fill <-> charge switch only passes once the expense has the new type.
@@ -130,7 +135,7 @@ export async function PATCH(request: Request) {
       .update({
         liters: isCharge ? null : (body.liters ?? null),
         price_per_liter: isCharge ? 0 : (body.price_per_liter ?? null),
-        odometer: body.odometer ?? null,
+        odometer,
         charge_type: isCharge ? 'charge' : 'fill',
         kwh: isCharge ? (body.kwh ?? null) : null,
         price_per_kwh: isCharge ? (body.price_per_kwh ?? null) : null,
@@ -158,18 +163,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Update vehicle odometer if fill has odometer data (RLS enforces write permission)
-    if (body.odometer) {
-      const { error: updateError } = await supabase
-        .from('vehicles')
-        .update({ odometer: body.odometer })
-        .eq('id', vehicleId);
-
-      if (updateError) {
-        console.error('Error updating vehicle odometer:', updateError);
-        // Don't fail the entire operation if odometer update fails
-      }
-    }
+    await raiseVehicleOdometer(supabase, vehicleId, odometer);
 
     const responseFill = {
       ...updatedFill,

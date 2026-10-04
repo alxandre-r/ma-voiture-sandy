@@ -7,6 +7,7 @@ import Button from '@/components/common/ui/Button';
 import { FormField, FormInput, FormSelect, FormTextArea } from '@/components/common/ui/form';
 import Icon from '@/components/common/ui/Icon';
 import { useFillForm } from '@/hooks/fill/useFillForm';
+import { formatNumber } from '@/lib/utils/format';
 
 import type { Fill, FillFormData } from '@/types/fill';
 import type { VehicleMinimal } from '@/types/vehicle';
@@ -33,12 +34,8 @@ export default function FillForm({
   const isEditing = !!initialFill;
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
-  const { formData, handleChange, allowedTypes, canChangeChargeType, isElectric } = useFillForm(
-    vehicles,
-    initialFill,
-    preselectedVehicleId,
-    forcedType,
-  );
+  const { formData, handleChange, allowedTypes, canChangeChargeType, isElectric, currentOdometer } =
+    useFillForm(vehicles, initialFill, preselectedVehicleId, forcedType);
 
   // Raw string state for decimal inputs.
   // Needed because formData stores numbers: typing "1." would snap back to "1"
@@ -99,6 +96,10 @@ export default function FillForm({
     const v = vehicles.find((v) => v.vehicle_id === id);
     return v ? v.name || `${v.make} ${v.model}` : 'Véhicule';
   };
+
+  // Backdated fills are allowed, but they never lower the vehicle odometer (P2.9)
+  const lowOdometer =
+    !isEditing && !!currentOdometer && !!formData.odometer && formData.odometer <= currentOdometer;
 
   const title = `${isEditing ? 'Modifier' : 'Ajouter'} ${isElectric ? 'une recharge' : 'un plein'}`;
 
@@ -176,14 +177,30 @@ export default function FillForm({
             />
           </FormField>
 
-          <FormField label="Kilométrage" icon="chart">
+          <FormField
+            label="Kilométrage"
+            icon="chart"
+            required
+            hint={
+              lowOdometer
+                ? `Pas au-delà du compteur actuel (${formatNumber(currentOdometer)} km) : il ne sera pas modifié.`
+                : undefined
+            }
+          >
             <FormInput
               type="number"
               inputMode="numeric"
+              min={1}
+              step={1}
               name="odometer"
               value={formData.odometer || ''}
               onChange={handleChange}
-              placeholder="Kilométrage actuel"
+              placeholder={
+                currentOdometer
+                  ? `Compteur actuel : ${formatNumber(currentOdometer)} km`
+                  : 'Kilométrage au compteur'
+              }
+              required
             />
           </FormField>
         </div>

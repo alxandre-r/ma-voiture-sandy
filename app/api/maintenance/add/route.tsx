@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -106,17 +107,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update vehicle odometer if provided (RLS enforces write permission)
-    if (body.odometer) {
-      const { error: updateError } = await supabase
-        .from('vehicles')
-        .update({ odometer: body.odometer })
-        .eq('id', body.vehicle_id);
-
-      if (updateError) {
-        console.error('Error updating vehicle odometer:', updateError);
-      }
-    }
+    const odometer = parseOdometer(Number(body.odometer));
+    if (odometer) await raiseVehicleOdometer(supabase, Number(body.vehicle_id), odometer);
 
     // Add vehicle info to response for UI
     const response = {

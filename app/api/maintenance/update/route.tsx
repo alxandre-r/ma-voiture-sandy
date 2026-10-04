@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
 
 /**
  * PATCH /api/maintenance/update
@@ -116,17 +117,8 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Update vehicle odometer if provided
-    if (body.odometer) {
-      const { error: odometerError } = await supabase
-        .from('vehicles')
-        .update({ odometer: body.odometer })
-        .eq('id', existingExpense.vehicle_id);
-
-      if (odometerError) {
-        console.error('Error updating vehicle odometer:', odometerError);
-      }
-    }
+    const odometer = parseOdometer(Number(body.odometer));
+    if (odometer) await raiseVehicleOdometer(supabase, existingExpense.vehicle_id, odometer);
 
     revalidatePath('/', 'layout');
     return NextResponse.json(

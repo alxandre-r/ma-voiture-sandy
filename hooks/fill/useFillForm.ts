@@ -66,15 +66,9 @@ export function useFillForm(
   const canChangeChargeType = allowedTypes.fill && allowedTypes.charge;
   const activeChargeType = formData.charge_type;
   const isElectric = activeChargeType === 'charge';
-
-  // Sync odometer when vehicle changes (création uniquement)
-  useEffect(() => {
-    if (initialFill || !formData.vehicle_id) return;
-    const vehicle = vehicles.find((v) => v.vehicle_id === formData.vehicle_id);
-    if (vehicle?.odometer != null) {
-      setFormData((prev) => ({ ...prev, odometer: vehicle.odometer! }));
-    }
-  }, [formData.vehicle_id, vehicles]);
+  // Shown as a hint, never pre-filled: a pre-filled odometer produced 0-km fills (E8)
+  const currentOdometer =
+    vehicles.find((v) => v.vehicle_id === formData.vehicle_id)?.odometer || null;
 
   // Keep charge_type consistent with the menu choice (forcedType) or the vehicle's energy.
   // charge_type drives the calculation, the validation and the payload, so it must never lag.
@@ -113,5 +107,6 @@ export function useFillForm(
     canChangeChargeType,
     activeChargeType,
     isElectric,
+    currentOdometer,
   };
 }

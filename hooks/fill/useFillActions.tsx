@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { useNotifications } from '@/contexts/NotificationContext';
 import { apiCall } from '@/lib/api/client';
+import { ODOMETER_REQUIRED, parseOdometer } from '@/lib/utils/odometer';
 import { uploadPendingAttachments } from '@/lib/utils/uploadAttachments';
 import { validateBaseExpenseFields } from '@/lib/utils/validateExpense';
 
@@ -70,6 +71,10 @@ export function useFillActions() {
   /** --- Validate fill data --- */
   const validateFillData = (data: FillFormData): boolean => {
     if (!validateBaseExpenseFields(data, showError)) return false;
+    if (!parseOdometer(data.odometer)) {
+      showError(ODOMETER_REQUIRED);
+      return false;
+    }
 
     if (data.charge_type === 'charge') {
       if ((data.kwh == null || data.kwh === 0) && !data.price_per_kwh) {

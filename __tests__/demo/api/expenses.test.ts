@@ -47,6 +47,20 @@ describe('POST fills/add', () => {
     expect(state.vehicles.find((v) => v.id === DEMO_VEHICLE.peugeot308)?.odometer).toBe(92_900);
   });
 
+  it('requires an odometer and never lowers the vehicle one (P2.8, P2.9)', () => {
+    const state = seed();
+    const required = { status: 400, json: { error: 'Veuillez entrer le kilométrage' } };
+    expect(call(state, 'POST', 'fills/add', { ...fill, odometer: null })).toEqual(required);
+    expect(call(state, 'POST', 'fills/add', { ...fill, odometer: 0 })).toEqual(required);
+    commit(state, call(state, 'POST', 'fills/add', fill));
+    const backdated = commit(
+      state,
+      call(state, 'POST', 'fills/add', { ...fill, date: '2026-09-01', odometer: 91_000 }),
+    );
+    expect(backdated.status).toBe(201);
+    expect(state.vehicles.find((v) => v.id === DEMO_VEHICLE.peugeot308)?.odometer).toBe(92_900);
+  });
+
   it('stores an electric charge without liters', () => {
     const result = call(seed(), 'POST', 'fills/add', {
       ...fill,
