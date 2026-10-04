@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, readJsonObject } from '@/lib/validation/body';
 
 export async function POST(request: Request) {
   try {
@@ -23,11 +24,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const { oldPassword, newPassword } = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
+    const { oldPassword, newPassword } = body;
 
     // Validate passwords
     if (!oldPassword || !newPassword) {
       return NextResponse.json({ error: 'Les deux mots de passe sont requis' }, { status: 400 });
+    }
+    if (typeof oldPassword !== 'string' || typeof newPassword !== 'string') {
+      return badRequest('Mot de passe invalide');
+    }
+    // Supabase Auth hashes at most 72 bytes (bcrypt)
+    if (oldPassword.length > 72 || newPassword.length > 72) {
+      return badRequest('Le mot de passe ne doit pas dépasser 72 caractères');
     }
 
     if (newPassword.length < 6) {

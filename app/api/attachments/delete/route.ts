@@ -2,6 +2,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
 
 export async function DELETE(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -15,10 +16,11 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
     const { attachment_id } = body;
 
-    if (!attachment_id) {
+    if (!isId(attachment_id)) {
       return NextResponse.json({ error: 'attachment_id requis' }, { status: 400 });
     }
 

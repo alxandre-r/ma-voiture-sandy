@@ -8,6 +8,8 @@ import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { normalizeFuelType } from '@/lib/utils/vehicleEnergy';
+import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
+import { vehicleFieldsError } from '@/lib/validation/vehicle';
 
 import type { Vehicle } from '@/types/vehicle';
 
@@ -68,12 +70,16 @@ export async function PATCH(request: Request) {
     }
 
     // Parse body
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
     const { vehicle_id: id, ...inputData } = body;
 
-    if (!id) {
+    if (!isId(id)) {
       return NextResponse.json({ error: 'Vehicle ID is required' }, { status: 400 });
     }
+
+    const validationError = vehicleFieldsError(inputData);
+    if (validationError) return badRequest(validationError);
 
     // Filter valid fields and convert empty strings to null for date/numeric fields
     const processedData = Object.fromEntries(

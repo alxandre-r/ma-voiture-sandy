@@ -9,6 +9,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, readJsonObject } from '@/lib/validation/body';
 
 export async function POST(request: Request) {
   try {
@@ -26,10 +27,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name } = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
+    const { name } = body;
 
     // Validate family name
-    if (!name || name.trim().length === 0) {
+    if (typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'Le nom de la famille est requis' }, { status: 400 });
     }
 

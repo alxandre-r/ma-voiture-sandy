@@ -2,6 +2,20 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isId,
+  isIsoDate,
+  isNonNegativeNumber,
+  isOneOf,
+  isOptionalText,
+  isPositiveNumber,
+  isText,
+  readJsonObject,
+} from '@/lib/validation/body';
 
 const UPDATABLE_REMINDER_COLUMNS = [
   'vehicle_id',
@@ -15,6 +29,13 @@ const UPDATABLE_REMINDER_COLUMNS = [
   'recurrence_value',
 ] as const;
 
+const REMINDER_TYPES = ['maintenance', 'insurance', 'inspection', 'custom'] as const;
+const RECURRENCE_TYPES = ['km', 'time'] as const;
+
+/** Absent fields are left untouched; nullable columns may be cleared with null. */
+const orNull = (predicate: (value: unknown) => boolean) => (value: unknown) =>
+  value == null || predicate(value);
+
 export async function PATCH(request: Request) {
   const supabase = await createSupabaseServerClient();
 
@@ -27,11 +48,40 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
-    if (!body.id) {
+    if (!isId(body.id)) {
       return NextResponse.json({ error: "L'identifiant est requis" }, { status: 400 });
     }
+
+    const validationError = firstError(
+      check(orNull(isId)(body.vehicle_id), 'Véhicule invalide'),
+      check(body.type === undefined || isOneOf(body.type, REMINDER_TYPES), 'Le type est requis'),
+      check(
+        body.title === undefined || isText(body.title, 200),
+        'Le titre est requis (200 caractères max)',
+      ),
+      check(
+        isOptionalText(body.description, 1000),
+        'La description ne doit pas dépasser 1000 caractères',
+      ),
+      check(orNull(isIsoDate)(body.due_date), "Date d'échéance invalide"),
+      check(orNull(isNonNegativeNumber)(body.due_odometer), 'Kilométrage invalide'),
+      check(
+        orNull((v) => typeof v === 'boolean')(body.is_recurring),
+        'Valeur is_recurring invalide',
+      ),
+      check(
+        orNull((v) => isOneOf(v, RECURRENCE_TYPES))(body.recurrence_type),
+        'Type de récurrence invalide',
+      ),
+      check(
+        orNull(isPositiveNumber)(body.recurrence_value),
+        'La récurrence doit être supérieure à 0',
+      ),
+    );
+    if (validationError) return badRequest(validationError);
 
     const { data: existing, error: fetchError } = await supabase
       .from('reminders')

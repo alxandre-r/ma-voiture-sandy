@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
 
 /**
  * DELETE /api/vehicles/delete
@@ -34,9 +35,11 @@ export async function DELETE(request: Request) {
     }
 
     // Parse request body
-    const { vehicle_id } = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
+    const { vehicle_id } = body;
 
-    if (!vehicle_id) {
+    if (!isId(vehicle_id)) {
       return NextResponse.json({ error: 'Vehicle ID is required' }, { status: 400 });
     }
 

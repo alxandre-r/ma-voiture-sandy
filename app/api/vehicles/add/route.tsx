@@ -8,6 +8,8 @@ import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { normalizeFuelType } from '@/lib/utils/vehicleEnergy';
+import { badRequest, INVALID_BODY, readJsonObject } from '@/lib/validation/body';
+import { vehicleFieldsError } from '@/lib/validation/vehicle';
 
 import type { Vehicle } from '@/types/vehicle';
 
@@ -24,7 +26,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
     const {
       name,
       make,
@@ -43,12 +46,15 @@ export async function POST(request: Request) {
       purchase_date,
       purchase_price,
       co2_emission,
-    } = body;
+    } = body as Partial<Vehicle>;
 
     const fuelType = normalizeFuelType(fuel_type);
     if (fuelType === undefined) {
       return NextResponse.json({ error: 'Type de carburant invalide' }, { status: 400 });
     }
+
+    const validationError = vehicleFieldsError(body);
+    if (validationError) return badRequest(validationError);
 
     // Helper to convert empty strings to null for date fields
     const toDate = (value: string | undefined | null) => {

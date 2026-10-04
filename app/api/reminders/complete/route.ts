@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
 
 /**
  * PATCH /api/reminders/complete
@@ -22,10 +23,14 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
-    if (!body.id) {
+    if (!isId(body.id)) {
       return NextResponse.json({ error: "L'identifiant est requis" }, { status: 400 });
+    }
+    if (body.is_completed != null && typeof body.is_completed !== 'boolean') {
+      return badRequest('Valeur is_completed invalide');
     }
 
     const is_completed = body.is_completed ?? true;

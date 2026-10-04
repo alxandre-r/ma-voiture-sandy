@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, isText, readJsonObject } from '@/lib/validation/body';
 
 export async function POST(request: Request) {
   try {
@@ -26,11 +27,14 @@ export async function POST(request: Request) {
     }
 
     // Parse request body
-    const { token } = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
+    const { token } = body;
 
     if (!token) {
       return NextResponse.json({ error: "Le token d'invitation est requis" }, { status: 400 });
     }
+    if (!isText(token, 100)) return badRequest("Token d'invitation invalide");
 
     // Find family with matching invite token — use admin client to bypass RLS
     // (regular user can't SELECT families they haven't joined yet)

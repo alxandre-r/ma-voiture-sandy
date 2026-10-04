@@ -7,6 +7,14 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isOptionalText,
+  readJsonObject,
+} from '@/lib/validation/body';
 
 export async function POST(request: Request) {
   try {
@@ -23,9 +31,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const name: string | undefined = body.name?.trim();
-    const email: string | undefined = body.email?.trim();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
+
+    const validationError = firstError(
+      check(isOptionalText(body.name, 100), 'Nom invalide'),
+      check(isOptionalText(body.email, 254), 'Adresse email invalide'),
+    );
+    if (validationError) return badRequest(validationError);
+
+    const name = typeof body.name === 'string' ? body.name.trim() : undefined;
+    const email = typeof body.email === 'string' ? body.email.trim() : undefined;
 
     // Validation minimale
     if (!name && !email) {

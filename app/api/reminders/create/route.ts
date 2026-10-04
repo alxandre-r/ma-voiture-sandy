@@ -2,6 +2,28 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isId,
+  isIsoDate,
+  isNonNegativeNumber,
+  isOneOf,
+  isOptionalText,
+  isPositiveNumber,
+  isText,
+  optional,
+  readJsonObject,
+} from '@/lib/validation/body';
+
+const REMINDER_TYPES = ['maintenance', 'insurance', 'inspection', 'custom'] as const;
+const RECURRENCE_TYPES = ['km', 'time'] as const;
+
+/** Blank optional fields are stored as null; null is accepted, '' only where the route coerces it. */
+const orNull = (predicate: (value: unknown) => boolean) => (value: unknown) =>
+  value == null || predicate(value);
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -15,14 +37,40 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
-    if (!body.title?.trim()) {
+    if (typeof body.title !== 'string' || !body.title.trim()) {
       return NextResponse.json({ error: 'Le titre est requis' }, { status: 400 });
     }
-    if (!body.type) {
+    if (!isOneOf(body.type, REMINDER_TYPES)) {
       return NextResponse.json({ error: 'Le type est requis' }, { status: 400 });
     }
+
+    const validationError = firstError(
+      check(isText(body.title, 200), 'Le titre ne doit pas dépasser 200 caractères'),
+      check(orNull(isId)(body.vehicle_id), 'Véhicule invalide'),
+      check(
+        isOptionalText(body.description, 1000),
+        'La description ne doit pas dépasser 1000 caractères',
+      ),
+      check(orNull(isIsoDate)(body.due_date), "Date d'échéance invalide"),
+      check(optional(isNonNegativeNumber)(body.due_odometer), 'Kilométrage invalide'),
+      check(
+        orNull((v) => typeof v === 'boolean')(body.is_recurring),
+        'Valeur is_recurring invalide',
+      ),
+      check(
+        orNull((v) => isOneOf(v, RECURRENCE_TYPES))(body.recurrence_type),
+        'Type de récurrence invalide',
+      ),
+      check(
+        optional(isPositiveNumber)(body.recurrence_value),
+        'La récurrence doit être supérieure à 0',
+      ),
+      check(orNull((v) => isText(v, 50))(body.maintenance_type_id), "Type d'entretien invalide"),
+    );
+    if (validationError) return badRequest(validationError);
 
     // Verify vehicle access when a vehicle is specified
     if (body.vehicle_id) {
@@ -49,7 +97,7 @@ export async function POST(request: Request) {
         vehicle_id: body.vehicle_id ?? null,
         type: body.type,
         title: body.title.trim(),
-        description: body.description?.trim() ?? null,
+        description: typeof body.description === 'string' ? body.description.trim() : null,
         due_date: body.due_date ?? null,
         due_odometer: body.due_odometer ? Number(body.due_odometer) : null,
         is_recurring: body.is_recurring ?? false,

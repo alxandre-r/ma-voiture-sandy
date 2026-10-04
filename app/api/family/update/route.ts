@@ -9,6 +9,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, isUuid, readJsonObject } from '@/lib/validation/body';
 
 export async function PATCH(request: Request) {
   try {
@@ -26,15 +27,17 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { familyId, name } = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
+    const { familyId, name } = body;
 
     // Validate family ID
-    if (!familyId) {
+    if (!isUuid(familyId)) {
       return NextResponse.json({ error: "L'ID de la famille est requis" }, { status: 400 });
     }
 
     // Validate family name
-    if (!name || name.trim().length === 0) {
+    if (typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'Le nom de la famille est requis' }, { status: 400 });
     }
 

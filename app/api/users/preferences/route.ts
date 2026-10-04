@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { badRequest, INVALID_BODY, readJsonObject } from '@/lib/validation/body';
 
 const ALLOWED_FIELDS = [
   'show_consumption',
@@ -35,7 +36,8 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return badRequest(INVALID_BODY);
 
     // Only accept known fields
     const updates: Record<string, unknown> = {};

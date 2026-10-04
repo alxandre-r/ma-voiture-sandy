@@ -1,15 +1,39 @@
 import { NextResponse } from 'next/server';
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import {
+  badRequest,
+  check,
+  firstError,
+  INVALID_BODY,
+  isText,
+  readJsonObject,
+} from '@/lib/validation/body';
+
+const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
 export async function POST(req: Request) {
   try {
     const supabaseAdmin = createSupabaseAdminClient();
-    const { name, email, password } = await req.json();
+    const body = await readJsonObject(req);
+    if (!body) return badRequest(INVALID_BODY);
+    // Typed as strings for the calls below: the checks that follow reject anything else
+    const { name, email, password } = body as Record<'name' | 'email' | 'password', string>;
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Nom, email et mot de passe requis' }, { status: 400 });
     }
+
+    const validationError = firstError(
+      check(isText(name, 100), 'Nom invalide'),
+      check(isText(email, 254) && EMAIL_PATTERN.test(email), 'Adresse email invalide'),
+      // Supabase Auth requires 6+ characters and hashes at most 72 bytes (bcrypt)
+      check(
+        typeof password === 'string' && password.length >= 6 && password.length <= 72,
+        'Le mot de passe doit contenir entre 6 et 72 caractères',
+      ),
+    );
+    if (validationError) return badRequest(validationError);
 
     // Vérifie si l'utilisateur existe déjà dans auth.users ou table users
     const { data: existingUser } = await supabaseAdmin
