@@ -47,91 +47,91 @@ function makeDueSoonReminder(id: number): Reminder {
 }
 
 describe('computeHealthScore', () => {
-  it('returns score 100 and grade A for a vehicle with no issues', () => {
+  it('returns score 10 and grade A for a vehicle with no issues', () => {
     const result = computeHealthScore(makeVehicle());
-    expect(result.score).toBe(100);
+    expect(result.score).toBe(10);
     expect(result.grade).toBe('A');
     expect(result.factors).toHaveLength(0);
   });
 
   describe('tech control', () => {
-    it('applies -25 penalty for expired tech control', () => {
+    it('applies -3 penalty for expired tech control', () => {
       const result = computeHealthScore(makeVehicle({ tech_control_expiry: daysFromNow(-10) }));
-      expect(result.score).toBe(75);
+      expect(result.score).toBe(7);
       expect(result.factors.find((f) => f.label === 'Contrôle technique')?.status).toBe('critical');
     });
 
-    it('applies -10 penalty when tech control expires within 30 days', () => {
+    it('applies -1 penalty when tech control expires within 30 days', () => {
       const result = computeHealthScore(makeVehicle({ tech_control_expiry: daysFromNow(15) }));
-      expect(result.score).toBe(90);
+      expect(result.score).toBe(9);
       expect(result.factors.find((f) => f.label === 'Contrôle technique')?.status).toBe('warning');
     });
 
     it('applies no penalty when tech control is valid beyond 30 days', () => {
       const result = computeHealthScore(makeVehicle({ tech_control_expiry: daysFromNow(60) }));
-      expect(result.score).toBe(100);
+      expect(result.score).toBe(10);
       expect(result.factors.find((f) => f.label === 'Contrôle technique')?.status).toBe('good');
     });
   });
 
   describe('insurance', () => {
-    it('applies -20 penalty when hasActiveInsurance is false', () => {
+    it('applies -2 penalty when hasActiveInsurance is false', () => {
       const result = computeHealthScore(makeVehicle(), { hasActiveInsurance: false });
-      expect(result.score).toBe(80);
+      expect(result.score).toBe(8);
     });
 
     it('applies no penalty when hasActiveInsurance is true', () => {
       const result = computeHealthScore(makeVehicle(), { hasActiveInsurance: true });
-      expect(result.score).toBe(100);
+      expect(result.score).toBe(10);
     });
 
     it('applies no insurance penalty when hasActiveInsurance is undefined (data unavailable)', () => {
       const result = computeHealthScore(makeVehicle(), {});
-      expect(result.score).toBe(100);
+      expect(result.score).toBe(10);
     });
   });
 
   describe('reminders', () => {
-    it('applies -20 per overdue reminder', () => {
+    it('applies -2 per overdue reminder', () => {
       const v = makeVehicle();
-      expect(computeHealthScore(v, { reminders: [makeOverdueReminder(1)] }).score).toBe(80);
+      expect(computeHealthScore(v, { reminders: [makeOverdueReminder(1)] }).score).toBe(8);
     });
 
-    it('caps overdue penalty at -40 for 2+ overdue reminders', () => {
+    it('caps overdue penalty at -4 for 2+ overdue reminders', () => {
       const v = makeVehicle();
       const result2 = computeHealthScore(v, {
         reminders: [makeOverdueReminder(1), makeOverdueReminder(2)],
       });
-      expect(result2.score).toBe(60); // -40
+      expect(result2.score).toBe(6); // -4
 
       const result3 = computeHealthScore(v, {
         reminders: [makeOverdueReminder(1), makeOverdueReminder(2), makeOverdueReminder(3)],
       });
-      expect(result3.score).toBe(60); // still -40 (capped)
+      expect(result3.score).toBe(6); // still -4 (capped)
     });
 
-    it('applies -10 per due-soon reminder', () => {
+    it('applies -1 per due-soon reminder', () => {
       const v = makeVehicle();
-      expect(computeHealthScore(v, { reminders: [makeDueSoonReminder(1)] }).score).toBe(90);
+      expect(computeHealthScore(v, { reminders: [makeDueSoonReminder(1)] }).score).toBe(9);
     });
 
-    it('caps due-soon penalty at -20 for 2+ due-soon reminders', () => {
+    it('caps due-soon penalty at -2 for 2+ due-soon reminders', () => {
       const v = makeVehicle();
       const result2 = computeHealthScore(v, {
         reminders: [makeDueSoonReminder(1), makeDueSoonReminder(2)],
       });
-      expect(result2.score).toBe(80);
+      expect(result2.score).toBe(8);
 
       const result3 = computeHealthScore(v, {
         reminders: [makeDueSoonReminder(1), makeDueSoonReminder(2), makeDueSoonReminder(3)],
       });
-      expect(result3.score).toBe(80); // capped
+      expect(result3.score).toBe(8); // capped
     });
 
     it('ignores completed reminders', () => {
       const completed = { ...makeOverdueReminder(1), is_completed: true };
       const result = computeHealthScore(makeVehicle(), { reminders: [completed] });
-      expect(result.score).toBe(100);
+      expect(result.score).toBe(10);
     });
   });
 
@@ -141,8 +141,9 @@ describe('computeHealthScore', () => {
         hasActiveInsurance: false,
         reminders: [makeOverdueReminder(1)],
       });
-      // -25 (CT) -20 (insurance) -20 (1 overdue) = -65 → score 35
-      expect(result.score).toBe(35);
+      // -3 (CT) -2 (insurance) -2 (1 overdue) = -7 → score 3
+      expect(result.score).toBe(3);
+      expect(result.grade).toBe('D');
     });
   });
 
@@ -153,31 +154,33 @@ describe('computeHealthScore', () => {
         hasActiveInsurance: false,
         reminders: manyOverdue,
       });
-      expect(result.score).toBeGreaterThanOrEqual(0);
+      // -3 (CT) -2 (insurance) -4 (overdue, capped) = -9 → 1
+      expect(result.score).toBe(1);
+      expect(result.grade).toBe('F');
     });
   });
 
   describe('grade thresholds', () => {
-    it('score >= 80 → A', () => {
-      // Score 80: -20 insurance penalty
+    it('score >= 8 → A', () => {
+      // Score 8: -2 insurance penalty
       const result = computeHealthScore(makeVehicle(), { hasActiveInsurance: false });
-      expect(result.score).toBe(80);
+      expect(result.score).toBe(8);
       expect(result.grade).toBe('A');
     });
 
-    it('score >= 60 and < 80 → B', () => {
-      // Score 75: -25 expired CT
+    it('score >= 6 and < 8 → B', () => {
+      // Score 7: -3 expired CT
       const result = computeHealthScore(makeVehicle({ tech_control_expiry: daysFromNow(-1) }));
-      expect(result.score).toBe(75);
+      expect(result.score).toBe(7);
       expect(result.grade).toBe('B');
     });
 
-    it('score >= 40 and < 60 → C', () => {
-      // Score 55: -25 expired CT, -20 no insurance
+    it('score >= 4 and < 6 → C', () => {
+      // Score 5: -3 expired CT, -2 no insurance
       const result = computeHealthScore(makeVehicle({ tech_control_expiry: daysFromNow(-1) }), {
         hasActiveInsurance: false,
       });
-      expect(result.score).toBe(55);
+      expect(result.score).toBe(5);
       expect(result.grade).toBe('C');
     });
   });

@@ -9,10 +9,12 @@ import { GET as enterDemo } from '@/app/demo/route';
 import { readJsonBody } from '@/lib/demo/api/readJsonBody';
 import { createJournal, decodeJournal, encodeJournal } from '@/lib/demo/journal';
 
-const withCookie = (path: string, cookie?: string, init: RequestInit = {}) =>
+type TestInit = { method?: string; body?: string; headers?: Record<string, string> };
+
+const withCookie = (path: string, cookie?: string, init: TestInit = {}) =>
   new NextRequest(new URL(path, 'http://localhost'), {
     ...init,
-    headers: { ...(cookie ? { cookie: `mv_demo=${cookie}` } : {}), ...(init.headers ?? {}) },
+    headers: { ...(cookie ? { cookie: `mv_demo=${cookie}` } : {}), ...init.headers },
   });
 
 describe('GET /demo', () => {

@@ -85,10 +85,10 @@ describe('Modal Component', () => {
       </Modal>,
     );
 
-    const backdrop = container.firstChild;
+    const backdrop = container.firstElementChild;
     expect(backdrop).toBeTruthy();
     // Verify backdrop classes are present
     expect(backdrop?.className).toContain('bg-black/50');
-    expect(backdrop?.className).toContain('backdrop-blur-sm');
+    expect(backdrop?.className).toContain('backdrop-blur-[2px]');
   });
 });
