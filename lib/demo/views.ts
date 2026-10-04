@@ -3,6 +3,7 @@
  * @description Demo equivalents of the SQL views (__info__/current_schema/views.sql), same column names.
  */
 
+import { fuelConsumption } from '@/lib/utils/consumption';
 import { getInstalmentDates } from '@/lib/utils/insuranceUtils';
 
 import { DERIVED_INSURANCE_ID_BASE } from './constants';
@@ -49,20 +50,14 @@ function lastFillDate(state: DemoState, vehicleId: number): string | null {
     >((latest, e) => (latest && latest > e.created_at ? latest : e.created_at), null);
 }
 
-/** Same formula as vehicles_for_display.calculated_consumption. */
+/** Same formula as vehicles_for_display.calculated_consumption (rounded to 0.1). */
 function calculatedConsumption(state: DemoState, vehicleId: number): number | null {
-  const rows = state.expenses
-    .filter((e) => e.vehicle_id === vehicleId && e.fill?.odometer != null)
-    .map((e) => e.fill!)
-    .sort((a, b) => (a.odometer as number) - (b.odometer as number));
-  if (rows.length < 2) return null;
-  const allButLast = rows.slice(0, -1);
-  const liters = allButLast.map((r) => r.liters).filter((l): l is number => l != null);
-  if (liters.length === 0) return null;
-  const consumed = liters.reduce((sum, l) => sum + l, 0);
-  const distance =
-    (allButLast[allButLast.length - 1].odometer as number) - (rows[0].odometer as number);
-  return distance > 0 ? Math.round((consumed / distance) * 1000) / 10 : null;
+  const { per100 } = fuelConsumption(
+    state.expenses
+      .filter((e) => e.vehicle_id === vehicleId && e.fill)
+      .map((e) => ({ vehicle_id: e.vehicle_id, type: e.type, ...e.fill })),
+  );
+  return per100 == null ? null : Math.round(per100 * 10) / 10;
 }
 
 export function vehiclesForDisplay(state: DemoState, viewerId: string): DemoVehicleRow[] {

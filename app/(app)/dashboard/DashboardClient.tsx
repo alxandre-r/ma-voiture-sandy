@@ -25,6 +25,7 @@ import { useFillActions } from '@/hooks/fill/useFillActions';
 import { useOtherActions } from '@/hooks/other/useOtherActions';
 import { useReminderActions } from '@/hooks/reminders/useReminderActions';
 import { detectAnomalies } from '@/lib/utils/anomalyUtils';
+import { fuelConsumption } from '@/lib/utils/consumption';
 import { getEffectivePeriodRange, getPreviousPeriodRange } from '@/lib/utils/filterUtils';
 import { vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 
@@ -114,32 +115,10 @@ function DashboardContent({
     [previousPeriodExpenses],
   );
 
-  const avgConsumption = useMemo(() => {
-    const fuelExpenses = filteredExpenses.filter((e) => e.type === 'fuel');
-    if (fuelExpenses.length === 0) return 0;
-
-    let totalLiters = 0;
-    let totalDistance = 0;
-    const odometers: Record<number, number[]> = {};
-
-    fuelExpenses.forEach((expense) => {
-      const fillData = expense as unknown as { liters?: number; odometer?: number };
-      if (fillData.liters) totalLiters += fillData.liters;
-      if (fillData.odometer) {
-        if (!odometers[expense.vehicle_id]) odometers[expense.vehicle_id] = [];
-        odometers[expense.vehicle_id].push(fillData.odometer);
-      }
-    });
-
-    Object.values(odometers).forEach((values) => {
-      if (values.length >= 2) {
-        const sorted = [...values].sort((a, b) => a - b);
-        totalDistance += sorted[sorted.length - 1] - sorted[0];
-      }
-    });
-
-    return totalDistance > 0 ? (totalLiters / totalDistance) * 100 : 0;
-  }, [filteredExpenses]);
+  const avgConsumption = useMemo(
+    () => fuelConsumption(filteredExpenses).per100 ?? 0,
+    [filteredExpenses],
+  );
 
   const costPer100km = useMemo(() => {
     const fuelExpenses = filteredExpenses.filter((e) => e.type === 'fuel');
@@ -163,28 +142,10 @@ function DashboardContent({
     return (totalExpenses / totalDistance) * 100;
   }, [filteredExpenses, totalExpenses]);
 
-  const prevAvgConsumption = useMemo(() => {
-    const fuelExpenses = previousPeriodExpenses.filter((e) => e.type === 'fuel');
-    if (fuelExpenses.length === 0) return null;
-    let totalLiters = 0;
-    let totalDistance = 0;
-    const odometers: Record<number, number[]> = {};
-    fuelExpenses.forEach((expense) => {
-      const fillData = expense as unknown as { liters?: number; odometer?: number };
-      if (fillData.liters) totalLiters += fillData.liters;
-      if (fillData.odometer) {
-        if (!odometers[expense.vehicle_id]) odometers[expense.vehicle_id] = [];
-        odometers[expense.vehicle_id].push(fillData.odometer);
-      }
-    });
-    Object.values(odometers).forEach((values) => {
-      if (values.length >= 2) {
-        const sorted = [...values].sort((a, b) => a - b);
-        totalDistance += sorted[sorted.length - 1] - sorted[0];
-      }
-    });
-    return totalDistance > 0 ? (totalLiters / totalDistance) * 100 : null;
-  }, [previousPeriodExpenses]);
+  const prevAvgConsumption = useMemo(
+    () => fuelConsumption(previousPeriodExpenses).per100,
+    [previousPeriodExpenses],
+  );
 
   const anomalies = useMemo(
     () => detectAnomalies(fillExpenses, vehicles),

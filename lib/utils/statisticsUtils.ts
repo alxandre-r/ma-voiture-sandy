@@ -5,6 +5,7 @@
  */
 
 import { EXPENSE_CATEGORIES } from '@/app/(app)/expenses/components/expenseCategories';
+import { fuelConsumption } from '@/lib/utils/consumption';
 import { filterByVehiclesAndPeriod, getEffectivePeriodRange } from '@/lib/utils/filterUtils';
 import { normalizeFuelType, vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 import { getCategoryName } from '@/types/expense';
@@ -647,8 +648,8 @@ function computeDistanceEnergy(
   return {
     totalKilometers,
     totalLiters,
-    avgConsumption:
-      totalKilometers > 0 && totalLiters > 0 ? (totalLiters / totalKilometers) * 100 : 0,
+    // Fuel fills only: distance from all expense odometers would mix in maintenance and charges
+    avgConsumption: fuelConsumption(expenses).per100 ?? 0,
     electricShare: energyCost > 0 ? (electricChargeCost / energyCost) * 100 : 0,
     hasElectricVehicle,
   };
