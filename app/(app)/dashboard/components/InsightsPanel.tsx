@@ -101,12 +101,16 @@ export default function InsightsPanel({
     for (const anomaly of filteredAnomalies) {
       const isUp = anomaly.direction === 'up';
       const absDeviation = Math.abs(anomaly.deviationPct);
+      const isElectric = anomaly.energy === 'electric';
+      const unit = isElectric ? 'kWh/100' : 'L/100';
       items.push({
-        key: `anomaly-${anomaly.vehicleId}`,
+        key: `anomaly-${anomaly.vehicleId}-${anomaly.energy}`,
         vehicleName: anomaly.vehicleName,
         label: 'Consommation inhabituelle',
-        detail: `${anomaly.latestConsumption} L/100 vs ${anomaly.baselineConsumption} L/100 habituel (${isUp ? '+' : '−'}${absDeviation}%) · ${formatDate(anomaly.fillDate)}`,
-        recommendation: "Consulter l'historique des pleins",
+        detail: `${anomaly.latestConsumption} ${unit} vs ${anomaly.baselineConsumption} ${unit} habituel (${isUp ? '+' : '−'}${absDeviation}%) · ${isElectric ? 'recharge' : 'plein'} du ${formatDate(anomaly.fillDate)}`,
+        recommendation: isElectric
+          ? "Consulter l'historique des recharges"
+          : "Consulter l'historique des pleins",
         status: 'warning',
         href: FACTOR_LINKS['Consommation inhabituelle'],
       });
@@ -119,14 +123,7 @@ export default function InsightsPanel({
     });
 
     return items;
-  }, [
-    filteredVehicles,
-    reminders,
-    expenses,
-    insurance,
-    anomalies,
-    selectedVehicleIds,
-  ]);
+  }, [filteredVehicles, reminders, expenses, insurance, anomalies, selectedVehicleIds]);
 
   const visible = insights.filter((i) => !dismissed.has(i.key)).slice(0, 5);
 

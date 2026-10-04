@@ -138,3 +138,83 @@ describe('detectAnomalies', () => {
     expect(anomalies[0].vehicleName).toBe('Mon Kangoo');
   });
 });
+
+/** Electric charge with the fields used by the kWh/100km check (liters null, price_per_liter 0 like real rows). */
+function makeCharge(
+  id: number,
+  vehicleId: number,
+  monthOffset: number,
+  odometer: number,
+  kwh: number,
+): Expense {
+  return {
+    ...makeFuelFill(id, vehicleId, monthOffset, odometer, 0),
+    type: 'electric_charge',
+    amount: kwh * 0.25,
+    liters: null,
+    price_per_liter: 0,
+    kwh,
+    price_per_kwh: 0.25,
+    charge_type: 'charge',
+  };
+}
+
+/** 6 charges, 1000 km apart, 170 kWh each (17 kWh/100km); lastKwh overrides the 6th. */
+function makeNormalCharges(vehicleId: number, lastKwh = 170): Expense[] {
+  return [0, 1, 2, 3, 4, 5].map((i) =>
+    makeCharge(vehicleId * 10 + i + 1, vehicleId, i, 10000 + i * 1000, i === 5 ? lastKwh : 170),
+  );
+}
+
+describe('detectAnomalies — energy types', () => {
+  it('marks fuel anomalies with energy "fuel"', () => {
+    const anomalies = detectAnomalies(makeNormalFills(1, 90), [vehicle1]);
+    expect(anomalies[0].energy).toBe('fuel');
+  });
+
+  it('skips the L/100 check for a plug-in hybrid', () => {
+    const phev = makeVehicle(1, { fuel_type: 'plugin_hybrid' });
+    expect(detectAnomalies(makeNormalFills(1, 90), [phev])).toHaveLength(0);
+  });
+
+  it('skips the kWh/100 check for a plug-in hybrid', () => {
+    const phev = makeVehicle(1, { fuel_type: 'plugin_hybrid' });
+    expect(detectAnomalies(makeNormalCharges(1, 260), [phev])).toHaveLength(0);
+  });
+
+  it('still analyses a non-rechargeable hybrid in L/100', () => {
+    const hybrid = makeVehicle(1, { fuel_type: 'hybrid' });
+    expect(detectAnomalies(makeNormalFills(1, 90), [hybrid])).toHaveLength(1);
+  });
+
+  it('detects a kWh/100 anomaly for an EV', () => {
+    const ev = makeVehicle(1, { fuel_type: 'electric' });
+    // Baseline 17 kWh/100km, latest 26 kWh/100km → ≈ +53%
+    const anomalies = detectAnomalies(makeNormalCharges(1, 260), [ev]);
+    expect(anomalies).toHaveLength(1);
+    expect(anomalies[0]).toMatchObject({
+      vehicleId: 1,
+      energy: 'electric',
+      direction: 'up',
+      latestConsumption: 26,
+      baselineConsumption: 17,
+    });
+    expect(anomalies[0].possibleCauses.join(' ')).not.toMatch(/carburant|filtre à air/i);
+  });
+
+  it('does not flag an EV with stable kWh/100', () => {
+    const ev = makeVehicle(1, { fuel_type: 'electric' });
+    expect(detectAnomalies(makeNormalCharges(1, 175), [ev])).toHaveLength(0);
+  });
+
+  it('does not run the kWh check on a fuel-only vehicle', () => {
+    const car = makeVehicle(1, { fuel_type: 'gasoline' });
+    expect(detectAnomalies(makeNormalCharges(1, 260), [car])).toHaveLength(0);
+  });
+
+  it('skips a vehicle of unknown energy that logs both fills and charges', () => {
+    const unknown = makeVehicle(1, { fuel_type: null });
+    const expenses = [...makeNormalFills(1, 90), ...makeNormalCharges(1, 260)];
+    expect(detectAnomalies(expenses, [unknown])).toHaveLength(0);
+  });
+});
