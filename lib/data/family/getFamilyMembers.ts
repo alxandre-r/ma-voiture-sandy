@@ -4,6 +4,7 @@
 
 import { cache } from 'react';
 
+import { failLoad } from '@/lib/data/loadError';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -22,10 +23,7 @@ export const getFamilyMembers = cache(async (familyId: string): Promise<FamilyMe
     .select('*')
     .eq('family_id', familyId);
 
-  if (error) {
-    console.error(`Failed to fetch family members: ${error.message}`);
-    return [];
-  }
+  if (error) failLoad('les membres de la famille', error);
 
   if (!members || members.length === 0) {
     return [];

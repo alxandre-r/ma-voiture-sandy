@@ -5,6 +5,7 @@
 import { cache } from 'react';
 
 import { fetchAllRows } from '@/lib/data/fetchAllRows';
+import { failLoad } from '@/lib/data/loadError';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -24,10 +25,6 @@ export const getAllExpenses = cache(async (vehicleIds: number[]) => {
       .range(from, to),
   );
 
-  if (error) {
-    console.error('Error fetching all expenses:', error);
-    return null;
-  }
-
-  return data;
+  if (error) failLoad('les dépenses', error);
+  return data ?? [];
 });

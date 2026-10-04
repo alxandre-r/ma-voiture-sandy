@@ -6,6 +6,7 @@
 import { cache } from 'react';
 
 import { fetchAllRows } from '@/lib/data/fetchAllRows';
+import { failLoad } from '@/lib/data/loadError';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -39,10 +40,7 @@ export const getMaintenanceExpenses = cache(async function getMaintenanceExpense
     return query.range(from, to);
   });
 
-  if (error) {
-    console.error('Error fetching maintenance expenses:', error);
-    throw new Error('Failed to fetch maintenance expenses');
-  }
+  if (error) failLoad('les entretiens', error);
 
   return expenses || [];
 });

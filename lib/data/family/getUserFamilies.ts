@@ -1,5 +1,6 @@
 import { cache } from 'react';
 
+import { failLoad } from '@/lib/data/loadError';
 import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
@@ -25,10 +26,7 @@ export const getUserFamilies = cache(async (): Promise<FamilyInfo[]> => {
     .select('families(id, name)')
     .eq('user_id', user.id);
 
-  if (error) {
-    console.error('Failed to fetch user families:', error.message);
-    return [];
-  }
+  if (error) failLoad('vos familles', error);
 
   return (data ?? [])
     .map((row) => {

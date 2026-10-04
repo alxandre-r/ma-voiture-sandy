@@ -12,7 +12,13 @@ export default function AppError({
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
         Une erreur est survenue
       </h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">{error.message}</p>
+      {/* Fixed text: Next hides Server Component error messages in production (P3.8) */}
+      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+        Impossible de charger cette page pour le moment. Vérifiez votre connexion puis réessayez.
+      </p>
+      {error.digest && (
+        <p className="text-xs text-gray-400 select-text">Référence : {error.digest}</p>
+      )}
       <button
         onClick={reset}
         className="px-4 py-2 bg-custom-2 hover:bg-custom-2-hover text-white rounded-lg text-sm font-medium transition-colors"

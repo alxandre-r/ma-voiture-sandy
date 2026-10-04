@@ -3,6 +3,7 @@
 
 import { cache } from 'react';
 
+import { failLoad, NO_ROWS } from '@/lib/data/loadError';
 import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
@@ -26,13 +27,14 @@ export const getCurrentUserInfo = cache(async () => {
       .select('*')
       .eq('id', user.id)
       .single();
-    if (error) {
-      console.error('Failed to fetch user info:', error.message);
-      return null;
-    }
+    // No profile row: treated like no session (AppDataProvider redirects)
+    if (error?.code === NO_ROWS) return null;
+    if (error) failLoad('votre profil', error);
     return data;
-  } catch {
-    // Catches AuthApiError (e.g. 429 rate limit) and any network errors
+  } catch (err) {
+    // A DB failure must reach error.tsx, not look like an expired session
+    if (err instanceof Error && err.message.startsWith('Impossible de charger')) throw err;
+    // AuthApiError (e.g. 429 rate limit) and network errors on the auth call
     return null;
   }
 });

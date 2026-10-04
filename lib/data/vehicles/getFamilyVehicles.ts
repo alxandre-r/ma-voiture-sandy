@@ -3,6 +3,7 @@
 
 import { cache } from 'react';
 
+import { failLoad } from '@/lib/data/loadError';
 import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
@@ -28,7 +29,7 @@ export const getFamilyVehicles = cache(async (familyId?: string) => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    throw new Error(`Failed to fetch vehicles: ${error.message}`);
+    failLoad('les véhicules de la famille', error);
   }
 
   return data;
@@ -50,7 +51,7 @@ export const getFamilyAllVehicles = cache(async (familyId?: string) => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    throw new Error(`Failed to fetch vehicles: ${error.message}`);
+    failLoad('les véhicules de la famille', error);
   }
 
   return data;
@@ -77,7 +78,7 @@ export const getFamilyVehiclesMinimal = cache(async (familyId?: string) => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    throw new Error(`Failed to fetch vehicles: ${error.message}`);
+    failLoad('les véhicules de la famille', error);
   }
 
   return data;

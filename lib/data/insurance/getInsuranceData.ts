@@ -1,3 +1,4 @@
+import { failLoad } from '@/lib/data/loadError';
 import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import { getPreferencesByUserId } from '@/lib/data/user/getPreferencesByUserId';
 import * as demoData from '@/lib/demo/data';
@@ -44,7 +45,8 @@ export async function getInsuranceData(vehicles: InsuranceVehicleRef[]): Promise
     .select('*')
     .in('vehicle_id', visibleIds)
     .order('start_date', { ascending: false });
-  if (error || !contracts) return { contracts: [], hiddenVehicleIds };
+  if (error) failLoad("les contrats d'assurance", error);
+  if (!contracts) return { contracts: [], hiddenVehicleIds };
 
   const contractIds = (contracts as InsuranceContract[]).map((c) => c.id);
   const { data: attachments } = contractIds.length

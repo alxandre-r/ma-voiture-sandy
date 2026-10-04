@@ -4,6 +4,7 @@
 
 import { cache } from 'react';
 
+import { failLoad, NO_ROWS } from '@/lib/data/loadError';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -19,9 +20,8 @@ export const getFamilyInfo = cache(async (familyId: string) => {
     .eq('id', familyId)
     .single();
 
-  if (error) {
-    console.error(`Failed to fetch family info: ${error.message}`);
-    return null;
-  }
+  // Missing or not visible (no longer a member): null, the page handles it
+  if (error?.code === NO_ROWS) return null;
+  if (error) failLoad('la famille', error);
   return data;
 });

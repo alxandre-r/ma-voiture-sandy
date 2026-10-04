@@ -1,5 +1,6 @@
 import { cache } from 'react';
 
+import { failLoad } from '@/lib/data/loadError';
 import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
@@ -34,10 +35,7 @@ export const getReminders = cache(async (vehicleIds: number[] = []): Promise<Rem
 
   const { data, error } = await query.order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching reminders:', error);
-    return [];
-  }
+  if (error) failLoad('les rappels', error);
 
   return (data as Reminder[]) ?? [];
 });
@@ -63,10 +61,7 @@ export const getVehicleReminders = cache(async (vehicleId: number): Promise<Remi
     .eq('is_completed', false)
     .order('due_date', { ascending: true });
 
-  if (error) {
-    console.error('Error fetching vehicle reminders:', error);
-    return [];
-  }
+  if (error) failLoad('les rappels du véhicule', error);
 
   return (data as Reminder[]) ?? [];
 });

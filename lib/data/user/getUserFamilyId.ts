@@ -1,5 +1,6 @@
 // SSR utilities for authentication and user profile retrieval
 
+import { failLoad, NO_ROWS } from '@/lib/data/loadError';
 import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
@@ -21,12 +22,7 @@ export async function getUserFamilyId(): Promise<string | null> {
     .eq('user_id', user.id)
     .single();
 
-  if (data && data.family_id) {
-    return data.family_id;
-  } else if (error && error.code !== 'PGRST116') {
-    // PGRST116 = No rows found, which is expected if the user is not in a family
-    console.error('Error fetching family ID:', error);
-  }
-
-  return null;
+  // No row: the user is not in a family
+  if (error && error.code !== NO_ROWS) failLoad('votre famille', error);
+  return data?.family_id ?? null;
 }

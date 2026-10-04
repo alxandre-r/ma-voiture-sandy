@@ -17,8 +17,7 @@ export default function GlobalError({
         Oops! Une erreur est survenue
       </h2>
       <p className="text-gray-500 dark:text-gray-400 max-w-md">
-        {error.message ||
-          "Quelque chose s'est mal passé. Veuillez réessayer ou revenir à la page de connexion."}
+        Quelque chose s&apos;est mal passé. Veuillez réessayer ou revenir à la page de connexion.
       </p>
       <div className="flex flex-col sm:flex-row gap-4">
         <button
@@ -35,7 +34,7 @@ export default function GlobalError({
         </button>
       </div>
       {error.digest && (
-        <p className="text-xs text-gray-400 mt-2 select-text">Error digest: {error.digest}</p>
+        <p className="text-xs text-gray-400 mt-2 select-text">Référence : {error.digest}</p>
       )}
     </div>
   );
