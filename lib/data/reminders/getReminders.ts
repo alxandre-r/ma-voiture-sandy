@@ -14,6 +14,8 @@ import type { Reminder } from '@/types/reminder';
  * Includes completed reminders so the client can filter as needed.
  * Wrapped in React cache() for request-level deduplication.
  */
+const REMINDER_SELECT = '*, source_expense:expenses!reminders_source_expense_id_fkey(id, date)';
+
 export const getReminders = cache(async (vehicleIds: number[] = []): Promise<Reminder[]> => {
   const demo = await getDemoSession();
   if (demo) return demoData.getReminders(demo.state, vehicleIds);
@@ -24,7 +26,8 @@ export const getReminders = cache(async (vehicleIds: number[] = []): Promise<Rem
 
   if (!user) return [];
 
-  let query = supabase.from('reminders').select('*');
+  // The source maintenance of automatic reminders, for the « créé depuis l'entretien » link
+  let query = supabase.from('reminders').select(REMINDER_SELECT);
 
   if (vehicleIds.length > 0) {
     // Own reminders (any vehicle) + family members' reminders on accessible vehicles
@@ -55,7 +58,7 @@ export const getVehicleReminders = cache(async (vehicleId: number): Promise<Remi
 
   const { data, error } = await supabase
     .from('reminders')
-    .select('*')
+    .select(REMINDER_SELECT)
     .eq('user_id', user.id)
     .eq('vehicle_id', vehicleId)
     .eq('is_completed', false)

@@ -290,7 +290,7 @@ export function upsertMaintenanceReminder(
     (r) => r.vehicle_id === vehicleId && r.maintenance_type_id === typeId,
   );
   if (existing) {
-    Object.assign(existing, fields, { last_triggered_at: at });
+    Object.assign(existing, fields, { last_triggered_at: at, source_expense_id: last.id });
     return;
   }
   state.reminders.push({
@@ -303,6 +303,7 @@ export function upsertMaintenanceReminder(
     maintenance_type_id: typeId,
     estimated_due_date: null,
     created_at: at,
+    source_expense_id: last.id,
     ...fields,
   });
 }
@@ -433,6 +434,8 @@ export function applyOp(state: DemoState, op: DemoOp): void {
       return;
     case 'expense.delete':
       state.expenses = state.expenses.filter((e) => e.id !== op.id);
+      // reminders_source_expense_id_fkey ON DELETE CASCADE
+      state.reminders = state.reminders.filter((r) => r.source_expense_id !== op.id);
       return;
     case 'maintenance.add':
       state.expenses.push({

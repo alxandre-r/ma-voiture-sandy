@@ -11,7 +11,7 @@
  * - Uses shared SelectorsContext for filter state
  */
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 
 import MaintenanceSuggestions from '@/app/(app)/maintenance/components/MaintenanceSuggestions';
@@ -187,6 +187,17 @@ function MaintenanceContent({
     setEditingExpense(expense);
     setShowForm(true);
   }, []);
+
+  // Deep link from a reminder (« Créé automatiquement depuis l'entretien du … »): open that
+  // maintenance, whatever the vehicle/period filters, then clean the URL like the garage does
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const expenseId = Number(searchParams.get('expenseId'));
+    if (!expenseId) return;
+    const found = expenses.find((e) => e.id === expenseId);
+    if (found) handleEditExpense(found);
+    router.replace('/maintenance');
+  }, [searchParams, expenses, handleEditExpense, router]);
 
   const handleCancelForm = useCallback(() => {
     setShowForm(false);

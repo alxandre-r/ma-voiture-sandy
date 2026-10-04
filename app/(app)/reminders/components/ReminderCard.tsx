@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 import ReminderStatusBadge from '@/app/(app)/reminders/components/ReminderStatusBadge';
@@ -178,6 +179,18 @@ export default function ReminderCard({
             </span>
           )}
         </div>
+
+        {/* Source maintenance (automatic reminders) */}
+        {reminder.source_expense && (
+          <Link
+            href={`/maintenance?expenseId=${reminder.source_expense.id}`}
+            className="inline-flex items-center gap-1 text-xs text-custom-1 hover:underline mb-3"
+          >
+            <Icon name="tool" size={12} />
+            Créé automatiquement depuis l&apos;entretien du{' '}
+            {new Date(reminder.source_expense.date).toLocaleDateString('fr-FR')}
+          </Link>
+        )}
 
         {/* Description */}
         {reminder.description && (

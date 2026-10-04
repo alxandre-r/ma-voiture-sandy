@@ -174,14 +174,21 @@ export function getReminders(state: DemoState, vehicleIds: number[] = []): Remin
         (vehicleIds.length > 0 && r.vehicle_id !== null && vehicleIds.includes(r.vehicle_id)),
     )
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .map((r) => ({ ...r }));
+    .map((r) => withSourceExpense(state, r));
+}
+
+/** Embeds the source maintenance like getReminders' select (reminders_source_expense_id_fkey). */
+function withSourceExpense(state: DemoState, r: Reminder): Reminder {
+  const source =
+    r.source_expense_id != null ? state.expenses.find((e) => e.id === r.source_expense_id) : null;
+  return { ...r, source_expense: source ? { id: source.id, date: source.date } : null };
 }
 
 export function getVehicleReminders(state: DemoState, vehicleId: number): Reminder[] {
   return state.reminders
     .filter((r) => r.user_id === DEMO_USER_ID && r.vehicle_id === vehicleId && !r.is_completed)
     .sort(byDueDateAsc)
-    .map((r) => ({ ...r }));
+    .map((r) => withSourceExpense(state, r));
 }
 
 /** Same rule as getOverdueCount: own, active, date-based reminders due within 14 days. */

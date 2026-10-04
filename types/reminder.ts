@@ -23,6 +23,10 @@ export interface Reminder {
   maintenance_type_id: string | null;
   estimated_due_date: string | null;
   created_at: string;
+  /** The maintenance an automatic reminder was computed from; deleting it deletes the reminder. */
+  source_expense_id?: number | null;
+  /** Embedded by getReminders (FK reminders_source_expense_id_fkey); null if not visible. */
+  source_expense?: { id: number; date: string } | null;
   attachments?: Attachment[];
 }
 
