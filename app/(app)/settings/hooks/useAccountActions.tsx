@@ -65,12 +65,18 @@ export default function useAccountActions({ user, showNotification }: UseAccount
         body: JSON.stringify({ name, email }),
       });
 
+      const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
         throw new Error(body?.error ?? 'Erreur lors de la mise à jour');
       }
 
-      showNotification('Profil mis à jour', 'success');
+      if (body?.emailPending) {
+        // The address only changes once the user confirms it (P3.19): keep showing the current one
+        setLocalUser((u) => ({ ...u, email: previousUser.email }));
+        showInfo(body.message);
+      } else {
+        showNotification('Profil mis à jour', 'success');
+      }
 
       // Revalidation non bloquante
       startTransition(() => {

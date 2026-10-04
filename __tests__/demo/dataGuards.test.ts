@@ -85,9 +85,11 @@ const FETCHERS: Array<[string, () => Promise<unknown>]> = [
     async () => (await import('@/lib/data/user/getCurrentUserInfo')).getCurrentUserInfo(),
   ],
   [
-    'getPreferencesByUserId',
+    'getFamilyVisibilityPrefs',
     async () =>
-      (await import('@/lib/data/user/getPreferencesByUserId')).getPreferencesByUserId(DEMO_USER_ID),
+      (await import('@/lib/data/user/getFamilyVisibilityPrefs')).getFamilyVisibilityPrefs([
+        DEMO_USER_ID,
+      ]),
   ],
   [
     'getUserFamilyId',

@@ -22,7 +22,7 @@ import { useGarageActions } from './hooks/useGarageActions';
 import type { Expense } from '@/types/expense';
 import type { FamilyMemberDisplay } from '@/types/family';
 import type { InsuranceData } from '@/types/insurance';
-import type { UserPreferences } from '@/types/userPreferences';
+import type { FamilyVisibilityPrefs } from '@/types/userPreferences';
 import type { Vehicle } from '@/types/vehicle';
 
 const EMPTY_INSURANCE: InsuranceData = { contracts: [], hiddenVehicleIds: [] };
@@ -39,7 +39,7 @@ interface GarageClientProps {
   familyMembers?: FamilyMemberDisplay[] | null;
   expenses?: Expense[];
   insurance?: InsuranceData;
-  familyOwnerPreferences?: Record<string, UserPreferences>;
+  familyOwnerPreferences?: Record<string, FamilyVisibilityPrefs>;
 }
 
 export default function GarageClient({

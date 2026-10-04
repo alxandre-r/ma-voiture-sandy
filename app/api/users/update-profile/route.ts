@@ -102,23 +102,32 @@ export async function POST(request: Request) {
       }
     }
 
-    // Update table users
-    const { error: updateError } = await supabase.from('users').update(updates).eq('id', user.id);
+    // Name only: public.users.email follows auth.users.email through the DB trigger
+    // on_auth_user_email_changed, i.e. once the user has confirmed the new address (P3.19)
+    if (updates.name) {
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ name: updates.name })
+        .eq('id', user.id);
 
-    if (updateError) {
-      console.error('Erreur update users:', updateError);
-      return NextResponse.json(
-        { error: 'Erreur lors de la mise à jour du profil' },
-        { status: 500 },
-      );
+      if (updateError) {
+        console.error('Erreur update users:', updateError);
+        return NextResponse.json(
+          { error: 'Erreur lors de la mise à jour du profil' },
+          { status: 500 },
+        );
+      }
     }
 
     revalidatePath('/', 'layout');
     return NextResponse.json(
-      {
-        success: true,
-        message: 'Profil mis à jour avec succès',
-      },
+      updates.email
+        ? {
+            success: true,
+            emailPending: true,
+            message: `Un lien de confirmation a été envoyé à ${updates.email}. L'adresse sera mise à jour après validation.`,
+          }
+        : { success: true, message: 'Profil mis à jour avec succès' },
       { status: 200 },
     );
   } catch (error) {

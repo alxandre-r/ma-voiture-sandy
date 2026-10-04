@@ -20,7 +20,7 @@ import type { DemoVehicleRow } from './views';
 import type { Expense } from '@/types/expense';
 import type { InsuranceData, InsuranceVehicleRef } from '@/types/insurance';
 import type { Reminder } from '@/types/reminder';
-import type { UserPreferences } from '@/types/userPreferences';
+import type { FamilyVisibilityPrefs, UserPreferences } from '@/types/userPreferences';
 
 const byCreatedAtDesc = (a: { created_at?: string | null }, b: { created_at?: string | null }) =>
   (b.created_at ?? '').localeCompare(a.created_at ?? '');
@@ -72,6 +72,19 @@ export function getUserFamilies(state: DemoState): { id: string; name: string }[
 export function getPreferencesByUserId(state: DemoState, userId: string): UserPreferences | null {
   const prefs = state.preferences.find((p) => p.user_id === userId);
   return prefs ? { ...prefs } : null;
+}
+
+export function getFamilyVisibilityPrefs(
+  state: DemoState,
+  userIds: string[],
+): Record<string, FamilyVisibilityPrefs> {
+  const prefs: Record<string, FamilyVisibilityPrefs> = {};
+  for (const p of state.preferences) {
+    if (!userIds.includes(p.user_id)) continue;
+    const { show_consumption, show_insurance, show_vehicle_details, show_financials } = p;
+    prefs[p.user_id] = { show_consumption, show_insurance, show_vehicle_details, show_financials };
+  }
+  return prefs;
 }
 
 export function getUserPreferences(state: DemoState): UserPreferences | null {

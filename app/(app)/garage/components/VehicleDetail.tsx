@@ -26,7 +26,7 @@ import InsuranceSection from './InsuranceSection';
 import type { Expense } from '@/types/expense';
 import type { InsuranceData } from '@/types/insurance';
 import type { Reminder } from '@/types/reminder';
-import type { UserPreferences } from '@/types/userPreferences';
+import type { FamilyVisibilityPrefs } from '@/types/userPreferences';
 import type { Vehicle } from '@/types/vehicle';
 
 const TRANSMISSION_LABELS = { manual: 'Manuelle', automatic: 'Automatique' } as const;
@@ -46,7 +46,7 @@ interface VehicleDetailProps {
   expenses?: Expense[];
   reminders?: Reminder[];
   insurance: InsuranceData;
-  ownerPreferences?: UserPreferences | null;
+  ownerPreferences?: FamilyVisibilityPrefs | null;
 }
 
 export default function VehicleDetail({

@@ -1,6 +1,6 @@
 import { failLoad } from '@/lib/data/loadError';
 import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
-import { getPreferencesByUserId } from '@/lib/data/user/getPreferencesByUserId';
+import { getFamilyVisibilityPrefs } from '@/lib/data/user/getFamilyVisibilityPrefs';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -30,8 +30,8 @@ export async function getInsuranceData(vehicles: InsuranceVehicleRef[]): Promise
       vehicles.map((v) => v.owner_id).filter((id): id is string => !!id && id !== user.id),
     ),
   ];
-  const prefs = await Promise.all(otherOwnerIds.map((id) => getPreferencesByUserId(id)));
-  const hiddenOwners = new Set(otherOwnerIds.filter((_, i) => prefs[i]?.show_insurance === false));
+  const prefs = await getFamilyVisibilityPrefs(otherOwnerIds);
+  const hiddenOwners = new Set(otherOwnerIds.filter((id) => prefs[id]?.show_insurance === false));
   const hiddenVehicleIds = vehicles
     .filter((v) => v.owner_id && hiddenOwners.has(v.owner_id))
     .map((v) => v.vehicle_id);

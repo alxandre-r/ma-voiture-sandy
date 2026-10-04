@@ -9,3 +9,9 @@ export interface UserPreferences {
   created_at: string;
   updated_at: string;
 }
+
+/** The flags a family member may read about another member (get_family_visibility_prefs). */
+export type FamilyVisibilityPrefs = Pick<
+  UserPreferences,
+  'show_consumption' | 'show_insurance' | 'show_vehicle_details' | 'show_financials'
+>;

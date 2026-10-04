@@ -6,13 +6,12 @@
 import { getAllExpenses } from '@/lib/data/expenses/getAllExpenses';
 import { getFamilyInfo, getFamilyMembers } from '@/lib/data/family';
 import { getInsuranceData } from '@/lib/data/insurance/getInsuranceData';
-import { getPreferencesByUserId } from '@/lib/data/user/getPreferencesByUserId';
+import { getFamilyVisibilityPrefs } from '@/lib/data/user/getFamilyVisibilityPrefs';
 import { getUserFamilyIds } from '@/lib/data/user/getUserFamilyIds';
 import { getUserVehicles, getFamilyVehicles } from '@/lib/data/vehicles';
 
 import GarageClient from './GarageClient';
 
-import type { UserPreferences } from '@/types/userPreferences';
 
 export default async function GaragePage() {
   const [vehicles, familyIds] = await Promise.all([getUserVehicles(), getUserFamilyIds()]);
@@ -72,12 +71,7 @@ export default async function GaragePage() {
   const uniqueOwnerIds = [
     ...new Set(allFamilyVehicles.map((v) => v.owner_id).filter(Boolean) as string[]),
   ];
-  const ownerPrefsArray = await Promise.all(uniqueOwnerIds.map((id) => getPreferencesByUserId(id)));
-  const familyOwnerPreferences: Record<string, UserPreferences> = {};
-  uniqueOwnerIds.forEach((id, i) => {
-    const p = ownerPrefsArray[i];
-    if (p) familyOwnerPreferences[id] = p;
-  });
+  const familyOwnerPreferences = await getFamilyVisibilityPrefs(uniqueOwnerIds);
 
   return (
     <GarageClient

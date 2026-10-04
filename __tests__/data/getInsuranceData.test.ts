@@ -40,8 +40,9 @@ vi.mock('react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react')>()),
   cache: <T>(fn: T) => fn,
 }));
-vi.mock('@/lib/data/user/getPreferencesByUserId', () => ({
-  getPreferencesByUserId: async (id: string) => (id === 'shy' ? { show_insurance: false } : null),
+vi.mock('@/lib/data/user/getFamilyVisibilityPrefs', () => ({
+  getFamilyVisibilityPrefs: async (ids: string[]) =>
+    ids.includes('shy') ? { shy: { show_insurance: false } } : {},
 }));
 
 import { getInsuranceData } from '@/lib/data/insurance/getInsuranceData';
