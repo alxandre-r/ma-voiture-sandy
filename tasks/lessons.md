@@ -17,3 +17,16 @@
 - **Mistake:** the P1.6 migration (`family_members` insert limited to the family creator) only works once `family/join` inserts with the admin client. I flagged "deploy first" in the file header, but the migration ran before the push, and joining a family broke in production.
 - **Rule:** make each migration backward-compatible with the code **currently deployed** (expand → deploy → contract). If that is impossible, ship the code change first, in its own commit, and only then hand over the SQL; never hand both over at the same time.
 - **How to apply:** before giving SQL to run, check `git diff origin/main -- <files the SQL depends on>`. If the dependency isn't on `origin/main`, the SQL isn't ready to run.
+
+## 2026-10-04 — Live DB checks: plain SELECTs only
+
+- **Correction:** the user declined an `execute_sql` call that created a temp table and switched roles (`set_config('role', …)`) inside a DO block to compare a view per user. Nothing persistent, but it was not a plain read.
+- **Rule:** on the live project, run only plain `SELECT`s (no DO blocks, temp tables, role or setting changes, DDL even if rolled back) unless the user has approved that exact kind of query.
+- **How to apply:** to predict RLS effects, count the rows that would behave differently (e.g. rows owned by someone other than the vehicle owner) as `postgres`, instead of impersonating users. If an exact simulation is really needed, ask first and say what it writes.
+
+## 2026-10-04 — Batch independent roadmap items instead of one item per turn
+
+- **Correction:** the user asked me to "make more than one task at a time": I had been finishing one roadmap item, reporting, and waiting.
+- **Rule:** when the user says "go on", take every remaining item of the phase (or a coherent batch) in one turn. Split it by **file set**: items with disjoint files go to a background subagent (told not to touch git and to stay in its file list), overlapping items stay with me. One commit per coherent item; the agent's work in its own commit.
+- **How to apply:** before starting, list the files each item touches; group overlapping items; launch the disjoint group(s) in the background first, then work on mine. Still stop and ask when an item needs SQL on the live DB or a product decision.
+
