@@ -42,7 +42,7 @@ describe('POST fills/add', () => {
     expect(result.status).toBe(201);
     expect(result.json).toMatchObject({
       message: 'Plein ajouté avec succès',
-      fill: { vehicle_id: 101, vehicle_name: '308 SW', fuel_type: 'Diesel', liters: 40 },
+      fill: { vehicle_id: 101, vehicle_name: '308 SW', fuel_type: 'diesel', liters: 40 },
     });
     expect(state.vehicles.find((v) => v.id === DEMO_VEHICLE.peugeot308)?.odometer).toBe(92_900);
   });

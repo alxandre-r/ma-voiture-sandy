@@ -1,10 +1,58 @@
 /**
- * Energy capabilities of a vehicle, derived from `vehicles.fuel_type`.
+ * Vehicle energy domain: `vehicles.fuel_type` codes, their French labels, and the
+ * capabilities they imply.
  *
- * Accepts both the DB codes (`gasoline`, `diesel`, `hybrid`, `plugin_hybrid`, `electric`)
- * and the legacy French labels written by `VehicleForm` and the demo seed (roadmap P2.0).
- * An unknown fuel type (null/empty) allows both energies.
+ * The DB stores codes (CHECK `vehicles_fuel_type_check`). The helpers also accept the
+ * French labels written by older forms and demo journals, so legacy values still work.
  */
+
+export const FUEL_TYPES = ['gasoline', 'diesel', 'hybrid', 'plugin_hybrid', 'electric'] as const;
+export type FuelType = (typeof FUEL_TYPES)[number];
+
+export const FUEL_TYPE_LABELS: Record<FuelType, string> = {
+  gasoline: 'Essence',
+  diesel: 'Diesel',
+  hybrid: 'Hybride non rechargeable',
+  plugin_hybrid: 'Hybride rechargeable',
+  electric: 'Électrique',
+};
+
+const LEGACY_FUEL_TYPES: Record<string, FuelType> = {
+  essence: 'gasoline',
+  diesel: 'diesel',
+  hybride: 'hybrid',
+  'hybride non rechargeable': 'hybrid',
+  'hybride rechargeable': 'plugin_hybrid',
+  'plug-in-hybrid': 'plugin_hybrid',
+  électrique: 'electric',
+};
+
+/**
+ * Maps a stored or submitted value to its code.
+ * Returns null when empty, and undefined when the value is not a known energy.
+ */
+export function normalizeFuelType(value: unknown): FuelType | null | undefined {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return undefined;
+  const key = value.trim().toLowerCase();
+  if (!key) return null;
+  if ((FUEL_TYPES as readonly string[]).includes(key)) return key as FuelType;
+  return LEGACY_FUEL_TYPES[key];
+}
+
+/** French label for display; an unknown value is shown as is. */
+export function fuelTypeLabel(value: string | null | undefined): string | null {
+  const code = normalizeFuelType(value);
+  if (code) return FUEL_TYPE_LABELS[code];
+  return value?.trim() || null;
+}
+
+/** Hybrids and EVs: their transmission is always automatic. */
+export function isElectrified(value: string | null | undefined): boolean {
+  const code = normalizeFuelType(value);
+  return code === 'hybrid' || code === 'plugin_hybrid' || code === 'electric';
+}
+
 export interface VehicleEnergy {
   /** Can log fuel fills (liters) */
   fuel: boolean;
@@ -12,14 +60,12 @@ export interface VehicleEnergy {
   electric: boolean;
 }
 
-const ELECTRIC_ONLY = new Set(['electric', 'électrique']);
-const PLUGIN_HYBRID = new Set(['plugin_hybrid', 'plug-in-hybrid', 'hybride rechargeable']);
-
+/** An unknown fuel type (null/empty) allows both energies; an unrecognised one is treated as fuel. */
 export function vehicleEnergy(fuelType: string | null | undefined): VehicleEnergy {
-  const value = fuelType?.trim().toLowerCase();
-  if (!value) return { fuel: true, electric: true };
-  if (ELECTRIC_ONLY.has(value)) return { fuel: false, electric: true };
-  if (PLUGIN_HYBRID.has(value)) return { fuel: true, electric: true };
+  const code = normalizeFuelType(fuelType);
+  if (code === null) return { fuel: true, electric: true };
+  if (code === 'electric') return { fuel: false, electric: true };
+  if (code === 'plugin_hybrid') return { fuel: true, electric: true };
   return { fuel: true, electric: false };
 }
 

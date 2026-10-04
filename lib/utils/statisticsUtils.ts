@@ -6,6 +6,7 @@
 
 import { EXPENSE_CATEGORIES } from '@/app/(app)/expenses/components/expenseCategories';
 import { filterByVehiclesAndPeriod, getEffectivePeriodRange } from '@/lib/utils/filterUtils';
+import { normalizeFuelType, vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 import { getCategoryName } from '@/types/expense';
 
 import type { Expense } from '@/types/expense';
@@ -440,7 +441,7 @@ function computeVehicleStats(
       map.set(e.vehicle_id, {
         name: v?.name ?? e.vehicle_name ?? `Véhicule ${e.vehicle_id}`,
         color: v?.color || 'gray',
-        isElectric: v?.fuel_type === 'Électrique' || v?.fuel_type === 'Hybride',
+        isElectric: vehicleEnergy(v?.fuel_type).electric,
         count: 1,
         cost: e.amount ?? 0,
         vehicle: v,
@@ -641,7 +642,7 @@ function computeDistanceEnergy(
 
   const hasElectricVehicle = vehicles
     .filter((v) => selectedVehicleIds.includes(v.vehicle_id))
-    .some((v) => v.fuel_type === 'Électrique' || v.fuel_type === 'Hybride');
+    .some((v) => vehicleEnergy(v.fuel_type).electric);
 
   return {
     totalKilometers,
@@ -725,7 +726,7 @@ function computeCarbonAndCost(
     } else {
       // ADEME factors from actual consumption data
       for (const e of expenses.filter((ex) => ex.vehicle_id === vehicleId)) {
-        const isDiesel = vehicle?.fuel_type?.toLowerCase().includes('diesel');
+        const isDiesel = normalizeFuelType(vehicle?.fuel_type) === 'diesel';
         if (e.type === 'fuel' && e.liters != null) {
           totalCO2 += e.liters * (isDiesel ? CO2_DIESEL : CO2_GASOLINE);
         } else if (e.type === 'electric_charge' && e.kwh != null) {

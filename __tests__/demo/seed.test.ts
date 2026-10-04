@@ -43,10 +43,10 @@ describe('buildDemoSeed', () => {
   it('uses the French fuel labels written by VehicleForm', () => {
     const seed = buildDemoSeed(TODAY);
     expect(seed.vehicles.map((v) => v.fuel_type)).toEqual([
-      'Diesel',
-      'Électrique',
-      'Hybride rechargeable',
-      'Essence',
+      'diesel',
+      'electric',
+      'plugin_hybrid',
+      'gasoline',
     ]);
   });
 

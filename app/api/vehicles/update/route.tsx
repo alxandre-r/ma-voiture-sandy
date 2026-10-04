@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { normalizeFuelType } from '@/lib/utils/vehicleEnergy';
 
 import type { Vehicle } from '@/types/vehicle';
 
@@ -88,6 +89,14 @@ export async function PATCH(request: Request) {
         updateData[key] = toNumber(value as number);
       } else if (key === 'plate' || key === 'vin') {
         updateData[key] = toUpperCase(value as string);
+      } else if (key === 'fuel_type') {
+        const fuelType = normalizeFuelType(value);
+        if (fuelType === undefined) {
+          return NextResponse.json({ error: 'Type de carburant invalide' }, { status: 400 });
+        }
+        updateData[key] = fuelType;
+      } else if (key === 'transmission') {
+        updateData[key] = value === 'manual' || value === 'automatic' ? value : null;
       } else {
         updateData[key] = value;
       }

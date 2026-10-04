@@ -8,6 +8,7 @@ import { Modal } from '@/components/common/ui/Modal';
 import Spinner from '@/components/common/ui/Spinner';
 import { useSelectors } from '@/contexts/SelectorsContext';
 import { formatCurrency } from '@/lib/utils/format';
+import { fuelTypeLabel } from '@/lib/utils/vehicleEnergy';
 
 // ---- Types ----
 interface SearchExpense {
@@ -61,16 +62,6 @@ function formatDate(dateStr: string | null) {
     year: 'numeric',
   });
 }
-
-const FUEL_LABELS: Record<string, string> = {
-  essence: 'Essence',
-  diesel: 'Diesel',
-  electric: 'Électrique',
-  hybrid: 'Hybride',
-  'plug-in-hybrid': 'Hybride rechargeable',
-  lpg: 'GPL',
-  hydrogen: 'Hydrogène',
-};
 
 // ---- Props ----
 interface GlobalSearchProps {
@@ -229,9 +220,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         setSelectedIndex((i) => (i + 1) % Math.max(items.length, 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex(
-          (i) => (i - 1 + Math.max(items.length, 1)) % Math.max(items.length, 1),
-        );
+        setSelectedIndex((i) => (i - 1 + Math.max(items.length, 1)) % Math.max(items.length, 1));
       } else if (e.key === 'Enter' && items[selectedIndex]) {
         navigate(items[selectedIndex]);
       }
@@ -252,7 +241,8 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     <Modal isOpen={isOpen} onClose={onClose} title="Rechercher" size="md" fullscreenOnMobile>
       {/* Search input — breaks out of Modal's px-6 py-4 padding */}
       <div className="flex items-center gap-3 -mx-6 -mt-4 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-        <Icon name="search" size={18} className="text-gray-400 shrink-0" /> {/* Search icon not working (color not beeing applied) */} 
+        <Icon name="search" size={18} className="text-gray-400 shrink-0" />{' '}
+        {/* Search icon not working (color not beeing applied) */}
         <input
           ref={inputRef}
           type="text"
@@ -293,7 +283,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                     [v.make, v.model].filter(Boolean).join(' ') ||
                     v.name ||
                     `Véhicule ${v.vehicle_id}`;
-                  const fuelLabel = v.fuel_type ? FUEL_LABELS[v.fuel_type] : null;
+                  const fuelLabel = fuelTypeLabel(v.fuel_type);
                   const sub = [
                     v.name !== label ? v.name : null,
                     fuelLabel,

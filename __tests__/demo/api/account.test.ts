@@ -45,6 +45,7 @@ describe('vehicles endpoints', () => {
         make: 'Renault',
         plate: 'AB-123-CD',
         owner_id: DEMO_USER_ID,
+        fuel_type: 'gasoline',
         tech_control_expiry: null,
       },
     });
@@ -69,6 +70,25 @@ describe('vehicles endpoints', () => {
       status: 400,
       json: { error: 'No valid fields to update' },
     });
+  });
+
+  it('stores fuel type codes and rejects unknown energies like the real routes', () => {
+    const state = seed();
+    const invalid = { status: 400, json: { error: 'Type de carburant invalide' } };
+    expect(
+      call(state, 'POST', 'vehicles/add', { make: 'Renault', model: 'Zoe', fuel_type: 'GPL' }),
+    ).toEqual(invalid);
+    expect(
+      call(state, 'PATCH', 'vehicles/update', {
+        vehicle_id: DEMO_VEHICLE.peugeot308,
+        fuel_type: 'GPL',
+      }),
+    ).toEqual(invalid);
+    const update = call(state, 'PATCH', 'vehicles/update', {
+      vehicle_id: DEMO_VEHICLE.peugeot308,
+      fuel_type: 'Hybride rechargeable',
+    });
+    expect(update.json).toMatchObject({ vehicle: { fuel_type: 'plugin_hybrid' } });
   });
 
   it('deletes owned vehicles only', () => {

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { defaultChargeType, fillInputError, vehicleEnergy } from '@/lib/utils/vehicleEnergy';
+import {
+  defaultChargeType,
+  fillInputError,
+  fuelTypeLabel,
+  isElectrified,
+  normalizeFuelType,
+  vehicleEnergy,
+} from '@/lib/utils/vehicleEnergy';
 
 describe('vehicleEnergy', () => {
   it.each([
@@ -46,5 +53,52 @@ describe('vehicleEnergy', () => {
     expect(defaultChargeType('electric')).toBe('charge');
     expect(defaultChargeType('Hybride rechargeable')).toBe('fill');
     expect(defaultChargeType(null)).toBe('fill');
+  });
+});
+
+describe('normalizeFuelType', () => {
+  it.each([
+    ['gasoline', 'gasoline'],
+    ['plugin_hybrid', 'plugin_hybrid'],
+    ['Essence', 'gasoline'],
+    ['Diesel', 'diesel'],
+    ['Hybride', 'hybrid'],
+    ['Hybride non rechargeable', 'hybrid'],
+    ['Hybride rechargeable', 'plugin_hybrid'],
+    ['plug-in-hybrid', 'plugin_hybrid'],
+    [' Électrique ', 'electric'],
+  ])('%s -> %s', (input, expected) => {
+    expect(normalizeFuelType(input)).toBe(expected);
+  });
+
+  it('returns null for empty and undefined for unknown values', () => {
+    expect(normalizeFuelType(null)).toBeNull();
+    expect(normalizeFuelType('')).toBeNull();
+    expect(normalizeFuelType('GPL')).toBeUndefined();
+    expect(normalizeFuelType(42)).toBeUndefined();
+  });
+});
+
+describe('fuelTypeLabel', () => {
+  it('labels codes and legacy labels in French', () => {
+    expect(fuelTypeLabel('gasoline')).toBe('Essence');
+    expect(fuelTypeLabel('plugin_hybrid')).toBe('Hybride rechargeable');
+    expect(fuelTypeLabel('Électrique')).toBe('Électrique');
+    expect(fuelTypeLabel('hybrid')).toBe('Hybride non rechargeable');
+  });
+
+  it('returns null when empty, and the raw value when unknown', () => {
+    expect(fuelTypeLabel(null)).toBeNull();
+    expect(fuelTypeLabel('GPL')).toBe('GPL');
+  });
+});
+
+describe('isElectrified', () => {
+  it('is true for every hybrid and EV', () => {
+    expect(isElectrified('hybrid')).toBe(true);
+    expect(isElectrified('plugin_hybrid')).toBe(true);
+    expect(isElectrified('electric')).toBe(true);
+    expect(isElectrified('diesel')).toBe(false);
+    expect(isElectrified(null)).toBe(false);
   });
 });

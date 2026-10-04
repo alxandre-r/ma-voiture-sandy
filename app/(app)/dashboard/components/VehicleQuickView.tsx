@@ -8,6 +8,7 @@ import Icon from '@/components/common/ui/Icon';
 import { formatDate } from '@/lib/utils/format';
 import { getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
 import { getLocalToday } from '@/lib/utils/isoDate';
+import { fuelTypeLabel, vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 import { computeHealthScore } from '@/lib/utils/vehicleHealthUtils';
 
 import type { Expense } from '@/types/expense';
@@ -44,17 +45,22 @@ function VehicleRow({
 }) {
   const vehicleName =
     (vehicle.name ?? `${vehicle.make ?? ''} ${vehicle.model ?? ''}`.trim()) || 'Véhicule';
-  const isElectric = vehicle.fuel_type === 'electric';
+  const isElectric = !vehicleEnergy(vehicle.fuel_type).fuel;
   const techStatus = getTechControlStatus(vehicle.tech_control_expiry);
   const health = computeHealthScore(vehicle, { reminders, expenses, hasActiveInsurance });
 
-  const subtitleParts = [vehicle.plate, vehicle.fuel_type, vehicle.year?.toString()].filter(
-    Boolean,
-  );
+  const subtitleParts = [
+    vehicle.plate,
+    fuelTypeLabel(vehicle.fuel_type),
+    vehicle.year?.toString(),
+  ].filter(Boolean);
 
   return (
     <div className="flex items-center gap-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
-      <Link href={`/garage?vehicleId=${vehicle.vehicle_id}`} className="flex items-center gap-4 w-full">
+      <Link
+        href={`/garage?vehicleId=${vehicle.vehicle_id}`}
+        className="flex items-center gap-4 w-full"
+      >
         {/* Thumbnail */}
         <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800">
           {vehicle.image ? (

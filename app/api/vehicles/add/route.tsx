@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { normalizeFuelType } from '@/lib/utils/vehicleEnergy';
 
 import type { Vehicle } from '@/types/vehicle';
 
@@ -44,6 +45,11 @@ export async function POST(request: Request) {
       co2_emission,
     } = body;
 
+    const fuelType = normalizeFuelType(fuel_type);
+    if (fuelType === undefined) {
+      return NextResponse.json({ error: 'Type de carburant invalide' }, { status: 400 });
+    }
+
     // Helper to convert empty strings to null for date fields
     const toDate = (value: string | undefined | null) => {
       if (!value || value === '') return null;
@@ -72,14 +78,15 @@ export async function POST(request: Request) {
           make,
           model,
           year: year || null,
-          fuel_type: fuel_type || null,
+          fuel_type: fuelType,
           odometer: odometer || 0,
           color: color || null,
           plate: toUpperCase(plate),
           // New fields
           status: status || 'active',
           vin: toUpperCase(vin),
-          transmission: transmission || null,
+          transmission:
+            transmission === 'manual' || transmission === 'automatic' ? transmission : null,
           image: image || null,
           tech_control_expiry: toDate(tech_control_expiry),
           financing_mode: financing_mode || null,

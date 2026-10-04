@@ -21,7 +21,7 @@ export interface Fill {
 
   // Vehicle info (from fills_for_display view)
   vehicle_name?: string | null;
-  fuel_type?: string | null; // Vehicle fuel type (Essence, Diesel, Électrique, Hybride)
+  fuel_type?: string | null; // Vehicle fuel type code (see lib/utils/vehicleEnergy.ts)
 
   attachments?: Attachment[];
 }

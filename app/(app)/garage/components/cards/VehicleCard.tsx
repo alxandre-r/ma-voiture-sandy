@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 
 import Icon from '@/components/common/ui/Icon';
 import ProfilePicture from '@/components/user/ProfilePicture';
+import { fuelTypeLabel } from '@/lib/utils/vehicleEnergy';
 import { computeHealthScore } from '@/lib/utils/vehicleHealthUtils';
 
 import type { Vehicle } from '@/types/vehicle';
@@ -154,7 +155,7 @@ export default function VehicleCard({
           <div className="flex flex-col">
             <span className="text-[10px] text-gray-400 font-bold uppercase">Carburant</span>
             <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-              {vehicle.fuel_type || '—'}
+              {fuelTypeLabel(vehicle.fuel_type) || '—'}
             </span>
           </div>
           <div className="flex flex-col">

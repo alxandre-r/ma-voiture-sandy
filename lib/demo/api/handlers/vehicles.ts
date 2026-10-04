@@ -1,3 +1,5 @@
+import { normalizeFuelType } from '@/lib/utils/vehicleEnergy';
+
 import { DEMO_USER_ID } from '../../constants';
 import { EMPTY_VEHICLE, nextId } from '../../ops';
 import { fail, isIsoDate, reply, toNumber, toText, visibleVehicle } from '../helpers';
@@ -14,7 +16,7 @@ function toVehicleData(body: JsonBody): VehicleData {
   if ('make' in body) data.make = typeof body.make === 'string' ? body.make.trim() : '';
   if ('model' in body) data.model = typeof body.model === 'string' ? body.model.trim() : '';
   if ('year' in body) data.year = toNumber(body.year);
-  if ('fuel_type' in body) data.fuel_type = toText(body.fuel_type);
+  if ('fuel_type' in body) data.fuel_type = normalizeFuelType(body.fuel_type) ?? null;
   if ('odometer' in body) data.odometer = toNumber(body.odometer) ?? 0;
   if ('color' in body) data.color = toText(body.color);
   if ('plate' in body) data.plate = toText(body.plate)?.toUpperCase() ?? null;
@@ -45,6 +47,10 @@ function toVehicleData(body: JsonBody): VehicleData {
   return data;
 }
 
+/** Same 400 as vehicles/add and vehicles/update for an unknown energy. */
+const invalidFuelType = (body: JsonBody) =>
+  'fuel_type' in body && normalizeFuelType(body.fuel_type) === undefined;
+
 function isPermissionEntry(
   value: unknown,
 ): value is { userId: string; level: 'read' | 'write' | 'none' } {
@@ -55,6 +61,7 @@ function isPermissionEntry(
 
 export const vehicleHandlers: Record<string, DemoApiHandler> = {
   'POST vehicles/add': ({ state, body, now }) => {
+    if (invalidFuelType(body)) return fail(400, 'Type de carburant invalide');
     const data = toVehicleData(body);
     if (!data.make) return fail(500, 'La marque est requise');
     if (!data.model) return fail(500, 'Le modèle est requis');
@@ -70,6 +77,7 @@ export const vehicleHandlers: Record<string, DemoApiHandler> = {
   'PATCH vehicles/update': ({ state, body }) => {
     const id = toNumber(body.vehicle_id);
     if (!id) return fail(400, 'Vehicle ID is required');
+    if (invalidFuelType(body)) return fail(400, 'Type de carburant invalide');
     const vehicle = state.vehicles.find((v) => v.id === id);
     const visible = visibleVehicle(state, id);
     if (!vehicle || !visible) return fail(404, 'Véhicule introuvable');

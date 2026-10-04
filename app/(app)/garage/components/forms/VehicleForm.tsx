@@ -10,9 +10,16 @@ import { FormField, FormInput, FormSelect } from '@/components/common/ui/form';
 import Icon from '@/components/common/ui/Icon';
 import Spinner from '@/components/common/ui/Spinner';
 import { useNotifications } from '@/contexts/NotificationContext';
+import {
+  FUEL_TYPE_LABELS,
+  FUEL_TYPES,
+  isElectrified,
+  normalizeFuelType,
+} from '@/lib/utils/vehicleEnergy';
 
 import VehicleImageModal from '../modals/VehicleImageModal';
 
+import type { FuelType } from '@/lib/utils/vehicleEnergy';
 import type { Vehicle } from '@/types/vehicle';
 
 interface VehicleFormProps {
@@ -44,7 +51,7 @@ export default function VehicleForm({
     // Status
     status: 'active' as 'active' | 'sold' | 'archived',
     // Technical
-    fuel_type: 'gasoline',
+    fuel_type: 'gasoline' as FuelType,
     transmission: 'manual' as 'manual' | 'automatic',
     odometer: 0,
     // Image
@@ -71,8 +78,10 @@ export default function VehicleForm({
         plate: vehicle.plate || '',
         vin: vehicle.vin || '',
         status: vehicle.status || 'active',
-        fuel_type: vehicle.fuel_type || 'gasoline',
-        transmission: vehicle.transmission || 'manual',
+        fuel_type: normalizeFuelType(vehicle.fuel_type) || 'gasoline',
+        transmission: isElectrified(vehicle.fuel_type)
+          ? 'automatic'
+          : vehicle.transmission || 'manual',
         odometer: vehicle.odometer || 0,
         image: vehicle.image || '',
         color: vehicle.color || '#f97316',
@@ -85,9 +94,8 @@ export default function VehicleForm({
     }
   }, [vehicle]);
 
-  // Check if vehicle is electric or hybrid (both should have automatic transmission)
-  const isElectricOrHybrid =
-    formData.fuel_type === 'electric' || formData.fuel_type === 'hybrid';
+  // Hybrids and EVs always have an automatic transmission
+  const isElectricOrHybrid = isElectrified(formData.fuel_type);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -106,10 +114,10 @@ export default function VehicleForm({
           : value;
 
     // If fuel_type changes to electric or hybrid, automatically set transmission to automatic
-    if (name === 'fuel_type' && (value === 'electric' || value === 'hybrid')) {
+    if (name === 'fuel_type' && isElectrified(value)) {
       setFormData((prev) => ({
         ...prev,
-        fuel_type: value,
+        fuel_type: value as FuelType,
         transmission: 'automatic',
       }));
     } else {
@@ -394,11 +402,11 @@ export default function VehicleForm({
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="Type de carburant">
                   <FormSelect name="fuel_type" value={formData.fuel_type} onChange={handleChange}>
-                    <option value="Essence">Essence</option>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Hybride non rechargeable">Hybride non rechargeable</option>
-                    <option value="Hybride rechargeable">Hybride rechargeable</option>
-                    <option value="Électrique">Électrique</option>
+                    {FUEL_TYPES.map((code) => (
+                      <option key={code} value={code}>
+                        {FUEL_TYPE_LABELS[code]}
+                      </option>
+                    ))}
                   </FormSelect>
                 </FormField>
                 <FormField label="Transmission">

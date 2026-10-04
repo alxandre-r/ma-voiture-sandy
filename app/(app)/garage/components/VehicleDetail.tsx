@@ -14,6 +14,7 @@ import ProfilePicture from '@/components/user/ProfilePicture';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { contractsOf, getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
 import { getLocalToday } from '@/lib/utils/isoDate';
+import { fuelTypeLabel } from '@/lib/utils/vehicleEnergy';
 import { computeHealthScore } from '@/lib/utils/vehicleHealthUtils';
 
 import { ConfirmationModal } from '../../../../components/common/ui/ConfirmationModal';
@@ -26,6 +27,8 @@ import type { InsuranceData } from '@/types/insurance';
 import type { Reminder } from '@/types/reminder';
 import type { UserPreferences } from '@/types/userPreferences';
 import type { Vehicle } from '@/types/vehicle';
+
+const TRANSMISSION_LABELS = { manual: 'Manuelle', automatic: 'Automatique' } as const;
 
 interface VehicleOwner {
   user_id: string;
@@ -285,7 +288,10 @@ export default function VehicleDetail({
 
       {/* Info Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <HealthScoreCard health={health} vehicleId={isFamilyVehicle ? undefined : vehicle.vehicle_id} />
+        <HealthScoreCard
+          health={health}
+          vehicleId={isFamilyVehicle ? undefined : vehicle.vehicle_id}
+        />
         {showConsumption && (
           <Card>
             <CardHeader className="pb-3">
@@ -294,8 +300,11 @@ export default function VehicleDetail({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <CardRow label="Carburant" value={vehicle.fuel_type || '—'} />
-              <CardRow label="Transmission" value={vehicle.transmission || '—'} />
+              <CardRow label="Carburant" value={fuelTypeLabel(vehicle.fuel_type) || '—'} />
+              <CardRow
+                label="Transmission"
+                value={vehicle.transmission ? TRANSMISSION_LABELS[vehicle.transmission] : '—'}
+              />
               {/* Odometer — inline editable */}
               <div className="flex items-center justify-between py-2 px-1 gap-2">
                 <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">
