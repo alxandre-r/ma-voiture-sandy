@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function POST() {
@@ -17,10 +17,7 @@ export async function POST() {
     }
 
     // Client admin avec service_role pour supprimer le compte
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+    const supabaseAdmin = createSupabaseAdminClient();
 
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 

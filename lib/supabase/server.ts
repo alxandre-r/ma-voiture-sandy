@@ -1,8 +1,8 @@
 /**
- * @file lib/supabaseServer.ts
- * @fileoverview Fournit un createSupabaseServerClient() asynchrone qui lit les cookies
- *              via next/headers pour permettre au serveur (middleware, server components)
- *              d'accéder à la session Supabase.
+ * @file lib/supabase/server.ts
+ * @fileoverview Cookie-bound Supabase client for Server Components and API routes.
+ *              Built with the anon key: every query runs as the signed-in user under RLS,
+ *              and as `anon` (no access) without a session. For RLS bypass, see ./admin.ts.
  */
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -16,7 +16,7 @@ export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {

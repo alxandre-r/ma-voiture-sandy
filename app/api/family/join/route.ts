@@ -3,17 +3,11 @@
  * @description API endpoint to join a family using an invitation token.
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-
-// Admin client (no session → service role → bypasses RLS) — used for token lookup only
-const adminSupabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
 
 export async function POST(request: Request) {
   try {
@@ -40,6 +34,7 @@ export async function POST(request: Request) {
 
     // Find family with matching invite token — use admin client to bypass RLS
     // (regular user can't SELECT families they haven't joined yet)
+    const adminSupabase = createSupabaseAdminClient();
     const { data: family, error: familyError } = await adminSupabase
       .from('families')
       .select('id, name, owner_id, invite_token')

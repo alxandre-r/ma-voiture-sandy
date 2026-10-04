@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
@@ -21,11 +22,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Token d'invitation requis" }, { status: 400 });
     }
 
-    // Query families directly — RLS is USING(true) for authenticated users,
-    // so any authenticated user can look up a family by invite token.
-    // We avoid joining users here because the viewer is not yet a family member,
-    // so RLS on users would block reading the owner's row (security_invoker view).
-    const { data: family, error } = await supabase
+    // Admin client: RLS only lets owners and members read a family, and the viewer is not a
+    // member yet. Knowing the invite token is the authorization; only public fields are returned.
+    const { data: family, error } = await createSupabaseAdminClient()
       .from('families')
       .select('id, name, created_at, owner_id')
       .eq('invite_token', inviteToken)

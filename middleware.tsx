@@ -1,65 +1,78 @@
 /**
  * Middleware Next.js
  * ------------------
- * - Protège les pages privées en redirigeant vers / si l'utilisateur n'est pas connecté.
- * - Laisse passer les pages publiques (/, /auth/*, /api/*, etc.)
- * - Lorsque c'est un lien d'invitation, si !session, redirige vers la page de connexion en passant le token
- * - Mode démo (cookie mv_demo) : les API sont réécrites vers /api/demo/*, les pages passent sans session.
+ * - Refreshes the Supabase session on every matched request (cookies written on the response).
+ * - Protects private pages: without a user, redirects to / (or to /?redirect=… for invite links).
+ * - Public: the landing page (/ exactly), /auth/*, /demo, and /api/* (routes return 401 themselves).
+ * - Mode démo (cookie mv_demo) : les API sont réécrites vers /api/demo/*, les pages passent sans
+ *   session, et rien n'atteint Supabase.
  */
 
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
 import { DEMO_COOKIE } from '@/lib/demo/constants';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 import type { NextRequest } from 'next/server';
 
-// Public paths that don't require authentication
-const PUBLIC_PATHS = ['/', '/auth', '/api/', '/demo', '/_next', '/icons/', '/images/', '/favicon'];
+const PUBLIC_PREFIXES = ['/auth', '/demo', '/api/'];
 
 function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p));
+  return pathname === '/' || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isDemo = req.cookies.has(DEMO_COOKIE);
 
-  // Demo mode: every API call is answered by the sandboxed fake backend (never Supabase)
-  if (isDemo && pathname.startsWith('/api/') && !pathname.startsWith('/api/demo/')) {
-    const target = `/api/demo/${pathname.slice('/api/'.length)}${req.nextUrl.search}`;
-    return NextResponse.rewrite(new URL(target, req.url));
-  }
-
-  // Skip public paths and static assets
-  if (isPublicPath(pathname)) {
-    const response = NextResponse.next();
-    if (pathname.startsWith('/_next/static/')) {
-      response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-    } else if (pathname.startsWith('/icons/') || pathname.startsWith('/images/')) {
-      response.headers.set('Cache-Control', 'public, max-age=86400');
+  // Demo mode: never reach Supabase. API calls go to the sandboxed fake backend.
+  if (req.cookies.has(DEMO_COOKIE)) {
+    if (pathname.startsWith('/api/') && !pathname.startsWith('/api/demo/')) {
+      const target = `/api/demo/${pathname.slice('/api/'.length)}${req.nextUrl.search}`;
+      return NextResponse.rewrite(new URL(target, req.url));
     }
-    return response;
+    return NextResponse.next();
   }
 
-  // Demo pages never need a Supabase session
-  if (isDemo) return NextResponse.next();
+  // Session refresh (official @supabase/ssr pattern): token refreshes are written to both the
+  // request (for this render) and the response (for the browser).
+  let response = NextResponse.next({ request: req });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
+          response = NextResponse.next({ request: req });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
 
-  // All other paths are protected — verify session
-  const supabase = await createSupabaseServerClient();
+  // getUser() validates the token with Supabase Auth (getSession() only reads the cookie).
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
-    // Family join links: preserve the invite URL after login
-    if (pathname.startsWith('/family/join')) {
-      return NextResponse.redirect(
-        new URL('/?redirect=' + encodeURIComponent(pathname + req.nextUrl.search), req.url),
-      );
-    }
-    return NextResponse.redirect(new URL('/?reason=session_expired', req.url));
-  }
+  if (user || isPublicPath(pathname)) return response;
 
-  return NextResponse.next();
+  // Family join links: preserve the invite URL after login
+  const target = pathname.startsWith('/family/join')
+    ? '/?redirect=' + encodeURIComponent(pathname + req.nextUrl.search)
+    : '/?reason=session_expired';
+  const redirect = NextResponse.redirect(new URL(target, req.url));
+  // Keep any cookie cleared by a failed refresh
+  response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  return redirect;
 }
+
+export const config = {
+  // Everything except Next internals and static files (public/ assets have an extension)
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.[a-zA-Z0-9]+$).*)'],
+};

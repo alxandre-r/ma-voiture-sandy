@@ -2,11 +2,12 @@
 import { NextRequest } from 'next/server';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/supabase/server', () => ({
-  createSupabaseServerClient: vi.fn(async () => ({
-    auth: { getSession: async () => ({ data: { session: null } }) },
+const { createServerClient } = vi.hoisted(() => ({
+  createServerClient: vi.fn(() => ({
+    auth: { getUser: async () => ({ data: { user: null } }) },
   })),
 }));
+vi.mock('@supabase/ssr', () => ({ createServerClient }));
 
 import { middleware } from '@/middleware';
 
@@ -36,11 +37,17 @@ describe('middleware demo routing', () => {
     expect(res.headers.get('x-middleware-rewrite')).toContain('/api/demo/expenses/get');
   });
 
-  // Passes even without the isDemo page branch: isPublicPath() currently matches every path
-  // (known bug, spec §3.3/§12).
   it('lets demo pages through without a Supabase session', async () => {
     const res = await middleware(request('/dashboard', 'mv_demo=v1.abc'));
     expect(res.headers.get('x-middleware-rewrite')).toBeNull();
+    expect(res.headers.get('location')).toBeNull();
     expect(res.status).toBe(200);
+  });
+
+  it('never creates a Supabase client in demo mode', async () => {
+    createServerClient.mockClear();
+    await middleware(request('/dashboard', 'mv_demo=v1.abc'));
+    await middleware(request('/api/fills/add', 'mv_demo=v1.abc'));
+    expect(createServerClient).not.toHaveBeenCalled();
   });
 });

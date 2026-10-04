@@ -15,7 +15,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // public/ assets (was set by the middleware, which no longer runs on static files)
+      {
+        source: '/icons/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400' }],
+      },
+    ];
   },
   images: {
     remotePatterns: [

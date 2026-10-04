@@ -8,6 +8,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function DELETE(
@@ -56,7 +57,9 @@ export async function DELETE(
     );
   }
 
-  const { error } = await supabase
+  // Admin client: RLS only lets a user delete their own membership. The owner check above
+  // authorizes removing someone else's row.
+  const { error } = await createSupabaseAdminClient()
     .from('family_members')
     .delete()
     .eq('family_id', familyId)
