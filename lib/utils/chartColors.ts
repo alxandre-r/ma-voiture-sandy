@@ -2,18 +2,14 @@
  * Constantes de couleurs pour les graphiques — alignées sur la charte custom-1/custom-2.
  * Centralise toutes les couleurs hex utilisées dans Recharts pour éviter la divergence.
  */
+import { EXPENSE_TYPE_CONFIG } from '@/lib/utils/expenseTypeConfig';
 
-/**
- * Couleurs par catégorie de dépense — alignées sur expenseCategories.ts.
- * custom-2 (orange) pour le carburant, blue pour l'électricité, amber pour entretien, emerald pour assurance, violet pour autre.
- */
+/** Chart color per expense type, from EXPENSE_TYPE_CONFIG; `energy` = fuel + charge together. */
 export const CATEGORY_COLORS: Record<string, string> = {
-  fuel: '#f26e52', // custom-2 orange
-  electric_charge: '#3b82f6', // blue (same as the Électricité category)
-  energy: '#f26e52', // custom-2 orange
-  maintenance: '#f59e0b', // amber
-  insurance: '#10b981', // emerald
-  other: '#8b5cf6', // violet soft
+  ...Object.fromEntries(
+    Object.entries(EXPENSE_TYPE_CONFIG).map(([type, config]) => [type, config.color]),
+  ),
+  energy: EXPENSE_TYPE_CONFIG.fuel.color,
 };
 
 /** Palette pour les lignes multi-véhicules dans les charts (quand pas de couleur véhicule) */

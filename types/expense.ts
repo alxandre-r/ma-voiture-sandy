@@ -1,3 +1,5 @@
+import { expenseTypeConfig } from '@/lib/utils/expenseTypeConfig';
+
 import type { Attachment } from '@/types/attachment';
 
 // Type for the expenses_for_display view
@@ -56,18 +58,4 @@ export interface ExpenseFormData {
 }
 
 // Get the category name for an expense type (for grouping in statistics)
-export const getCategoryName = (type: string): string => {
-  switch (type) {
-    case 'fuel':
-      return 'Carburant';
-    case 'electric_charge':
-      return 'Électricité';
-    case 'insurance':
-      return 'Assurance';
-    case 'maintenance':
-      return 'Entretien';
-    case 'other':
-    default:
-      return 'Autre';
-  }
-};
+export const getCategoryName = (type: string): string => expenseTypeConfig(type).label;

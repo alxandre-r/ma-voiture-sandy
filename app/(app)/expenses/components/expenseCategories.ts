@@ -1,4 +1,5 @@
 // Shared expense category colors for expense components
+import { EXPENSE_TYPE_CONFIG } from '@/lib/utils/expenseTypeConfig';
 
 export interface ExpenseCategory {
   name: string;
@@ -7,38 +8,13 @@ export interface ExpenseCategory {
   iconPath: string;
 }
 
-export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
-  {
-    name: 'Carburant',
-    color: '#f26e52',
-    bgColor: 'bg-orange-100/50',
-    iconPath: '/icons/expenseCategories/carburant.svg',
-  },
-  {
-    name: 'Électricité',
-    color: '#3B82F6',
-    bgColor: 'bg-blue-100/50',
-    iconPath: '/icons/elec-blue.svg',
-  },
-  {
-    name: 'Assurance',
-    color: '#10B981',
-    bgColor: 'bg-green-100/50',
-    iconPath: '/icons/expenseCategories/assurance.svg',
-  },
-  {
-    name: 'Entretien',
-    color: '#F59E0B',
-    bgColor: 'bg-amber-100/50',
-    iconPath: '/icons/expenseCategories/maintenance.svg',
-  },
-  {
-    name: 'Autre',
-    color: '#8B5CF6',
-    bgColor: 'bg-violet-100/50',
-    iconPath: '/icons/expenseCategories/other.svg',
-  },
-];
+// Derived from EXPENSE_TYPE_CONFIG (P5.18); this order is the stacking order of the charts
+export const EXPENSE_CATEGORIES: ExpenseCategory[] = (
+  ['fuel', 'electric_charge', 'insurance', 'maintenance', 'other'] as const
+).map((type) => {
+  const { label, color, bgClass, iconPath } = EXPENSE_TYPE_CONFIG[type];
+  return { name: label, color, bgColor: bgClass, iconPath };
+});
 
 export const getCategoryColor = (categoryName: string): string => {
   const category = EXPENSE_CATEGORIES.find((c) => c.name === categoryName);

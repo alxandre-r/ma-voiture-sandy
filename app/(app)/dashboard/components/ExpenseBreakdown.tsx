@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
-import { CATEGORY_COLORS } from '@/lib/utils/chartColors';
+import { EXPENSE_TYPE_CONFIG, EXPENSE_TYPES } from '@/lib/utils/expenseTypeConfig';
 import { formatCurrency } from '@/lib/utils/format';
 
 import type { Expense } from '@/types/expense';
@@ -13,43 +13,10 @@ interface ExpenseBreakdownProps {
   expenses: Expense[];
 }
 
-const CATEGORIES = [
-  {
-    key: 'fuel',
-    label: 'Carburant',
-    types: ['fuel'],
-    icon: 'car',
-    color: CATEGORY_COLORS.fuel,
-  },
-  {
-    key: 'electric_charge',
-    label: 'Électricité',
-    types: ['electric_charge'],
-    icon: 'elec',
-    color: CATEGORY_COLORS.electric_charge,
-  },
-  {
-    key: 'maintenance',
-    label: 'Entretien',
-    types: ['maintenance'],
-    icon: 'tool',
-    color: CATEGORY_COLORS.maintenance,
-  },
-  {
-    key: 'insurance',
-    label: 'Assurance',
-    types: ['insurance'],
-    icon: 'secure',
-    color: CATEGORY_COLORS.insurance,
-  },
-  {
-    key: 'other',
-    label: 'Autre',
-    types: ['other'],
-    icon: 'stack',
-    color: CATEGORY_COLORS.other,
-  },
-] as const;
+const CATEGORIES = EXPENSE_TYPES.map((type) => {
+  const { label, icon, color } = EXPENSE_TYPE_CONFIG[type];
+  return { key: type, label, types: [type], icon, color };
+});
 
 export default function ExpenseBreakdown({ expenses }: ExpenseBreakdownProps) {
   if (expenses.length === 0) return null;
@@ -59,7 +26,7 @@ export default function ExpenseBreakdown({ expenses }: ExpenseBreakdownProps) {
 
   const categories = CATEGORIES.map((cat) => {
     const amount = expenses
-      .filter((e) => (cat.types as readonly string[]).includes(e.type))
+      .filter((e) => cat.types.includes(e.type))
       .reduce((sum, e) => sum + (e.amount ?? 0), 0);
     const pct = total > 0 ? (amount / total) * 100 : 0;
     return { ...cat, amount, pct };

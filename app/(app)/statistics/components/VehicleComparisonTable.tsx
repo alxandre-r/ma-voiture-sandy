@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
 import { VEHICLE_LINE_COLORS } from '@/lib/utils/chartColors';
+import { EXPENSE_TYPE_CONFIG, EXPENSE_TYPES } from '@/lib/utils/expenseTypeConfig';
 import { formatCurrency } from '@/lib/utils/format';
 
 import type { Expense } from '@/types/expense';
@@ -14,13 +15,10 @@ interface VehicleComparisonTableProps {
   vehicleIds: number[];
 }
 
-const CATEGORIES: { type: string; label: string }[] = [
-  { type: 'fuel', label: 'Carburant' },
-  { type: 'electric_charge', label: 'Recharge' },
-  { type: 'maintenance', label: 'Entretien' },
-  { type: 'insurance', label: 'Assurance' },
-  { type: 'other', label: 'Autre' },
-];
+const CATEGORIES: { type: string; label: string }[] = EXPENSE_TYPES.map((type) => ({
+  type,
+  label: EXPENSE_TYPE_CONFIG[type].label,
+}));
 
 const FALLBACK_COLORS = VEHICLE_LINE_COLORS;
 
@@ -77,11 +75,11 @@ export default function VehicleComparisonTable({
     <Card data-tour="stats-comparison" className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div className="flex items-center gap-2">
-          <Icon name="stack" size={18} className="text-gray-400 dark:text-gray-500" />
+          <Icon name="stack" size={18} className="text-gray-500 dark:text-gray-500" />
           <CardTitle>Comparatif véhicules</CardTitle>
         </div>
         {diffPct > 0 && (
-          <span className="text-xs text-gray-400 dark:text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-500">
             écart <span className="font-semibold text-gray-600 dark:text-gray-300">{diffPct}%</span>
           </span>
         )}
@@ -93,7 +91,7 @@ export default function VehicleComparisonTable({
           <thead>
             <tr className="border-b border-gray-100 dark:border-gray-800">
               {/* px-6 aligns with CardHeader's p-6 */}
-              <th className="text-left py-2.5 px-6 text-xs font-medium text-gray-400 dark:text-gray-500 w-1/3">
+              <th className="text-left py-2.5 px-6 text-xs font-medium text-gray-500 dark:text-gray-500 w-1/3">
                 Catégorie
               </th>
               {vehicleIds.map((id, i) => (
