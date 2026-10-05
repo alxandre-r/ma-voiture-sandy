@@ -10,17 +10,16 @@ import type { Vehicle } from '@/types/vehicle';
 
 export interface UseGarageActionsReturn {
   // State
-  isLoading: boolean;
   isSubmitting: boolean;
 
   // Vehicle actions
   handleSaveVehicle: (vehicleData: Partial<Vehicle>, pendingFiles?: File[]) => Promise<boolean>;
-  handleDeleteVehicle: (vehicleId: string) => Promise<boolean>;
   updateOdometer: (vehicleId: number, odometer: number) => Promise<void>;
 
   // View state
   viewState: 'list' | 'detail' | 'form';
-  selectedVehicle: Vehicle | null;
+  /** Id only: the caller looks the vehicle up in its current props, so router.refresh() shows fresh data. */
+  selectedVehicleId: number | null;
   isEditing: boolean;
 
   // View actions
@@ -32,18 +31,17 @@ export interface UseGarageActionsReturn {
 }
 
 export function useGarageActions(): UseGarageActionsReturn {
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess, showError, showWarning } = useNotifications();
   const router = useRouter();
 
-  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewState, setViewState] = useState<'list' | 'detail' | 'form'>('list');
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   /** --- Handle vehicle click (view detail) --- */
   const handleVehicleClick = useCallback((vehicle: Vehicle) => {
-    setSelectedVehicle(vehicle);
+    setSelectedVehicleId(vehicle.vehicle_id);
     setViewState('detail');
     setIsEditing(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -51,31 +49,27 @@ export function useGarageActions(): UseGarageActionsReturn {
 
   /** --- Handle edit --- */
   const handleEdit = useCallback((vehicle: Vehicle) => {
-    setSelectedVehicle(vehicle);
+    setSelectedVehicleId(vehicle.vehicle_id);
     setIsEditing(true);
     setViewState('form');
   }, []);
 
   /** --- Handle add new --- */
   const handleAddNew = useCallback(() => {
-    setSelectedVehicle(null);
+    setSelectedVehicleId(null);
     setIsEditing(false);
     setViewState('form');
   }, []);
 
   /** --- Handle form cancel --- */
   const handleCancel = useCallback(() => {
-    if (selectedVehicle) {
-      setViewState('detail');
-    } else {
-      setViewState('list');
-    }
+    setViewState(selectedVehicleId != null ? 'detail' : 'list');
     setIsEditing(false);
-  }, [selectedVehicle]);
+  }, [selectedVehicleId]);
 
   /** --- Handle back to list --- */
   const handleBack = useCallback(() => {
-    setSelectedVehicle(null);
+    setSelectedVehicleId(null);
     setViewState('list');
     setIsEditing(false);
   }, []);
@@ -89,13 +83,21 @@ export function useGarageActions(): UseGarageActionsReturn {
         const endpoint = isUpdate ? '/api/vehicles/update' : '/api/vehicles/add';
         const method = isUpdate ? 'PATCH' : 'POST';
 
-        const data = await apiCall<{ vehicle?: { vehicle_id: number } }>(endpoint, {
+        // vehicles/add returns the inserted `vehicles` row, whose key is `id` (not `vehicle_id`)
+        const data = await apiCall<{ vehicle?: { id: number } }>(endpoint, {
           method,
           body: JSON.stringify(vehicleData),
         });
 
-        if (!isUpdate && pendingFiles?.length && data.vehicle?.vehicle_id) {
-          await uploadPendingAttachments(pendingFiles, 'vehicle', data.vehicle.vehicle_id);
+        if (!isUpdate && pendingFiles?.length && data.vehicle?.id) {
+          const { failedCount } = await uploadPendingAttachments(
+            pendingFiles,
+            'vehicle',
+            data.vehicle.id,
+          );
+          if (failedCount > 0) {
+            showWarning(`${failedCount} pièce(s) jointe(s) n'ont pas pu être téléchargées`);
+          }
         }
 
         showSuccess(isUpdate ? 'Véhicule modifié avec succès !' : 'Véhicule ajouté avec succès !');
@@ -113,7 +115,7 @@ export function useGarageActions(): UseGarageActionsReturn {
         setIsSubmitting(false);
       }
     },
-    [handleBack, router, showSuccess, showError],
+    [handleBack, router, showSuccess, showError, showWarning],
   );
 
   /** --- Update odometer inline --- */
@@ -134,42 +136,12 @@ export function useGarageActions(): UseGarageActionsReturn {
     [router, showSuccess, showError],
   );
 
-  /** --- Delete vehicle --- */
-  const handleDeleteVehicle = useCallback(
-    async (vehicleId: string): Promise<boolean> => {
-      setIsLoading(true);
-      try {
-        await apiCall('/api/vehicles/delete', {
-          method: 'DELETE',
-          body: JSON.stringify({ vehicleId }),
-        });
-
-        showSuccess('Véhicule supprimé avec succès !');
-
-        // Refresh server data and go back to list
-        router.refresh();
-        handleBack();
-
-        return true;
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Erreur inconnue';
-        showError(`❌ ${msg}`);
-        return false;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [handleBack, router, showSuccess, showError],
-  );
-
   return {
-    isLoading,
     isSubmitting,
     handleSaveVehicle,
-    handleDeleteVehicle,
     updateOdometer,
     viewState,
-    selectedVehicle,
+    selectedVehicleId,
     isEditing,
     handleVehicleClick,
     handleEdit,

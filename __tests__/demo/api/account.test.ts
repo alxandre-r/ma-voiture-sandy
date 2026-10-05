@@ -72,6 +72,29 @@ describe('vehicles endpoints', () => {
     });
   });
 
+  it('clears the nullable number fields when VehicleForm sends null (B16)', () => {
+    const state = seed();
+    const id = DEMO_VEHICLE.peugeot308;
+    const result = commit(
+      state,
+      call(state, 'PATCH', 'vehicles/update', {
+        vehicle_id: id,
+        year: null,
+        purchase_price: null,
+        co2_emission: null,
+      }),
+    );
+    expect(result.status).toBe(200);
+    expect(result.json).toMatchObject({
+      vehicle: { year: null, purchase_price: null, co2_emission: null },
+    });
+    expect(state.vehicles.find((v) => v.id === id)).toMatchObject({
+      year: null,
+      purchase_price: null,
+      co2_emission: null,
+    });
+  });
+
   it('stores fuel type codes and rejects unknown energies like the real routes', () => {
     const state = seed();
     const invalid = { status: 400, json: { error: 'Type de carburant invalide' } };

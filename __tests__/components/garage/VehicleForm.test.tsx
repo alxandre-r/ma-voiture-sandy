@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/components/common/ui/Icon', () => ({ default: () => null }));
@@ -40,13 +40,16 @@ describe('VehicleForm fuel type', () => {
     ]);
   });
 
-  it('submits the code and locks an EV to automatic', () => {
+  it('submits the code and locks an EV to automatic', async () => {
     const onSave = vi.fn();
     const { container } = render(<VehicleForm onSave={onSave} onCancel={vi.fn()} />);
     fillRequired(container);
     fireEvent.change(select(container, 'fuel_type'), { target: { value: 'electric' } });
     expect(select(container, 'transmission').disabled).toBe(true);
-    fireEvent.submit(container.querySelector('form#vehicle-form')!);
+    // handleSubmit awaits onSave, so let its state updates settle inside act
+    await act(async () => {
+      fireEvent.submit(container.querySelector('form#vehicle-form')!);
+    });
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({ fuel_type: 'electric', transmission: 'automatic' }),
       [],
@@ -67,5 +70,49 @@ describe('VehicleForm fuel type', () => {
     );
     expect(select(container, 'fuel_type').value).toBe('plugin_hybrid');
     expect(select(container, 'transmission').value).toBe('automatic');
+  });
+});
+
+describe('VehicleForm nullable numbers (B16)', () => {
+  const input = (container: HTMLElement, name: string) =>
+    container.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+
+  it('sends null for cleared year, purchase price and CO2 so the update clears them', async () => {
+    const onSave = vi.fn();
+    const vehicle = {
+      vehicle_id: 7,
+      make: 'Renault',
+      model: 'Zoe',
+      year: 2019,
+      purchase_price: 15000,
+      co2_emission: 0,
+    } as Vehicle;
+    const { container } = render(
+      <VehicleForm vehicle={vehicle} onSave={onSave} onCancel={vi.fn()} />,
+    );
+    // A 0 g/km EV keeps its value instead of showing an empty field
+    expect(input(container, 'co2_emission').value).toBe('0');
+    for (const name of ['year', 'purchase_price', 'co2_emission']) {
+      fireEvent.change(input(container, name), { target: { value: '' } });
+    }
+    // handleSubmit awaits onSave, so let its state updates settle inside act
+    await act(async () => {
+      fireEvent.submit(container.querySelector('form#vehicle-form')!);
+    });
+    const [payload] = onSave.mock.calls[0];
+    expect(payload).toMatchObject({ year: null, purchase_price: null, co2_emission: null });
+    expect(JSON.parse(JSON.stringify(payload))).toMatchObject({
+      year: null,
+      purchase_price: null,
+      co2_emission: null,
+    });
+  });
+
+  it('shows an empty year for a vehicle saved without one', () => {
+    const vehicle = { vehicle_id: 7, make: 'Renault', model: 'Zoe', year: null } as Vehicle;
+    const { container } = render(
+      <VehicleForm vehicle={vehicle} onSave={vi.fn()} onCancel={vi.fn()} />,
+    );
+    expect(input(container, 'year').value).toBe('');
   });
 });

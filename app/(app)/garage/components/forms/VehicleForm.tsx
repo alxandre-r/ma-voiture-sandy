@@ -10,6 +10,7 @@ import { FormField, FormInput, FormSelect } from '@/components/common/ui/form';
 import Icon from '@/components/common/ui/Icon';
 import Spinner from '@/components/common/ui/Spinner';
 import { useNotifications } from '@/contexts/NotificationContext';
+import useVehicleImageUpload from '@/hooks/vehicle/useVehicleImageUpload';
 import {
   FUEL_TYPE_LABELS,
   FUEL_TYPES,
@@ -24,7 +25,8 @@ import type { Vehicle } from '@/types/vehicle';
 
 interface VehicleFormProps {
   vehicle?: Vehicle | null;
-  onSave: (vehicle: Partial<Vehicle>, pendingFiles?: File[]) => void;
+  /** Resolves to true once the vehicle row is saved. */
+  onSave: (vehicle: Partial<Vehicle>, pendingFiles?: File[]) => Promise<boolean>;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -45,7 +47,7 @@ export default function VehicleForm({
     name: '',
     make: '',
     model: '',
-    year: new Date().getFullYear(),
+    year: new Date().getFullYear() as number | null,
     plate: '',
     vin: '',
     // Status
@@ -62,9 +64,10 @@ export default function VehicleForm({
     purchase_date: '',
     // Finance
     financing_mode: 'owned' as 'owned' | 'lld' | 'loa',
-    purchase_price: undefined as number | undefined,
+    // null (not undefined) so a cleared field survives JSON and clears the column
+    purchase_price: null as number | null,
     // Technique
-    co2_emission: undefined as number | undefined,
+    co2_emission: null as number | null,
   });
 
   // Initialize form with existing vehicle data
@@ -74,7 +77,7 @@ export default function VehicleForm({
         name: vehicle.name || '',
         make: vehicle.make || '',
         model: vehicle.model || '',
-        year: vehicle.year || new Date().getFullYear(),
+        year: vehicle.year ?? null,
         plate: vehicle.plate || '',
         vin: vehicle.vin || '',
         status: vehicle.status || 'active',
@@ -88,8 +91,8 @@ export default function VehicleForm({
         tech_control_expiry: vehicle.tech_control_expiry || '',
         purchase_date: vehicle.purchase_date || '',
         financing_mode: vehicle.financing_mode || 'owned',
-        purchase_price: vehicle.purchase_price || undefined,
-        co2_emission: vehicle.co2_emission || undefined,
+        purchase_price: vehicle.purchase_price ?? null,
+        co2_emission: vehicle.co2_emission ?? null,
       });
     }
   }, [vehicle]);
@@ -100,18 +103,20 @@ export default function VehicleForm({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
-    // Auto-uppercase for plate and VIN
+    // Auto-uppercase for plate and VIN. Cleared nullable numbers become null (sent, clears the
+    // column); a cleared odometer (NOT NULL) stays undefined so it is left out of the payload.
     const processedValue =
       name === 'plate' || name === 'vin'
         ? value.toUpperCase()
-        : name === 'year' ||
-            name === 'odometer' ||
-            name === 'purchase_price' ||
-            name === 'co2_emission'
-          ? value
-            ? Number(value)
-            : undefined
-          : value;
+        : name === 'year' || name === 'purchase_price' || name === 'co2_emission'
+          ? value === ''
+            ? null
+            : Number(value)
+          : name === 'odometer'
+            ? value
+              ? Number(value)
+              : undefined
+            : value;
 
     // If fuel_type changes to electric or hybrid, automatically set transmission to automatic
     if (name === 'fuel_type' && isElectrified(value)) {
@@ -128,12 +133,33 @@ export default function VehicleForm({
     }
   };
 
+  // Image files (B17): the stored row keeps pointing at `savedImage` until the form is saved, so
+  // that file is only deleted after a successful save. Uploads never saved to a row are dropped
+  // as soon as they are replaced, removed or the form is cancelled.
+  const savedImage = vehicle?.image || '';
+  const notify = (msg: string, type: 'success' | 'error') => {
+    if (type === 'error') showError(msg);
+    else showSuccess(msg);
+  };
+  const { deleteVehicleImage } = useVehicleImageUpload({ showNotification: notify });
+
+  const discardUnsavedImage = () => {
+    if (formData.image && formData.image !== savedImage) void deleteVehicleImage(formData.image);
+  };
+
   const handleImageSave = (imageUrl: string) => {
+    discardUnsavedImage();
     setFormData((prev) => ({ ...prev, image: imageUrl }));
   };
 
   const handleImageRemove = () => {
+    discardUnsavedImage();
     setFormData((prev) => ({ ...prev, image: '' }));
+  };
+
+  const handleCancel = () => {
+    discardUnsavedImage();
+    onCancel();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -150,7 +176,11 @@ export default function VehicleForm({
         ...formData,
         vehicle_id: vehicle?.vehicle_id,
       };
-      onSave(vehicleData, pendingFiles);
+      const saved = await onSave(vehicleData, pendingFiles);
+      // Best effort: the row no longer references the old file
+      if (saved && savedImage && formData.image !== savedImage) {
+        void deleteVehicleImage(savedImage);
+      }
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
@@ -187,8 +217,9 @@ export default function VehicleForm({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button
+            aria-label="Retour"
             type="button"
-            onClick={onCancel}
+            onClick={handleCancel}
             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition items-center flex cursor-pointer 
             bg-white dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
           >
@@ -239,7 +270,7 @@ export default function VehicleForm({
                         </div>
                       </>
                     ) : (
-                      <div className="flex flex-col items-center text-gray-400">
+                      <div className="flex flex-col items-center text-gray-500">
                         <Icon name="add" size={36} />
                         <span className="text-xs mt-2">Ajouter une image</span>
                       </div>
@@ -364,7 +395,7 @@ export default function VehicleForm({
                     <FormInput
                       type="number"
                       name="year"
-                      value={formData.year}
+                      value={formData.year ?? ''}
                       onChange={handleChange}
                       min={1900}
                       max={new Date().getFullYear() + 1}
@@ -436,7 +467,7 @@ export default function VehicleForm({
                   <FormInput
                     type="number"
                     name="co2_emission"
-                    value={formData.co2_emission || ''}
+                    value={formData.co2_emission ?? ''}
                     onChange={handleChange}
                     placeholder="Ex: 127"
                     min={0}
@@ -523,7 +554,7 @@ export default function VehicleForm({
                 <FormInput
                   type="number"
                   name="purchase_price"
-                  value={formData.purchase_price || ''}
+                  value={formData.purchase_price ?? ''}
                   onChange={handleChange}
                   placeholder="Ex: 15000"
                   min={0}
@@ -564,10 +595,7 @@ export default function VehicleForm({
         imageUrl={formData.image}
         onSave={handleImageSave}
         onRemove={handleImageRemove}
-        showNotification={(msg, type) => {
-          if (type === 'error') showError(msg);
-          else showSuccess(msg);
-        }}
+        showNotification={notify}
       />
     </div>
   );

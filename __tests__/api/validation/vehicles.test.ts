@@ -118,6 +118,29 @@ describe('vehicles routes body validation', () => {
     expect(insert).toContain('"purchase_date":null');
   });
 
+  it('accepts null to clear year, purchase price and CO2 on update (B16)', async () => {
+    state.rows.vehicles = { data: { id: 4, owner_id: 'u1' }, error: null };
+    const res = await updateVehicle(
+      json({ vehicle_id: 4, year: null, purchase_price: null, co2_emission: null }),
+    );
+    expect(res.status).toBe(200);
+    expect(state.calls).toContain(
+      'update({"year":null,"purchase_price":null,"co2_emission":null})',
+    );
+  });
+
+  it('accepts null for the nullable number fields on add', async () => {
+    state.rows.vehicles = { data: { id: 1 }, error: null };
+    const res = await addVehicle(
+      json({ ...formPayload, year: null, purchase_price: null, co2_emission: null }),
+    );
+    expect(res.status).toBe(200);
+    const insert = state.calls.find((c) => c.startsWith('insert('));
+    expect(insert).toContain('"year":null');
+    expect(insert).toContain('"purchase_price":null');
+    expect(insert).toContain('"co2_emission":null');
+  });
+
   it('accepts the inline odometer update', async () => {
     state.rows.vehicles = { data: { id: 4, owner_id: 'u1' }, error: null };
     const res = await updateVehicle(json({ vehicle_id: 4, odometer: 61000 }));

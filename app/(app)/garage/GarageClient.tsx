@@ -56,7 +56,7 @@ export default function GarageClient({
   const {
     isSubmitting,
     viewState,
-    selectedVehicle,
+    selectedVehicleId,
     isEditing,
     handleSaveVehicle,
     handleVehicleClick,
@@ -69,6 +69,14 @@ export default function GarageClient({
 
   // Flat list of all family vehicles (for helper lookups)
   const allFamilyVehicles = familyGroups.flatMap((g) => g.vehicles);
+
+  // Looked up in the current props (not a copied snapshot) so router.refresh() updates the detail
+  const selectedVehicle =
+    selectedVehicleId == null
+      ? null
+      : (userVehicles.find((v) => v.vehicle_id === selectedVehicleId) ??
+        allFamilyVehicles.find((v) => v.vehicle_id === selectedVehicleId) ??
+        null);
 
   // --- Modal ouverture selon search param ---
   useEffect(() => {

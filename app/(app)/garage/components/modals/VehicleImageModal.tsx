@@ -39,7 +39,8 @@ export default function VehicleImageModal({
   } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const { uploadVehicleImage, deleteVehicleImage } = useVehicleImageUpload({ showNotification });
+  // Only uploads: the old file is deleted by VehicleForm once the vehicle row is saved (B17)
+  const { uploadVehicleImage } = useVehicleImageUpload({ showNotification });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,7 +71,7 @@ export default function VehicleImageModal({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      showNotification('Format non supportÃƒÆ’Ã‚Â©. Utilisez JPEG, PNG ou WebP.', 'error');
+      showNotification('Format non supporté. Utilisez JPEG, PNG ou WebP.', 'error');
       return;
     }
     if (file.size > 15728640) {
@@ -100,11 +101,6 @@ export default function VehicleImageModal({
         if (!finalImageUrl) {
           throw new Error("Erreur lors de l'upload de l'image");
         }
-
-        // Delete old image if exists
-        if (imageUrl) {
-          await deleteVehicleImage(imageUrl);
-        }
       }
 
       onSave(finalImageUrl || '');
@@ -116,20 +112,11 @@ export default function VehicleImageModal({
     }
   };
 
-  const handleRemove = async () => {
+  // Only clears the form field: the stored file goes once the vehicle row no longer references it
+  const handleRemove = () => {
     if (!onRemove) return;
-    setIsUploading(true);
-    try {
-      if (imageUrl) {
-        await deleteVehicleImage(imageUrl);
-      }
-      onRemove();
-      handleClose();
-    } catch (error) {
-      console.error('Error removing vehicle image:', error);
-    } finally {
-      setIsUploading(false);
-    }
+    onRemove();
+    handleClose();
   };
 
   const handleClose = () => {
@@ -170,7 +157,7 @@ export default function VehicleImageModal({
           ) : imageUrl ? (
             <NextImage src={imageUrl} alt="Vehicle" fill className="object-cover" />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
               <Icon name="car" size={64} />
               <p className="mt-2">Aucune image</p>
             </div>
@@ -178,6 +165,7 @@ export default function VehicleImageModal({
 
           {imageUrl && !hasSelectedFile && onRemove && (
             <button
+              aria-label="Supprimer la photo"
               onClick={handleRemove}
               disabled={isUploading}
               className="absolute top-2 right-2 w-10 h-10 rounded-full bg-white/80 dark:bg-gray-800/80 shadow-lg 

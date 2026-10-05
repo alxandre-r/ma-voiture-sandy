@@ -15,6 +15,18 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import type { User } from '@/types/user';
 
+/**
+ * Storage path (`<userId>/avatar_<ts>.<ext>`) of an `avatars` public URL, as built by the upload
+ * below, or null when the URL is not one of ours.
+ */
+export function avatarStoragePath(publicUrl: string): string | null {
+  const marker = '/avatars/';
+  const at = publicUrl.indexOf(marker);
+  if (at === -1) return null;
+  const path = decodeURIComponent(publicUrl.slice(at + marker.length).split(/[?#]/)[0]);
+  return path || null;
+}
+
 interface UseAccountActionsProps {
   user: User;
   showNotification: (message: string, type: 'success' | 'error') => void;
@@ -49,7 +61,7 @@ export default function useAccountActions({ user, showNotification }: UseAccount
 
     const previousUser = localUser;
 
-    // Optigrayic update
+    // Optimistic update
     setLocalUser((u) => ({
       ...u,
       name,
@@ -160,21 +172,14 @@ export default function useAccountActions({ user, showNotification }: UseAccount
       }
 
       let avatarUrl: string | null = null;
+      let newPath: string | null = null;
 
       if (file) {
         // Upload new avatar with unique filename (timestamp to force update)
         const timestamp = Date.now();
         const fileExt = file.name.split('.').pop() || 'png';
         const fileName = `${currentUser.id}/avatar_${timestamp}.${fileExt}`;
-
-        // Delete existing avatar if any
-        if (localUser.avatar_url) {
-          // Extract the old filename from the URL to delete
-          const oldFileName = localUser.avatar_url.split('/avatars/')[1];
-          if (oldFileName) {
-            await supabase.storage.from('avatars').remove([oldFileName]);
-          }
-        }
+        newPath = fileName;
 
         // Upload new file (don't use upsert to force a fresh upload)
         const { error: uploadError } = await supabase.storage
@@ -188,12 +193,6 @@ export default function useAccountActions({ user, showNotification }: UseAccount
         // Get public URL
         const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
         avatarUrl = urlData.publicUrl;
-      } else {
-        // Remove avatar
-        if (localUser.avatar_url) {
-          await supabase.storage.from('avatars').remove([`${currentUser.id}/avatar`]);
-        }
-        avatarUrl = null;
       }
 
       // Update user record
@@ -203,7 +202,17 @@ export default function useAccountActions({ user, showNotification }: UseAccount
         .eq('id', currentUser.id);
 
       if (updateError) {
+        // The new file is referenced by nothing: drop it (best effort)
+        if (newPath) await supabase.storage.from('avatars').remove([newPath]);
         throw new Error(`Erreur lors de la mise à jour du profil: ${updateError.message}`);
+      }
+
+      // Only now that the row points elsewhere, delete the old file (best effort, B17).
+      // Restricted to the user's own folder (an external avatar URL is never touched).
+      const oldPath = localUser.avatar_url ? avatarStoragePath(localUser.avatar_url) : null;
+      if (oldPath && oldPath !== newPath && oldPath.startsWith(`${currentUser.id}/`)) {
+        const { error: removeError } = await supabase.storage.from('avatars').remove([oldPath]);
+        if (removeError) console.error('Error deleting old avatar:', removeError);
       }
 
       // Update local state
