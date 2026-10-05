@@ -3,7 +3,16 @@ import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type CookieToSet = { name: string; value: string; options?: Record<string, unknown> };
-type CookieAdapter = { getAll: () => unknown; setAll: (c: CookieToSet[]) => void };
+type CookieAdapter = {
+  getAll: () => unknown;
+  setAll: (c: CookieToSet[], headers: Record<string, string>) => void;
+};
+
+const NO_STORE = vi.hoisted(() => ({
+  'Cache-Control': 'private, no-cache, no-store, must-revalidate, max-age=0',
+  Expires: '0',
+  Pragma: 'no-cache',
+}));
 
 const state = vi.hoisted(() => ({
   user: null as { id: string } | null,
@@ -14,7 +23,8 @@ vi.mock('@supabase/ssr', () => ({
   createServerClient: (_url: string, _key: string, opts: { cookies: CookieAdapter }) => ({
     auth: {
       getUser: async () => {
-        if (state.refreshed.length) opts.cookies.setAll(state.refreshed);
+        // @supabase/ssr >= 0.10 sends no-store headers with the first cookie write
+        if (state.refreshed.length) opts.cookies.setAll(state.refreshed, NO_STORE);
         return { data: { user: state.user } };
       },
     },
@@ -68,6 +78,9 @@ describe('middleware access control', () => {
     state.refreshed = [{ name: 'sb-x-auth-token', value: 'new' }];
     const res = await middleware(request('/dashboard'));
     expect(res.cookies.get('sb-x-auth-token')?.value).toBe('new');
+    // Never cacheable by a CDN once it carries a session cookie
+    expect(res.headers.get('cache-control')).toBe(NO_STORE['Cache-Control']);
+    expect(res.headers.get('pragma')).toBe('no-cache');
   });
 
   it('keeps cookies cleared by a failed refresh on the redirect', async () => {
@@ -75,6 +88,13 @@ describe('middleware access control', () => {
     const res = await middleware(request('/dashboard'));
     expect(res.status).toBe(307);
     expect(res.cookies.get('sb-x-auth-token')?.value).toBe('');
+    expect(res.headers.get('cache-control')).toBe(NO_STORE['Cache-Control']);
+  });
+
+  it('adds no cache headers when no cookie was written', async () => {
+    state.user = { id: 'u1' };
+    const res = await middleware(request('/dashboard'));
+    expect(res.headers.get('cache-control')).toBeNull();
   });
 });
 

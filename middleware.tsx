@@ -34,8 +34,10 @@ export async function middleware(req: NextRequest) {
   }
 
   // Session refresh (official @supabase/ssr pattern): token refreshes are written to both the
-  // request (for this render) and the response (for the browser).
+  // request (for this render) and the response (for the browser), with the no-store headers the
+  // library sends so that no CDN ever caches a response carrying someone's session cookie.
   let response = NextResponse.next({ request: req });
+  let authHeaders: Record<string, string> = {};
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -44,12 +46,15 @@ export async function middleware(req: NextRequest) {
         getAll() {
           return req.cookies.getAll();
         },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
           response = NextResponse.next({ request: req });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );
+          // Only sent with the first write of this client: keep them for the redirect below too
+          authHeaders = { ...authHeaders, ...headers };
+          Object.entries(authHeaders).forEach(([key, value]) => response.headers.set(key, value));
         },
       },
     },
@@ -69,6 +74,7 @@ export async function middleware(req: NextRequest) {
   const redirect = NextResponse.redirect(new URL(target, req.url));
   // Keep any cookie cleared by a failed refresh
   response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  Object.entries(authHeaders).forEach(([key, value]) => redirect.headers.set(key, value));
   return redirect;
 }
 

@@ -12,8 +12,8 @@
     "test:ui": "vitest ui"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.55.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.2",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.29.2",
     "motion": "^12.26.1",
