@@ -262,10 +262,10 @@ export default function FillForm({
 
         {/* Pièces jointes */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
             <Icon name="notes" size={16} className="inline mr-2 text-gray-500" />
             Pièces jointes
-          </label>
+          </p>
           <AttachmentSection
             savedAttachments={initialFill?.attachments}
             entityType="expense"

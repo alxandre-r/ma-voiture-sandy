@@ -106,9 +106,7 @@ export default function InsuranceForm({
       )}
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Pièces jointes
-        </label>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Pièces jointes</p>
         <AttachmentSection
           savedAttachments={initialContract?.attachments}
           entityType="insurance_contract"

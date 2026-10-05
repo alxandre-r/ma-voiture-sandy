@@ -282,10 +282,15 @@ export default function VehicleForm({
                 <div className="flex flex-row space-x-4 md:flex-col md:space-y-3">
                   {/* Toggle Slider */}
                   <div className="flex-1 md:flex-none">
-                    <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                    <p
+                      id="vehicle-status-label"
+                      className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider"
+                    >
                       Statut
-                    </label>
+                    </p>
                     <div
+                      role="group"
+                      aria-labelledby="vehicle-status-label"
                       className="relative w-full max-w-[176px] md:max-w-sm h-10 bg-gradient-to-br from-gray-50 to-gray-100 rounded-full border border-gray-200 
                       dark:border-gray-700 dark:from-gray-800 dark:to-gray-900 overflow-hidden p-1"
                     >
@@ -333,11 +338,15 @@ export default function VehicleForm({
 
                   {/* Color Picker */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                    <label
+                      htmlFor="vehicle-color"
+                      className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider"
+                    >
                       Couleur
                     </label>
                     <div className="flex items-center gap-2">
                       <input
+                        id="vehicle-color"
                         type="color"
                         name="color"
                         value={formData.color || '#f97316'}

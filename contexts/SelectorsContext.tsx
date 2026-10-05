@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, useMemo } from 'react';
 
 import { DEFAULT_PERIOD, PERIOD_PRESET_LABELS } from '@/types/period';
 
@@ -176,30 +176,34 @@ export function SelectorsProvider({
     } catch {
       // Ignore localStorage errors
     }
-  }, [initialVehicles]);
+    // Re-runs on each router.refresh() too: the layout sends fresh props
+  }, [initialVehicles, initialPreferences, currentUserId]);
 
   // Update localStorage when state changes
-  const setSelectedVehicleIds = (ids: number[]) => {
-    setSelectedVehicleIdsState(ids);
-    try {
-      localStorage.setItem(STORAGE_KEYS.VEHICLE_IDS, JSON.stringify(ids));
-      localStorage.setItem(
-        STORAGE_KEYS.KNOWN_VEHICLE_IDS,
-        JSON.stringify(initialVehicles.map((v) => v.vehicle_id)),
-      );
-    } catch {
-      // Ignore storage errors
-    }
-  };
+  const setSelectedVehicleIds = useCallback(
+    (ids: number[]) => {
+      setSelectedVehicleIdsState(ids);
+      try {
+        localStorage.setItem(STORAGE_KEYS.VEHICLE_IDS, JSON.stringify(ids));
+        localStorage.setItem(
+          STORAGE_KEYS.KNOWN_VEHICLE_IDS,
+          JSON.stringify(initialVehicles.map((v) => v.vehicle_id)),
+        );
+      } catch {
+        // Ignore storage errors
+      }
+    },
+    [initialVehicles],
+  );
 
-  const setSelectedPeriod = (period: PeriodSelection) => {
+  const setSelectedPeriod = useCallback((period: PeriodSelection) => {
     setSelectedPeriodState(period);
     try {
       localStorage.setItem(STORAGE_KEYS.PERIOD, serializePeriod(period));
     } catch {
       // Ignore storage errors
     }
-  };
+  }, []);
 
   // Computed period label (lowercase, used in stats summaries)
   const periodLabel = useMemo(() => buildPeriodLabel(selectedPeriod), [selectedPeriod]);
@@ -214,7 +218,15 @@ export function SelectorsProvider({
       setSelectedPeriod,
       periodLabel,
     }),
-    [initialVehicles, initialFamilies, selectedVehicleIds, selectedPeriod, periodLabel],
+    [
+      initialVehicles,
+      initialFamilies,
+      selectedVehicleIds,
+      setSelectedVehicleIds,
+      selectedPeriod,
+      setSelectedPeriod,
+      periodLabel,
+    ],
   );
 
   return <SelectorsContext.Provider value={value}>{children}</SelectorsContext.Provider>;

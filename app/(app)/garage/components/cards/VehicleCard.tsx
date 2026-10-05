@@ -173,7 +173,7 @@ export default function VehicleCard({
           </div>
 
           {/* Kilométrage — inline editable */}
-          <div className="flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-col" role="presentation" onClick={(e) => e.stopPropagation()}>
             <span className="text-[10px] text-gray-500 font-bold uppercase">Kilométrage</span>
             {onOdometerUpdate && isEditingOdo ? (
               <div className="flex items-center gap-1">
@@ -189,24 +189,26 @@ export default function VehicleCard({
                 />
                 <span className="text-xs text-gray-500">km</span>
               </div>
-            ) : (
-              <div
-                className={`flex items-center gap-1 group/odo ${onOdometerUpdate ? 'cursor-pointer' : ''}`}
-                onClick={onOdometerUpdate ? startEditOdo : undefined}
+            ) : onOdometerUpdate ? (
+              <button
+                type="button"
+                aria-label={`Modifier le kilométrage (${vehicle.odometer?.toLocaleString() || '—'} km)`}
+                className="flex items-center gap-1 group/odo cursor-pointer rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-custom-1"
+                onClick={startEditOdo}
               >
-                <span
-                  className={`text-sm font-bold text-gray-700 dark:text-gray-300 ${onOdometerUpdate ? 'group-hover/odo:text-custom-1 transition-colors' : ''}`}
-                >
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover/odo:text-custom-1 transition-colors">
                   {vehicle.odometer?.toLocaleString() || '—'} km
                 </span>
-                {onOdometerUpdate && (
-                  <Icon
-                    name="pencil"
-                    size={11}
-                    className="opacity-0 group-hover/odo:opacity-50 transition-opacity text-gray-500"
-                  />
-                )}
-              </div>
+                <Icon
+                  name="pencil"
+                  size={11}
+                  className="opacity-0 group-hover/odo:opacity-50 group-focus-visible/odo:opacity-50 transition-opacity text-gray-500"
+                />
+              </button>
+            ) : (
+              <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                {vehicle.odometer?.toLocaleString() || '—'} km
+              </span>
             )}
           </div>
 

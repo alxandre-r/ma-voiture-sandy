@@ -102,7 +102,11 @@ export default function ExpenseRow({
           {formatCurrency(expense.amount)}
         </span>
         {/* Fixed-width ⋮ slot — always reserved, button only on owner rows */}
-        <div className="w-8 flex justify-center" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="w-8 flex justify-center"
+          role="presentation"
+          onClick={(e) => e.stopPropagation()}
+        >
           {(canEdit || canDelete) && (
             <ExpenseActionMenu
               expense={expense}
@@ -116,7 +120,7 @@ export default function ExpenseRow({
       </div>
 
       {/* Mobile: ⋮ button */}
-      <div className="sm:hidden shrink-0" onClick={(e) => e.stopPropagation()}>
+      <div className="sm:hidden shrink-0" role="presentation" onClick={(e) => e.stopPropagation()}>
         {canEdit || canDelete ? (
           <ExpenseActionMenu
             expense={expense}

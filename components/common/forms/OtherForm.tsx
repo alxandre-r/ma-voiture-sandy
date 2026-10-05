@@ -88,18 +88,23 @@ export default function OtherForm({
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Véhicule */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label
+            htmlFor="other-vehicle"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             <Icon name="car" size={16} className="inline mr-2 text-gray-500" />
             Véhicule <span className="text-red-500">*</span>
           </label>
           {vehicles.length === 1 ? (
             <input
+              id="other-vehicle"
               readOnly
               value={getVehicleName(vehicles[0].vehicle_id)}
               className={`${SELECT_CLASS} bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-not-allowed`}
             />
           ) : (
             <select
+              id="other-vehicle"
               name="vehicle_id"
               value={formData.vehicle_id}
               onChange={handleChange}
@@ -151,11 +156,15 @@ export default function OtherForm({
 
         {/* Notes */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label
+            htmlFor="other-notes"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             <Icon name="notes" size={16} className="inline mr-2 text-gray-500" />
             Notes
           </label>
           <textarea
+            id="other-notes"
             name="notes"
             value={formData.notes || ''}
             onChange={handleChange}
@@ -167,10 +176,10 @@ export default function OtherForm({
 
         {/* Pièces jointes */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
             <Icon name="notes" size={16} className="inline mr-2 text-gray-500" />
             Pièces jointes
-          </label>
+          </p>
           <AttachmentSection
             savedAttachments={initialExpense?.attachments}
             entityType="expense"

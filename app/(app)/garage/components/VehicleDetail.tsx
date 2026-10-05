@@ -196,7 +196,11 @@ export default function VehicleDetail({
             {showMenu && (
               <>
                 {/* Backdrop */}
-                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                <div
+                  className="fixed inset-0 z-10"
+                  role="presentation"
+                  onClick={() => setShowMenu(false)}
+                />
                 <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
                   {onEdit && (!isFamilyVehicle || vehicle.permission_level === 'write') && (
                     <button

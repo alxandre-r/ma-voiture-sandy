@@ -1,3 +1,4 @@
+import { createRequire } from 'module';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -9,6 +10,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const compat = new FlatCompat({ baseDirectory: __dirname });
+
+// eslint-config-next already registers the jsx-a11y plugin but enables only a few of its rules.
+// Load the plugin from there (no extra dependency) to turn on its whole recommended set.
+const requireFromNextConfig = createRequire(import.meta.resolve('eslint-config-next'));
+const jsxA11y = requireFromNextConfig('eslint-plugin-jsx-a11y');
 
 const eslintConfig = [
   // -----------------------------
@@ -87,19 +93,18 @@ const eslintConfig = [
       '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
 
       '@typescript-eslint/explicit-function-return-type': 'off',
+
+      '@typescript-eslint/no-explicit-any': 'error',
+
+      // ---------------------
+      // ACCESSIBILITY
+      // ---------------------
+      ...jsxA11y.configs.recommended.rules,
+      // autoFocus is only used right after a user action opens an inline editor or a dialog
+      'jsx-a11y/no-autofocus': 'off',
     },
   },
 
-  // -----------------------------
-  // API ROUTES OVERRIDE
-  // -----------------------------
-  {
-    files: ['app/api/**/route.ts'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-    },
-  },
   // -----------------------------
   // DEMO MODE ISOLATION
   // -----------------------------

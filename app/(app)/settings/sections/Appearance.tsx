@@ -57,8 +57,11 @@ export default function PreferencesSection({ initialPreferences }: Props) {
           Préférences
         </h2>
 
-        <label className="block mb-2 font-medium">Thème</label>
+        <label htmlFor="pref-theme" className="block mb-2 font-medium">
+          Thème
+        </label>
         <select
+          id="pref-theme"
           value={theme}
           onChange={(e) => setTheme(e.target.value)}
           className="w-full lg:w-[360px] p-3 rounded-lg border border-gray-300 bg-gray-50 dark:bg-gray-900 dark:border-gray-700"
@@ -80,10 +83,14 @@ export default function PreferencesSection({ initialPreferences }: Props) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="pref-period"
+              className="block mb-2 font-medium text-gray-700 dark:text-gray-300"
+            >
               Période
             </label>
             <select
+              id="pref-period"
               value={prefs.default_period}
               onChange={(e) =>
                 update({ default_period: e.target.value as UserPreferences['default_period'] })
@@ -97,10 +104,14 @@ export default function PreferencesSection({ initialPreferences }: Props) {
           </div>
 
           <div>
-            <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="pref-vehicle-scope"
+              className="block mb-2 font-medium text-gray-700 dark:text-gray-300"
+            >
               Véhicules affichés
             </label>
             <select
+              id="pref-vehicle-scope"
               value={prefs.default_vehicle_scope}
               onChange={(e) =>
                 update({

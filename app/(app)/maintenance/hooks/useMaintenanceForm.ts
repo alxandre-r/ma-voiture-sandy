@@ -44,13 +44,14 @@ export function useMaintenanceForm(vehicles: VehicleMinimal[], initialExpense?: 
   );
 
   // Sync odometer when vehicle changes (création uniquement)
+  const isEdit = Boolean(initialExpense);
   useEffect(() => {
-    if (initialExpense || !formData.vehicle_id) return;
+    if (isEdit || !formData.vehicle_id) return;
     const vehicle = vehicles.find((v) => v.vehicle_id === formData.vehicle_id);
     if (vehicle?.odometer != null) {
       setFormData((prev) => ({ ...prev, odometer: vehicle.odometer! }));
     }
-  }, [formData.vehicle_id, vehicles]);
+  }, [isEdit, formData.vehicle_id, vehicles]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
