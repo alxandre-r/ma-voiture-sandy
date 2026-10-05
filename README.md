@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ma Voiture
 
-## Getting Started
+A French-language web app to track what your cars cost: fuel fills and EV charging, maintenance, insurance and other expenses, with reminders and statistics. Vehicles can be shared with your family.
 
-First, run the development server:
+**Live:** [ma-voiture-sandy.vercel.app](https://ma-voiture-sandy.vercel.app). Use **« Essayer la démo »** to explore it without an account.
+
+## Features
+
+- **Garage:** your vehicles (petrol, diesel, hybrid, plug-in hybrid, electric), odometer, photo, documents.
+- **Expenses:** fuel fills and charges (full-tank consumption), maintenance, insurance instalments and other costs, with attachments (photos, PDF).
+- **Maintenance:** history and a timeline. A maintenance entry with an interval creates its next reminder automatically.
+- **Insurance:** contracts per vehicle. The monthly instalments are generated as expenses.
+- **Reminders:** by date or odometer, optionally recurring, with overdue and due-soon badges.
+- **Statistics:** charts per vehicle and period, consumption, cost per km and CO₂ per km.
+- **Family:** create or join families with an invite link, then share each vehicle as read-only or editable.
+- **Demo mode:** a per-visitor sandbox with seeded data and a guided tour. Nothing is written to the database.
+
+## Stack
+
+- [Next.js 15](https://nextjs.org) (App Router, React Server Components, middleware), React 18, TypeScript
+- [Supabase](https://supabase.com): Postgres with row-level security, Auth, Storage
+- Tailwind CSS 4, Motion, Recharts
+- Vitest + Testing Library, ESLint, Prettier, GitHub Actions
+- Deployed on Vercel
+
+## Getting started
+
+Requirements: Node.js 22 and a Supabase project that has this app's schema.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/alxandre-r/ma-voiture.git
+cd ma-voiture
+npm install
+cp .env.example .env.local   # then fill in the three values
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Variable | Where to find it | Exposed to the browser |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API | yes |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same page, `anon` key | yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | same page, `service_role` key | **no**: server only, it bypasses RLS |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> The database schema (tables, views, RLS policies, triggers, RPCs) lives in the Supabase project. It is not versioned as migrations in this repository yet, so a fresh project cannot be bootstrapped from the repo alone. The demo mode (`/demo`) runs without any database.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Command | What it does |
+|---|---|
+| `npm run dev` | Development server (Turbopack) |
+| `npm run build` / `npm start` | Production build / serve it |
+| `npm test` | Run the test suite once (`test:watch`, `test:ui` also exist) |
+| `npm run lint` | ESLint (including the accessibility rules) |
+| `npx tsc --noEmit` | Type-check, tests included |
+| `npx prettier --write .` | Format |
 
-To learn more about Next.js, take a look at the following resources:
+CI (`.github/workflows/ci.yml`) runs the type-check, ESLint and the tests on every push to `main` and on every pull request.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How it is built
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Reads happen on the server.** Each page (`app/(app)/<page>/page.tsx`) is a Server Component. It loads its data through `lib/data/*` (deduplicated with React `cache()`) and passes it to a `*Client.tsx` component. Filtering by vehicle and period happens on the client.
+- **Writes go through API routes.** Client hooks call `app/api/*` and then run `router.refresh()`. The routes validate their bodies (`lib/validation/body.ts`) and check access rights (`lib/api/vehicleAccess.ts`). Multi-row writes go through Postgres functions, so they are atomic.
+- **Security relies on the database.** Queries run as the signed-in user under row-level security. The service-role client (`lib/supabase/admin.ts`) is used only by a few routes, and only after an explicit check in code.
+- **Middleware** (`middleware.tsx`) refreshes the Supabase session and protects the private pages.
+- **Demo mode.** A `mv_demo` cookie swaps the whole backend for a sandbox:
+  - every data fetcher has a demo twin in `lib/demo/data.ts`;
+  - every API route has a demo handler in `lib/demo/api/`;
+  - the visitor's changes are kept as a compressed journal in the cookie.
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The app is deployed on Vercel. Set the three environment variables in the Vercel project settings. For authentication emails, also set the Site URL in Supabase → Authentication → URL Configuration.
