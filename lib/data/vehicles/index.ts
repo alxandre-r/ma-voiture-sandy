@@ -5,4 +5,4 @@ export {
   getFamilyVehiclesMinimal,
   getFamilyAllVehicles,
 } from './getFamilyVehicles';
-export { getAllVehicles, getAllVehiclesMinimal } from './getAllVehicles';
+export { getAllVehicles, getAllVehiclesMinimal, getOwnAndFamilyVehicles } from './getAllVehicles';

@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { hasWriteAccess } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   badRequest,
@@ -80,8 +81,7 @@ export async function POST(request: Request) {
         .eq('vehicle_id', body.vehicle_id)
         .maybeSingle();
 
-      const canWrite =
-        vehicle && (vehicle.owner_id === user.id || vehicle.permission_level === 'write');
+      const canWrite = vehicle && hasWriteAccess(vehicle, user.id);
       if (!canWrite) {
         return NextResponse.json(
           { error: "Vous n'avez pas les droits pour ajouter un rappel à ce véhicule" },

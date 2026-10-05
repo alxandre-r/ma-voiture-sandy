@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { canWriteRow, canWriteVehicle } from '@/lib/api/vehicleAccess';
+import { canWriteRow, canWriteVehicle, hasWriteAccess } from '@/lib/api/vehicleAccess';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -9,6 +9,15 @@ const client = (row: { owner_id: string; permission_level: string | null } | nul
   ({
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row }) }) }) }),
   }) as unknown as SupabaseClient;
+
+describe('hasWriteAccess (rule used inline by the add routes)', () => {
+  it('owner or write permission only', () => {
+    expect(hasWriteAccess({ owner_id: 'me', permission_level: null }, 'me')).toBe(true);
+    expect(hasWriteAccess({ owner_id: 'o', permission_level: 'write' }, 'me')).toBe(true);
+    expect(hasWriteAccess({ owner_id: 'o', permission_level: 'read' }, 'me')).toBe(false);
+    expect(hasWriteAccess({ owner_id: 'o' }, 'me')).toBe(false);
+  });
+});
 
 describe('canWriteVehicle', () => {
   it('allows the vehicle owner (no permission row needed)', async () => {

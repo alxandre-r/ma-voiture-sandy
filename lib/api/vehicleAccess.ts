@@ -6,6 +6,14 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+/** The rule itself, on a `vehicles_for_display` row the route already loaded. */
+export function hasWriteAccess(
+  vehicle: { owner_id: string | null; permission_level?: string | null },
+  userId: string,
+): boolean {
+  return vehicle.owner_id === userId || vehicle.permission_level === 'write';
+}
+
 /** The vehicle owner, or a user with a `write` permission on it. */
 export async function canWriteVehicle(
   supabase: SupabaseClient,
@@ -17,7 +25,7 @@ export async function canWriteVehicle(
     .select('owner_id, permission_level')
     .eq('vehicle_id', vehicleId)
     .maybeSingle();
-  return !!data && (data.owner_id === userId || data.permission_level === 'write');
+  return !!data && hasWriteAccess(data, userId);
 }
 
 /** An existing row (expense, contract…) is editable by its creator or by whoever can write its vehicle. */
