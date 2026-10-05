@@ -49,15 +49,26 @@ export function VehiclePermissionsModal({
     otherMembers.map((m) => ({ user_id: m.user_id, user_name: m.user_name, permission: 'none' })),
   );
   const [loadingInit, setLoadingInit] = useState(true);
+  // Set when the current permissions could not be read: saving would then overwrite them blindly
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    let cancelled = false;
     setLoadingInit(true);
+    setLoadError(null);
     fetch(`/api/vehicles/permissions?vehicleId=${vehicleId}`)
-      .then((res) => res.json())
-      .then(({ data }: { data: { user_id: string; permission_level: 'read' | 'write' }[] }) => {
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(body?.error ?? 'Impossible de charger les droits actuels.');
+        }
+        return body as { data: { user_id: string; permission_level: 'read' | 'write' }[] | null };
+      })
+      .then(({ data }) => {
+        if (cancelled) return;
         const dbMap = new Map(data?.map((d) => [d.user_id, d.permission_level]) ?? []);
         setPermissions(
           otherMembers.map((m) => ({
@@ -71,10 +82,20 @@ export function VehiclePermissionsModal({
           })),
         );
       })
-      .catch(() => {
-        // Keep default 'none' on fetch error
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoadError(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Impossible de charger les droits actuels.',
+        );
       })
-      .finally(() => setLoadingInit(false));
+      .finally(() => {
+        if (!cancelled) setLoadingInit(false);
+      });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, vehicleId]);
 
@@ -85,6 +106,7 @@ export function VehiclePermissionsModal({
   };
 
   const handleSave = async () => {
+    if (loadError) return;
     setSaving(true);
     try {
       const res = await fetch('/api/vehicles/permissions', {
@@ -126,9 +148,19 @@ export function VehiclePermissionsModal({
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Définissez le niveau d&apos;accès de chaque membre à ce véhicule.
-          </p>
+          {loadError ? (
+            <p
+              role="alert"
+              className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2"
+            >
+              {loadError} Les droits ne peuvent pas être modifiés pour le moment, réessayez plus
+              tard.
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Définissez le niveau d&apos;accès de chaque membre à ce véhicule.
+            </p>
+          )}
 
           <div className="space-y-3">
             {permissions.map((member) => (
@@ -143,8 +175,8 @@ export function VehiclePermissionsModal({
                     <button
                       key={perm}
                       onClick={() => setPermission(member.user_id, perm)}
-                      disabled={saving}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                      disabled={saving || !!loadError}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${
                         member.permission === perm
                           ? perm === 'edit'
                             ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow-sm'
@@ -172,7 +204,7 @@ export function VehiclePermissionsModal({
             </button>
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || !!loadError}
               className="px-4 py-2 text-sm font-semibold bg-custom-1 hover:bg-custom-1-hover text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
             >
               {saving && (
