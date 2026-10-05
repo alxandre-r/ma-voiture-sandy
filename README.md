@@ -35,24 +35,24 @@ cp .env.example .env.local   # then fill in the three values
 npm run dev                  # http://localhost:3000
 ```
 
-| Variable | Where to find it | Exposed to the browser |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API | yes |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same page, `anon` key | yes |
-| `SUPABASE_SERVICE_ROLE_KEY` | same page, `service_role` key | **no**: server only, it bypasses RLS |
+| Variable                        | Where to find it                  | Exposed to the browser               |
+| ------------------------------- | --------------------------------- | ------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase → Project Settings → API | yes                                  |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same page, `anon` key             | yes                                  |
+| `SUPABASE_SERVICE_ROLE_KEY`     | same page, `service_role` key     | **no**: server only, it bypasses RLS |
 
 > The database schema (tables, views, RLS policies, triggers, RPCs) lives in the Supabase project. It is not versioned as migrations in this repository yet, so a fresh project cannot be bootstrapped from the repo alone. The demo mode (`/demo`) runs without any database.
 
 ## Scripts
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Development server (Turbopack) |
-| `npm run build` / `npm start` | Production build / serve it |
-| `npm test` | Run the test suite once (`test:watch`, `test:ui` also exist) |
-| `npm run lint` | ESLint (including the accessibility rules) |
-| `npx tsc --noEmit` | Type-check, tests included |
-| `npx prettier --write .` | Format |
+| Command                       | What it does                                                 |
+| ----------------------------- | ------------------------------------------------------------ |
+| `npm run dev`                 | Development server (Turbopack)                               |
+| `npm run build` / `npm start` | Production build / serve it                                  |
+| `npm test`                    | Run the test suite once (`test:watch`, `test:ui` also exist) |
+| `npm run lint`                | ESLint (including the accessibility rules)                   |
+| `npx tsc --noEmit`            | Type-check, tests included                                   |
+| `npx prettier --write .`      | Format                                                       |
 
 CI (`.github/workflows/ci.yml`) runs the type-check, ESLint and the tests on every push to `main` and on every pull request.
 
