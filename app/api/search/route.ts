@@ -28,10 +28,7 @@ export async function GET(request: Request) {
 
   try {
     // Get user's accessible vehicle IDs
-    const { data: vehicles } = await supabase
-      .from('vehicles')
-      .select('id')
-      .eq('owner_id', user.id);
+    const { data: vehicles } = await supabase.from('vehicles').select('id').eq('owner_id', user.id);
 
     const vehicleIds = (vehicles ?? []).map((v) => v.id);
 
