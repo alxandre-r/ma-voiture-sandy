@@ -149,6 +149,15 @@ describe('vehicles endpoints', () => {
         .status,
     ).toBe(403);
   });
+
+  it('lets a vehicle owner who did not create the family share it, like the real route', () => {
+    const state = seed();
+    // Hand the family to someone else: the visitor is now a plain member
+    state.families[0].owner_id = DEMO_DAUGHTER_ID;
+    const permissions = [{ userId: DEMO_DAUGHTER_ID, level: 'read' }];
+    const result = call(state, 'POST', 'vehicles/permissions', { vehicleId: 101, permissions });
+    expect(result.status).toBe(200);
+  });
 });
 
 describe('family and account endpoints', () => {

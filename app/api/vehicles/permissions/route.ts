@@ -112,12 +112,22 @@ export async function POST(request: Request) {
     const targetUserIds = permissions.filter((p) => p.level !== 'none').map((p) => p.userId);
 
     if (targetUserIds.length > 0) {
-      // Verify all target users are in the same family as the owner
-      const { data: familyMembers } = await supabase
+      // Target users must share a family with the vehicle owner: any family the owner belongs
+      // to, not only the ones they created (a plain member can share their own vehicle too).
+      const { data: myMemberships } = await supabase
         .from('family_members')
-        .select('user_id, families!inner(owner_id)')
-        .eq('families.owner_id', user.id)
-        .in('user_id', targetUserIds);
+        .select('family_id')
+        .eq('user_id', user.id);
+      const myFamilyIds = (myMemberships ?? []).map((m) => m.family_id);
+
+      const { data: familyMembers } =
+        myFamilyIds.length > 0
+          ? await supabase
+              .from('family_members')
+              .select('user_id')
+              .in('family_id', myFamilyIds)
+              .in('user_id', targetUserIds)
+          : { data: [] };
 
       const allowedIds = new Set((familyMembers ?? []).map((m) => m.user_id));
       const unauthorized = targetUserIds.filter((id) => !allowedIds.has(id));

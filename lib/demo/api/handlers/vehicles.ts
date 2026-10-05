@@ -119,11 +119,12 @@ export const vehicleHandlers: Record<string, DemoApiHandler> = {
     if (!state.vehicles.some((v) => v.id === vehicleId && v.owner_id === DEMO_USER_ID)) {
       return fail(403, 'Véhicule introuvable ou accès refusé');
     }
-    const ownedFamilies = state.families
-      .filter((f) => f.owner_id === DEMO_USER_ID)
-      .map((f) => f.id);
+    // Like the real route: any family the visitor belongs to, not only the ones they created
+    const myFamilies = state.familyMembers
+      .filter((m) => m.user_id === DEMO_USER_ID)
+      .map((m) => m.family_id);
     const members = new Set(
-      state.familyMembers.filter((m) => ownedFamilies.includes(m.family_id)).map((m) => m.user_id),
+      state.familyMembers.filter((m) => myFamilies.includes(m.family_id)).map((m) => m.user_id),
     );
     const entries = body.permissions.filter(isPermissionEntry);
     if (entries.some((p) => p.level !== 'none' && !members.has(p.userId))) {
