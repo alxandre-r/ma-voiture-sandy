@@ -25,8 +25,6 @@ import type { FamilyVisibilityPrefs, UserPreferences } from '@/types/userPrefere
 const byCreatedAtDesc = (a: { created_at?: string | null }, b: { created_at?: string | null }) =>
   (b.created_at ?? '').localeCompare(a.created_at ?? '');
 const byDateDesc = (a: Expense, b: Expense) => b.date.localeCompare(a.date);
-const byDueDateAsc = (a: Reminder, b: Reminder) =>
-  (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999');
 
 function toMinimal(v: DemoVehicleRow) {
   return {
@@ -52,14 +50,8 @@ export function getCurrentUserInfo(state: DemoState) {
   return usersInfo(state, DEMO_USER_ID);
 }
 
-export const getUserInfo = getCurrentUserInfo;
-
 export function getUserFamilyIds(state: DemoState): string[] {
   return state.familyMembers.filter((m) => m.user_id === DEMO_USER_ID).map((m) => m.family_id);
-}
-
-export function getUserFamilyId(state: DemoState): string | null {
-  return getUserFamilyIds(state)[0] ?? null;
 }
 
 export function getUserFamilies(state: DemoState): { id: string; name: string }[] {
@@ -182,13 +174,6 @@ function withSourceExpense(state: DemoState, r: Reminder): Reminder {
   const source =
     r.source_expense_id != null ? state.expenses.find((e) => e.id === r.source_expense_id) : null;
   return { ...r, source_expense: source ? { id: source.id, date: source.date } : null };
-}
-
-export function getVehicleReminders(state: DemoState, vehicleId: number): Reminder[] {
-  return state.reminders
-    .filter((r) => r.user_id === DEMO_USER_ID && r.vehicle_id === vehicleId && !r.is_completed)
-    .sort(byDueDateAsc)
-    .map((r) => withSourceExpense(state, r));
 }
 
 /** Same rule as getOverdueCount: own, active, date-based reminders due within 14 days. */

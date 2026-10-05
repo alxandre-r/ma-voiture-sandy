@@ -42,29 +42,3 @@ export const getReminders = cache(async (vehicleIds: number[] = []): Promise<Rem
 
   return (data as Reminder[]) ?? [];
 });
-
-/**
- * Fetch reminders for a specific vehicle.
- */
-export const getVehicleReminders = cache(async (vehicleId: number): Promise<Reminder[]> => {
-  const demo = await getDemoSession();
-  if (demo) return demoData.getVehicleReminders(demo.state, vehicleId);
-
-  const supabase = await createSupabaseServerClient();
-
-  const user = await getCurrentUser();
-
-  if (!user) return [];
-
-  const { data, error } = await supabase
-    .from('reminders')
-    .select(REMINDER_SELECT)
-    .eq('user_id', user.id)
-    .eq('vehicle_id', vehicleId)
-    .eq('is_completed', false)
-    .order('due_date', { ascending: true });
-
-  if (error) failLoad('les rappels du véhicule', error);
-
-  return (data as Reminder[]) ?? [];
-});

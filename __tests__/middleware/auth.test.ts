@@ -47,7 +47,7 @@ describe('middleware access control', () => {
     );
   });
 
-  it.each(['/', '/auth/not-identified', '/demo', '/api/expenses/get'])(
+  it.each(['/', '/auth/callback', '/demo', '/api/expenses/get'])(
     'lets public path %s through without a session',
     async (path) => {
       const res = await middleware(request(path));

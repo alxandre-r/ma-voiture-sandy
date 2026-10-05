@@ -30,11 +30,6 @@ const FETCHERS: Array<[string, () => Promise<unknown>]> = [
     async () => (await import('@/lib/data/expenses/getAllExpenses')).getAllExpenses(IDS),
   ],
   [
-    'getMaintenanceExpenses (expenses)',
-    async () =>
-      (await import('@/lib/data/expenses/getMaintenanceExpense')).getMaintenanceExpenses(IDS),
-  ],
-  [
     'getFillExpenses',
     async () => (await import('@/lib/data/expenses/getFillExpenses')).getFillExpenses(IDS),
   ],
@@ -75,10 +70,6 @@ const FETCHERS: Array<[string, () => Promise<unknown>]> = [
     'getReminders',
     async () => (await import('@/lib/data/reminders/getReminders')).getReminders(IDS),
   ],
-  [
-    'getVehicleReminders',
-    async () => (await import('@/lib/data/reminders/getReminders')).getVehicleReminders(101),
-  ],
   ['getCurrentUser', async () => (await import('@/lib/data/user/getCurrentUser')).getCurrentUser()],
   [
     'getCurrentUserInfo',
@@ -92,14 +83,9 @@ const FETCHERS: Array<[string, () => Promise<unknown>]> = [
       ]),
   ],
   [
-    'getUserFamilyId',
-    async () => (await import('@/lib/data/user/getUserFamilyId')).getUserFamilyId(),
-  ],
-  [
     'getUserFamilyIds',
     async () => (await import('@/lib/data/user/getUserFamilyIds')).getUserFamilyIds(),
   ],
-  ['getUserInfo', async () => (await import('@/lib/data/user/getUserInfo')).getUserInfo()],
   [
     'getUserPreferences',
     async () => (await import('@/lib/data/user/getUserPreferences')).getUserPreferences(),
@@ -144,8 +130,8 @@ beforeEach(() => {
 });
 
 describe('lib/data in demo mode', () => {
-  it('covers the 24 fetchers', () => {
-    expect(FETCHERS).toHaveLength(24);
+  it('covers the 20 fetchers', () => {
+    expect(FETCHERS).toHaveLength(20);
   });
 
   it.each(FETCHERS)('%s answers from demo data without touching Supabase', async (_name, call) => {
@@ -170,8 +156,8 @@ describe('lib/data in demo mode', () => {
     );
     expect(vehicles.every((v) => v.owner_id === DEMO_USER_ID)).toBe(true);
 
-    const { getUserFamilyId } = await import('@/lib/data/user/getUserFamilyId');
-    await expect(getUserFamilyId()).resolves.toBe(DEMO_FAMILY_ID);
+    const { getUserFamilyIds } = await import('@/lib/data/user/getUserFamilyIds');
+    await expect(getUserFamilyIds()).resolves.toEqual([DEMO_FAMILY_ID]);
   });
 
   it('returns the demo user from getCurrentUserInfo (null would redirect to session_expired)', async () => {
@@ -179,12 +165,6 @@ describe('lib/data in demo mode', () => {
     const user = await getCurrentUserInfo();
     expect(user).not.toBeNull();
     expect(user?.id).toBe(DEMO_USER_ID);
-    expect(supabase.factory).not.toHaveBeenCalled();
-  });
-
-  it('keeps the real empty-array semantics of the expenses maintenance fetcher', async () => {
-    const { getMaintenanceExpenses } = await import('@/lib/data/expenses/getMaintenanceExpense');
-    await expect(getMaintenanceExpenses([])).resolves.toEqual([]);
     expect(supabase.factory).not.toHaveBeenCalled();
   });
 

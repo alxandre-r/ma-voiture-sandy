@@ -1,1 +1,1 @@
-export { getReminders, getVehicleReminders } from './getReminders';
+export { getReminders } from './getReminders';
