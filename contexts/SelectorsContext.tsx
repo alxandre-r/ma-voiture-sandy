@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 
-import { PERIOD_PRESET_LABELS } from '@/types/period';
+import { DEFAULT_PERIOD, PERIOD_PRESET_LABELS } from '@/types/period';
 
 import type { FamilyInfo } from '@/lib/data/family/getUserFamilies';
 import type { CustomPeriod, PeriodPreset, PeriodSelection } from '@/types/period';
@@ -103,7 +103,7 @@ export function SelectorsProvider({
   });
 
   const [selectedPeriod, setSelectedPeriodState] = useState<PeriodSelection>(
-    () => (initialPreferences?.default_period as PeriodPreset | undefined) ?? 'year',
+    () => (initialPreferences?.default_period as PeriodPreset | undefined) ?? DEFAULT_PERIOD,
   );
 
   // Hydrate from localStorage on mount, respecting DB preferences when they are newer
@@ -127,7 +127,7 @@ export function SelectorsProvider({
         const period: PeriodSelection =
           rawPeriod && (VALID_PRESETS as string[]).includes(rawPeriod)
             ? (rawPeriod as PeriodPreset)
-            : 'year';
+            : DEFAULT_PERIOD;
         setSelectedPeriodState(period);
         localStorage.setItem(STORAGE_KEYS.PERIOD, serializePeriod(period));
 

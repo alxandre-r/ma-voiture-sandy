@@ -7,7 +7,6 @@ import PeriodSelector from '@/components/common/PeriodSelector';
 import VehicleSelector from '@/components/common/VehicleSelector';
 import DemoBanner from '@/components/demo/DemoBanner';
 import Header from '@/components/Header';
-import { NotificationProvider } from '@/contexts/NotificationContext';
 import { useSelectors } from '@/contexts/SelectorsContext';
 
 import Sidebar, { MobileSidebarDrawer } from './Sidebar';
@@ -44,41 +43,41 @@ export default function PrivateLayoutContent({
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Toasts come from the root NotificationProvider (app/layout.tsx): a provider here was
+  // remounted by every section layout, losing toasts fired before a cross-section navigation
   return (
-    <NotificationProvider>
-      <div className="relative flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
-        <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
-        {/* Desktop sidebar */}
-        <aside className="hidden md:flex">
-          <Sidebar />
-        </aside>
+    <div className="relative flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+      <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex">
+        <Sidebar />
+      </aside>
 
-        {/* Mobile drawer */}
-        <MobileSidebarDrawer isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      {/* Mobile drawer */}
+      <MobileSidebarDrawer isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
 
-        <div className="flex flex-1 flex-col min-w-0">
-          <DemoBanner />
-          <Header
-            title={title}
-            onMenuOpen={() => setMobileMenuOpen(true)}
-            onSearchOpen={() => setSearchOpen(true)}
-            content={
-              showFilters && (
-                <div
-                  data-tour="header-filters"
-                  className="flex flex-row gap-2 sm:gap-4 w-full sm:w-auto min-w-0"
-                >
-                  <VehicleSelectorWrapper />
-                  <PeriodSelectorWrapper />
-                </div>
-              )
-            }
-          />
+      <div className="flex flex-1 flex-col min-w-0">
+        <DemoBanner />
+        <Header
+          title={title}
+          onMenuOpen={() => setMobileMenuOpen(true)}
+          onSearchOpen={() => setSearchOpen(true)}
+          content={
+            showFilters && (
+              <div
+                data-tour="header-filters"
+                className="flex flex-row gap-2 sm:gap-4 w-full sm:w-auto min-w-0"
+              >
+                <VehicleSelectorWrapper />
+                <PeriodSelectorWrapper />
+              </div>
+            )
+          }
+        />
 
-          <main className="flex-1 px-2 py-3 pt-4 pb-[140px] sm:px-4 lg:px-6">{children}</main>
-        </div>
+        <main className="flex-1 px-2 py-3 pt-4 pb-[140px] sm:px-4 lg:px-6">{children}</main>
       </div>
-    </NotificationProvider>
+    </div>
   );
 }
 

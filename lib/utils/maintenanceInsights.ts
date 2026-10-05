@@ -1,4 +1,4 @@
-import { addMonths } from 'date-fns';
+import { addMonthsIso } from '@/lib/utils/isoDate';
 
 import type { MaintenanceTypeInfo } from '@/lib/data/maintenance/getMaintenanceTypes';
 import type { Expense } from '@/types/expense';
@@ -52,8 +52,9 @@ export function computeMaintenanceSuggestions(
 
       if (lastExpense) {
         if (typeInfo.interval_months) {
-          const dueDate = addMonths(new Date(lastExpense.date), typeInfo.interval_months);
-          suggestedDueDate = dueDate.toISOString().split('T')[0];
+          // Calendar math on the YYYY-MM-DD string: Date + toISOString shifts a day west of UTC
+          suggestedDueDate = addMonthsIso(lastExpense.date, typeInfo.interval_months);
+          const dueDate = new Date(`${suggestedDueDate}T00:00:00`);
           monthsOverdue = (now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
         }
         if (typeInfo.interval_km && lastExpense.odometer) {

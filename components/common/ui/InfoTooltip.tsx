@@ -22,7 +22,7 @@ export default function InfoTooltip({
   const [visible, setVisible] = useState(false);
   const [popupStyle, setPopupStyle] = useState<React.CSSProperties>({
     left: '50%',
-    transform: 'trangrayX(-50%)',
+    transform: 'translateX(-50%)',
   });
   const triggerRef = useRef<HTMLSpanElement>(null);
 
@@ -42,7 +42,7 @@ export default function InfoTooltip({
 
   const handleMouseLeave = () => {
     setVisible(false);
-    setPopupStyle({ left: '50%', transform: 'trangrayX(-50%)' });
+    setPopupStyle({ left: '50%', transform: 'translateX(-50%)' });
   };
 
   return (
@@ -51,7 +51,7 @@ export default function InfoTooltip({
         ref={triggerRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="cursor-help text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+        className="cursor-help text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
       >
         <svg
           className="w-3.5 h-3.5"

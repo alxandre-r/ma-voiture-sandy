@@ -6,6 +6,7 @@ import AttachmentSection from '@/components/common/attachments/AttachmentSection
 import Button from '@/components/common/ui/Button';
 import { FormField, FormInput, FormDate } from '@/components/common/ui/form';
 import Icon from '@/components/common/ui/Icon';
+import { getLocalToday } from '@/lib/utils/isoDate';
 
 import type { OtherFormData } from '@/hooks/other/useOtherActions';
 import type { Expense } from '@/types/expense';
@@ -32,7 +33,7 @@ export default function OtherForm({
   saving = false,
 }: OtherFormProps) {
   const isEditing = !!initialExpense;
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalToday();
 
   const defaultVehicleId =
     initialExpense?.vehicle_id ?? (vehicles.length === 1 ? vehicles[0].vehicle_id : 0);

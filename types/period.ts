@@ -13,6 +13,12 @@ export interface CustomPeriod {
 /** Either a named preset or a custom date range */
 export type PeriodSelection = PeriodPreset | CustomPeriod;
 
+/**
+ * Period used when the user has no saved preference. Same as the DB default of
+ * `user_preferences.default_period`, so the settings page shows the period actually applied.
+ */
+export const DEFAULT_PERIOD = 'month' satisfies PeriodPreset;
+
 /** Human-readable labels for preset periods (used in the selector UI) */
 export const PERIOD_PRESET_LABELS: Record<PeriodPreset, string> = {
   month: 'Ce mois',

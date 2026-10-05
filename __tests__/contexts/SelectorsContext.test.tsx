@@ -102,13 +102,14 @@ describe('initial state — no localStorage, no preferences', () => {
     });
   });
 
-  it('defaults period to "year" when no preferences', async () => {
+  // Same as the DB default of user_preferences.default_period (P5.17)
+  it('defaults period to "month" when no preferences', async () => {
     const { result } = renderHook(() => useSelectors(), {
       wrapper: makeWrapper(allVehicles, null),
     });
 
     await waitFor(() => {
-      expect(result.current.selectedPeriod).toBe('year');
+      expect(result.current.selectedPeriod).toBe('month');
     });
   });
 });

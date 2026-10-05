@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { useNotifications } from '@/contexts/NotificationContext';
 import { apiCall } from '@/lib/api/client';
+import { getLocalToday } from '@/lib/utils/isoDate';
 import { ODOMETER_REQUIRED, parseOdometer } from '@/lib/utils/odometer';
 import { uploadPendingAttachments } from '@/lib/utils/uploadAttachments';
 import { validateBaseExpenseFields } from '@/lib/utils/validateExpense';
@@ -25,7 +26,7 @@ export function calculateFillValues(
 
   const result: FillFormData = {
     vehicle_id: data.vehicle_id ?? base?.vehicle_id ?? 0,
-    date: data.date ?? base?.date ?? new Date().toISOString().split('T')[0],
+    date: data.date ?? base?.date ?? getLocalToday(),
     odometer: data.odometer ?? 0,
     liters: data.liters ?? 0,
     amount,

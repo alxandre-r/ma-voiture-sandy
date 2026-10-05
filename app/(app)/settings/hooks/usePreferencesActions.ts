@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useSelectors } from '@/contexts/SelectorsContext';
 import { useUser } from '@/contexts/UserContext';
+import { DEFAULT_PERIOD } from '@/types/period';
 
 import type { UserPreferences } from '@/types/userPreferences';
 
@@ -34,7 +35,7 @@ export default function usePreferencesActions(initialPreferences: UserPreference
     show_insurance: true,
     show_vehicle_details: true,
     show_financials: true,
-    default_period: 'month',
+    default_period: DEFAULT_PERIOD,
     default_vehicle_scope: 'all',
     created_at: '',
     updated_at: '',
