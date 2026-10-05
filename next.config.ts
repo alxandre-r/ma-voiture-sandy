@@ -13,6 +13,11 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
+// Supabase Storage host for next/image, from the project URL (Next loads .env* before this file)
+const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+  : 'upskwbjxrzykgtanqxsp.supabase.co';
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -28,7 +33,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'upskwbjxrzykgtanqxsp.supabase.co',
+        hostname: supabaseHost,
         pathname: '/storage/v1/object/**',
       },
     ],
