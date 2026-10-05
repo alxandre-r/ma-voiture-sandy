@@ -6,6 +6,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { dbErrorResponse } from '@/lib/api/dbErrors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { normalizeFuelType } from '@/lib/utils/vehicleEnergy';
 import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
@@ -155,16 +156,7 @@ export async function PATCH(request: Request) {
 
     if (updateError) {
       console.error('Error updating vehicle:', updateError);
-      // Provide more specific error messages
-      let errorMessage = updateError.message;
-      if (updateError.message.includes('invalid input syntax for type date')) {
-        errorMessage = 'Format de date invalide pour un des champs de date';
-      } else if (updateError.message.includes('null value in column "make"')) {
-        errorMessage = 'La marque est requise';
-      } else if (updateError.message.includes('null value in column "model"')) {
-        errorMessage = 'Le modèle est requis';
-      }
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
+      return dbErrorResponse(updateError, 'Erreur lors de la mise à jour du véhicule');
     }
 
     revalidatePath('/', 'layout');

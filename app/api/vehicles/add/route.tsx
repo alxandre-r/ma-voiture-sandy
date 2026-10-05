@@ -6,6 +6,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { dbErrorResponse } from '@/lib/api/dbErrors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { normalizeFuelType } from '@/lib/utils/vehicleEnergy';
 import { badRequest, INVALID_BODY, readJsonObject } from '@/lib/validation/body';
@@ -109,16 +110,7 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Error inserting vehicle:', error);
-      // Provide more specific error messages
-      let errorMessage = error.message;
-      if (error.message.includes('invalid input syntax for type date')) {
-        errorMessage = 'Format de date invalide pour un des champs de date';
-      } else if (error.message.includes('null value in column "make"')) {
-        errorMessage = 'La marque est requise';
-      } else if (error.message.includes('null value in column "model"')) {
-        errorMessage = 'Le modèle est requis';
-      }
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
+      return dbErrorResponse(error, "Erreur lors de l'ajout du véhicule");
     }
 
     revalidatePath('/', 'layout');

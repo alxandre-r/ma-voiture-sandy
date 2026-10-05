@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   apiCall: vi.fn(),
-  upload: vi.fn(async () => ({ failedCount: 0 })),
+  upload: vi.fn(async () => ({ failedCount: 0, warning: null as string | null })),
   showWarning: vi.fn(),
 }));
 
@@ -85,7 +85,10 @@ describe('useGarageActions.handleSaveVehicle (B2)', () => {
 
   it('warns when some attachments failed', async () => {
     mocks.apiCall.mockResolvedValue({ vehicle: { id: 42 } });
-    mocks.upload.mockResolvedValueOnce({ failedCount: 1 });
+    mocks.upload.mockResolvedValueOnce({
+      failedCount: 1,
+      warning: "1 pièce(s) jointe(s) n'ont pas pu être téléchargées",
+    });
     const { result } = renderHook(() => useGarageActions());
     await act(async () => {
       await result.current.handleSaveVehicle({ make: 'Renault' }, [new File(['x'], 'a.pdf')]);

@@ -67,10 +67,8 @@ export function useMaintenanceActions() {
         body: JSON.stringify(payload),
       });
       if (pendingFiles?.length && expense?.id) {
-        const { failedCount } = await uploadPendingAttachments(pendingFiles, 'expense', expense.id);
-        if (failedCount > 0) {
-          showWarning(`${failedCount} pièce(s) jointe(s) n'ont pas pu être téléchargées`);
-        }
+        const { warning } = await uploadPendingAttachments(pendingFiles, 'expense', expense.id);
+        if (warning) showWarning(warning);
       }
 
       showSuccess('Entretien ajouté avec succès !');

@@ -51,7 +51,7 @@ describe('vehicles endpoints', () => {
     });
     expect(state.vehicles.some((v) => v.plate === 'AB-123-CD')).toBe(true);
     expect(call(state, 'POST', 'vehicles/add', { model: 'X' })).toEqual({
-      status: 500,
+      status: 400,
       json: { error: 'La marque est requise' },
     });
   });

@@ -44,10 +44,8 @@ export function useOtherActions() {
       });
 
       if (pendingFiles?.length && expense?.id) {
-        const { failedCount } = await uploadPendingAttachments(pendingFiles, 'expense', expense.id);
-        if (failedCount > 0) {
-          showWarning(`${failedCount} pièce(s) jointe(s) n'ont pas pu être téléchargées`);
-        }
+        const { warning } = await uploadPendingAttachments(pendingFiles, 'expense', expense.id);
+        if (warning) showWarning(warning);
       }
 
       showSuccess('Dépense ajoutée avec succès !');

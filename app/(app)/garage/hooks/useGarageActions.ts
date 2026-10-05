@@ -90,14 +90,12 @@ export function useGarageActions(): UseGarageActionsReturn {
         });
 
         if (!isUpdate && pendingFiles?.length && data.vehicle?.id) {
-          const { failedCount } = await uploadPendingAttachments(
+          const { warning } = await uploadPendingAttachments(
             pendingFiles,
             'vehicle',
             data.vehicle.id,
           );
-          if (failedCount > 0) {
-            showWarning(`${failedCount} pièce(s) jointe(s) n'ont pas pu être téléchargées`);
-          }
+          if (warning) showWarning(warning);
         }
 
         showSuccess(isUpdate ? 'Véhicule modifié avec succès !' : 'Véhicule ajouté avec succès !');

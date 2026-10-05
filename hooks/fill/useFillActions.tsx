@@ -102,14 +102,12 @@ export function useFillActions() {
       });
 
       if (pendingFiles?.length && data.fill?.expense_id) {
-        const { failedCount } = await uploadPendingAttachments(
+        const { warning } = await uploadPendingAttachments(
           pendingFiles,
           'expense',
           data.fill.expense_id,
         );
-        if (failedCount > 0) {
-          showWarning(`${failedCount} pièce(s) jointe(s) n'ont pas pu être téléchargées`);
-        }
+        if (warning) showWarning(warning);
       }
 
       showSuccess(

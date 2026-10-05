@@ -55,7 +55,7 @@ export default function AssuranceClient({
 }: AssuranceClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess, showError, showWarning } = useNotifications();
   const { drawer, openDrawer, closeDrawer } = useInsuranceDrawer();
   const today = getLocalToday();
   const linkedVehicleId = Number(searchParams.get('vehicleId')) || null;
@@ -123,7 +123,12 @@ export default function AssuranceClient({
       }
 
       if (pendingFiles.length && data.contract?.id) {
-        await uploadPendingAttachments(pendingFiles, 'insurance_contract', data.contract.id);
+        const { warning } = await uploadPendingAttachments(
+          pendingFiles,
+          'insurance_contract',
+          data.contract.id,
+        );
+        if (warning) showWarning(warning);
       }
       showSuccess(SAVE_MESSAGES[drawer.mode]);
       closeDrawer();

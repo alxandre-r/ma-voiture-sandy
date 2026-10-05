@@ -9,6 +9,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { dbErrorResponse } from '@/lib/api/dbErrors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
 
@@ -75,7 +76,7 @@ export async function DELETE(request: Request) {
 
     if (deleteError) {
       console.error('Error deleting vehicle:', deleteError);
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      return dbErrorResponse(deleteError, 'Erreur lors de la suppression du véhicule');
     }
 
     revalidatePath('/', 'layout');

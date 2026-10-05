@@ -63,8 +63,8 @@ export const vehicleHandlers: Record<string, DemoApiHandler> = {
   'POST vehicles/add': ({ state, body, now }) => {
     if (invalidFuelType(body)) return fail(400, 'Type de carburant invalide');
     const data = toVehicleData(body);
-    if (!data.make) return fail(500, 'La marque est requise');
-    if (!data.model) return fail(500, 'Le modèle est requis');
+    if (!data.make) return fail(400, 'La marque est requise');
+    if (!data.model) return fail(400, 'Le modèle est requis');
     const id = nextId(state.vehicles);
     const vehicle = { ...EMPTY_VEHICLE, ...data, id, owner_id: DEMO_USER_ID, created_at: now };
     return reply(
@@ -86,8 +86,8 @@ export const vehicleHandlers: Record<string, DemoApiHandler> = {
     }
     const data = toVehicleData(body);
     if (Object.keys(data).length === 0) return fail(400, 'Aucune donnée à mettre à jour');
-    if ('make' in data && !data.make) return fail(500, 'La marque est requise');
-    if ('model' in data && !data.model) return fail(500, 'Le modèle est requis');
+    if ('make' in data && !data.make) return fail(400, 'La marque est requise');
+    if ('model' in data && !data.model) return fail(400, 'Le modèle est requis');
     return reply(
       200,
       { message: 'Véhicule mis à jour avec succès', vehicle: { ...vehicle, ...data } },

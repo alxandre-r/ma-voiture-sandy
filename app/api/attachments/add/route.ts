@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { dbErrorResponse } from '@/lib/api/dbErrors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { isAllowedAttachmentMime } from '@/types/attachment';
 
@@ -94,10 +95,8 @@ export async function POST(request: Request) {
       console.error('Attachment insert error:', insertError);
       // Clean up the uploaded file
       await supabase.storage.from('attachments').remove([storagePath]);
-      return NextResponse.json(
-        { error: "Erreur lors de l'enregistrement de la pièce jointe" },
-        { status: 500 },
-      );
+      // The DB triggers enforce the quotas (10 per item, 200 per account)
+      return dbErrorResponse(insertError, "Erreur lors de l'enregistrement de la pièce jointe");
     }
 
     revalidatePath('/', 'layout');
