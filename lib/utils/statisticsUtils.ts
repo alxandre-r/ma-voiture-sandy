@@ -4,6 +4,8 @@
  * all functions are deterministic and fully testable in isolation.
  */
 
+import { endOfDay, subMonths, subYears } from 'date-fns';
+
 import { EXPENSE_CATEGORIES } from '@/app/(app)/expenses/components/expenseCategories';
 import { electricConsumption, fuelConsumption } from '@/lib/utils/consumption';
 import { filterByVehiclesAndPeriod, getEffectivePeriodRange } from '@/lib/utils/filterUtils';
@@ -152,21 +154,16 @@ export function buildMonthKeys(
     });
   }
 
-  // Custom date range: iterate month by month from start to end
+  // Custom date range: every month from start to end
   if (typeof selectedPeriod === 'object' && selectedPeriod.preset === 'custom') {
-    const start = new Date(selectedPeriod.start);
-    const end = new Date(selectedPeriod.end);
-    const keys: MonthKey[] = [];
-    let current = new Date(start.getFullYear(), start.getMonth(), 1);
-    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
-    while (current <= endMonth) {
-      keys.push({
-        sortKey: `${current.getFullYear()}-${String(current.getMonth()).padStart(2, '0')}`,
-        displayKey: fmt(current),
-      });
-      current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
-    }
-    return keys;
+    return monthKeysBetween(new Date(selectedPeriod.start), new Date(selectedPeriod.end), fmt);
+  }
+
+  // Rolling windows start mid-month (filterUtils: now - N months): include that partial
+  // oldest month, otherwise its expenses are counted in the totals but missing from the chart
+  const rolling = ROLLING_PERIOD_MONTHS[selectedPeriod as RollingPeriod];
+  if (rolling !== undefined) {
+    return monthKeysBetween(subMonths(now, rolling), now, fmt);
   }
 
   const count = selectedPeriod === 'month' ? 1 : monthsNum;
@@ -177,6 +174,29 @@ export function buildMonthKeys(
       displayKey: fmt(d),
     };
   });
+}
+
+type RollingPeriod = '3months' | '6months' | '12months';
+
+const ROLLING_PERIOD_MONTHS: Record<RollingPeriod, number> = {
+  '3months': 3,
+  '6months': 6,
+  '12months': 12,
+};
+
+/** One key per calendar month from `start`'s month to `end`'s month, inclusive. */
+function monthKeysBetween(start: Date, end: Date, fmt: (d: Date) => string): MonthKey[] {
+  const keys: MonthKey[] = [];
+  let current = new Date(start.getFullYear(), start.getMonth(), 1);
+  const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+  while (current <= endMonth) {
+    keys.push({
+      sortKey: `${current.getFullYear()}-${String(current.getMonth()).padStart(2, '0')}`,
+      displayKey: fmt(current),
+    });
+    current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+  }
+  return keys;
 }
 
 // ---------------------------------------------------------------------------
@@ -540,7 +560,7 @@ function computeProjectionsAndTrends(
     annualProjection = monthsNum > 0 ? (totalCost / monthsNum) * 12 : 0;
   }
 
-  // Previous year total (always computed for reference)
+  // Previous year total (always computed for reference; compared with the annual projection)
   const previousYearTotal = allExpenses
     .filter(
       (e) =>
@@ -563,7 +583,16 @@ function computeProjectionsAndTrends(
       })
       .reduce((s, e) => s + (e.amount ?? 0), 0);
   } else if (selectedPeriod === 'year') {
-    previousPeriodCost = previousYearTotal;
+    // Year to date vs the same span of last year (1 Jan → same day), not the whole year
+    const sameDayLastYear = subYears(now, 1);
+    const prevStart = new Date(sameDayLastYear.getFullYear(), 0, 1);
+    const prevEnd = endOfDay(sameDayLastYear);
+    previousPeriodCost = allExpenses
+      .filter((e) => {
+        const d = new Date(e.date);
+        return d >= prevStart && d <= prevEnd && selectedVehicleIds.includes(e.vehicle_id);
+      })
+      .reduce((s, e) => s + (e.amount ?? 0), 0);
   } else if (
     selectedPeriod === '3months' ||
     selectedPeriod === '6months' ||
