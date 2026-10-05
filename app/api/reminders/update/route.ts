@@ -18,6 +18,8 @@ import {
   readJsonObject,
 } from '@/lib/validation/body';
 
+import type { TablesUpdate } from '@/types/database';
+
 const UPDATABLE_REMINDER_COLUMNS = [
   'vehicle_id',
   'type',
@@ -87,7 +89,7 @@ export async function PATCH(request: Request) {
     const { data: existing, error: fetchError } = await supabase
       .from('reminders')
       .select('id, user_id, vehicle_id')
-      .eq('id', body.id)
+      .eq('id', Number(body.id))
       .single();
 
     if (fetchError || !existing) {
@@ -113,8 +115,8 @@ export async function PATCH(request: Request) {
 
     const { data, error } = await supabase
       .from('reminders')
-      .update(updateFields)
-      .eq('id', body.id)
+      .update(updateFields as TablesUpdate<'reminders'>)
+      .eq('id', Number(body.id))
       .select()
       .single();
 

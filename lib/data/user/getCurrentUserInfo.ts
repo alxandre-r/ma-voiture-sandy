@@ -5,13 +5,16 @@ import { cache } from 'react';
 
 import { failLoad, NO_ROWS } from '@/lib/data/loadError';
 import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
+import { viewRow } from '@/lib/data/viewRows';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
+import type { User } from '@/types/user';
+
 // Using React's cache() for proper intra-request memoization
 // Note: React cache() works with dynamic data (cookies) unlike unstable_cache
-export const getCurrentUserInfo = cache(async () => {
+export const getCurrentUserInfo = cache(async (): Promise<User | null> => {
   const demo = await getDemoSession();
   if (demo) return demoData.getCurrentUserInfo(demo.state);
 
@@ -30,7 +33,7 @@ export const getCurrentUserInfo = cache(async () => {
     // No profile row: treated like no session (AppDataProvider redirects)
     if (error?.code === NO_ROWS) return null;
     if (error) failLoad('votre profil', error);
-    return data;
+    return viewRow<User>(data);
   } catch (err) {
     // A DB failure must reach error.tsx, not look like an expired session
     if (err instanceof Error && err.message.startsWith('Impossible de charger')) throw err;

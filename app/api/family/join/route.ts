@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const { data: family, error: familyError } = await adminSupabase
       .from('families')
       .select('id, name, owner_id, invite_token')
-      .eq('invite_token', token)
+      .eq('invite_token', String(token))
       .maybeSingle();
 
     if (familyError) {

@@ -90,10 +90,10 @@ export async function POST(request: Request) {
     const { data: newContract, error: createError } = await supabase.rpc(
       'save_insurance_contract',
       {
-        p_contract: create,
+        p_contract: { ...create },
         p_instalments: getInstalmentDates(create.start_date, null, getParisToday()),
-        p_close_id: close?.id ?? null,
-        p_close_end: close?.end_date ?? null,
+        p_close_id: close?.id,
+        p_close_end: close?.end_date,
       },
     );
 

@@ -52,7 +52,7 @@ export async function PATCH(request: Request) {
     const { data: familyMember, error: memberError } = await supabase
       .from('family_members')
       .select('role')
-      .eq('family_id', familyId)
+      .eq('family_id', String(familyId))
       .eq('user_id', user.id)
       .single();
 
@@ -76,7 +76,7 @@ export async function PATCH(request: Request) {
       .update({
         name: name.trim(),
       })
-      .eq('id', familyId)
+      .eq('id', String(familyId))
       .select()
       .single();
 

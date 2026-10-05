@@ -28,7 +28,7 @@ export async function DELETE(request: Request) {
     const { data: attachment, error: fetchError } = await supabase
       .from('attachments')
       .select('id, owner_id, file_path, preview_path')
-      .eq('id', attachment_id)
+      .eq('id', Number(attachment_id))
       .eq('owner_id', user.id)
       .single();
 
@@ -47,7 +47,7 @@ export async function DELETE(request: Request) {
     const { error: updateError } = await supabase
       .from('attachments')
       .update({ is_deleted: true })
-      .eq('id', attachment_id)
+      .eq('id', Number(attachment_id))
       .eq('owner_id', user.id);
 
     if (updateError) {

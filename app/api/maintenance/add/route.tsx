@@ -9,6 +9,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { saveExpenseWithDetail } from '@/lib/api/rpc';
 import { hasWriteAccess } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
@@ -24,8 +25,6 @@ import {
   readJsonObject,
 } from '@/lib/validation/body';
 import { expenseBaseError } from '@/lib/validation/expense';
-
-import type { SavedExpense } from '@/types/rpc';
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -70,7 +69,7 @@ export async function POST(request: Request) {
     const { data: vehicle, error: vehicleError } = await supabase
       .from('vehicles_for_display')
       .select('vehicle_id, owner_id, name, make, model, permission_level')
-      .eq('vehicle_id', body.vehicle_id)
+      .eq('vehicle_id', Number(body.vehicle_id))
       .maybeSingle();
 
     if (vehicleError || !vehicle) {
@@ -88,21 +87,26 @@ export async function POST(request: Request) {
     // Expense + maintenance row in one transaction (P3.4); the maintenance insert trigger
     // creates or updates the auto-reminder
     // Note: schema uses maintenance_type_id, not maintenance_type
-    const { data: saved, error } = await supabase.rpc('save_expense_with_detail', {
-      p_expense_id: null,
-      p_expense: {
+    const { saved, error } = await saveExpenseWithDetail<{
+      maintenance_type_id: string | null;
+      odometer: number | null;
+      garage: string | null;
+    }>(
+      supabase,
+      null,
+      {
         vehicle_id: body.vehicle_id,
         type: 'maintenance',
         amount: Number(body.amount),
         date: body.date,
         notes: body.notes || null,
       },
-      p_detail: {
+      {
         maintenance_type_id: body.maintenance_type || 'other',
         odometer: body.odometer ? Number(body.odometer) : null,
         garage: body.garage || null,
       },
-    });
+    );
 
     if (error) {
       console.error('Error creating maintenance expense:', error);
@@ -111,11 +115,7 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
-    const { expense, detail } = saved as SavedExpense<{
-      maintenance_type_id: string | null;
-      odometer: number | null;
-      garage: string | null;
-    }>;
+    const { expense, detail } = saved;
     const maintenanceExpense = detail!;
 
     const odometer = parseOdometer(Number(body.odometer));

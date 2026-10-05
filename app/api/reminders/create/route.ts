@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       const { data: vehicle } = await supabase
         .from('vehicles_for_display')
         .select('vehicle_id, owner_id, permission_level')
-        .eq('vehicle_id', body.vehicle_id)
+        .eq('vehicle_id', Number(body.vehicle_id))
         .maybeSingle();
 
       const canWrite = vehicle && hasWriteAccess(vehicle, user.id);
@@ -94,16 +94,16 @@ export async function POST(request: Request) {
       .from('reminders')
       .insert({
         user_id: user.id,
-        vehicle_id: body.vehicle_id ?? null,
+        vehicle_id: body.vehicle_id ? Number(body.vehicle_id) : null,
         type: body.type,
         title: body.title.trim(),
         description: typeof body.description === 'string' ? body.description.trim() : null,
-        due_date: body.due_date ?? null,
+        due_date: (body.due_date as string | null | undefined) ?? null,
         due_odometer: body.due_odometer ? Number(body.due_odometer) : null,
-        is_recurring: body.is_recurring ?? false,
-        recurrence_type: body.recurrence_type ?? null,
+        is_recurring: (body.is_recurring as boolean | null | undefined) ?? false,
+        recurrence_type: (body.recurrence_type as string | null | undefined) ?? null,
         recurrence_value: body.recurrence_value ? Number(body.recurrence_value) : null,
-        maintenance_type_id: body.maintenance_type_id ?? null,
+        maintenance_type_id: (body.maintenance_type_id as string | null | undefined) ?? null,
         is_completed: false,
       })
       .select()

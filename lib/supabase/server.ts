@@ -7,6 +7,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+import type { Database } from '@/types/database';
+
 /**
  * Retourne un Supabase client côté serveur lié aux cookies de la requête.
  * @returns SupabaseClient
@@ -14,7 +16,7 @@ import { cookies } from 'next/headers';
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {

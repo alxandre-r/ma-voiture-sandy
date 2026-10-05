@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const vehicleId = searchParams.get('vehicleId');
 
-    if (!vehicleId) {
+    if (!isId(vehicleId)) {
       return NextResponse.json({ error: 'vehicleId est requis' }, { status: 400 });
     }
 
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     const { data: vehicle, error: vehicleError } = await supabase
       .from('vehicles')
       .select('id')
-      .eq('id', vehicleId)
+      .eq('id', Number(vehicleId))
       .eq('owner_id', user.id)
       .maybeSingle();
 
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase
       .from('vehicle_permissions')
       .select('user_id, permission_level')
-      .eq('vehicle_id', vehicleId);
+      .eq('vehicle_id', Number(vehicleId));
 
     if (error) {
       return NextResponse.json(

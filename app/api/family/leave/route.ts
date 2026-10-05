@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const { data: familyMember, error: memberError } = await supabase
       .from('family_members')
       .select('role')
-      .eq('family_id', familyId)
+      .eq('family_id', String(familyId))
       .eq('user_id', user.id)
       .single();
 
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     const { error: leaveError } = await supabase
       .from('family_members')
       .delete()
-      .eq('family_id', familyId)
+      .eq('family_id', String(familyId))
       .eq('user_id', user.id);
 
     if (leaveError) {

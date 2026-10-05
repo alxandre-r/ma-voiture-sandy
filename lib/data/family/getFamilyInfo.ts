@@ -9,7 +9,9 @@ import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
-export const getFamilyInfo = cache(async (familyId: string) => {
+import type { Family } from '@/types/family';
+
+export const getFamilyInfo = cache(async (familyId: string): Promise<Family | null> => {
   const demo = await getDemoSession();
   if (demo) return demoData.getFamilyInfo(demo.state, familyId);
 

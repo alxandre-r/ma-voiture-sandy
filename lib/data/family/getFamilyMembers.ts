@@ -5,6 +5,7 @@
 import { cache } from 'react';
 
 import { failLoad } from '@/lib/data/loadError';
+import { viewRows } from '@/lib/data/viewRows';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -28,9 +29,10 @@ export const getFamilyMembers = cache(async (familyId: string): Promise<FamilyMe
   if (!members || members.length === 0) {
     return [];
   }
+  const rows = viewRows<Omit<FamilyMemberDisplay, 'avatar_url'>>(members);
 
   // Get user IDs to fetch avatar URLs
-  const userIds = members.map((m) => m.user_id);
+  const userIds = rows.map((m) => m.user_id);
 
   // Fetch avatar URLs from users table
   const { data: users, error: usersError } = await supabase
@@ -53,7 +55,7 @@ export const getFamilyMembers = cache(async (familyId: string): Promise<FamilyMe
   }
 
   // Add avatar URLs to members
-  const membersWithAvatars: FamilyMemberDisplay[] = members.map((member) => ({
+  const membersWithAvatars: FamilyMemberDisplay[] = rows.map((member) => ({
     user_id: member.user_id,
     user_name: member.user_name,
     email: member.email,

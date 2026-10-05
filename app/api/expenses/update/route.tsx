@@ -9,6 +9,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { saveExpenseWithDetail } from '@/lib/api/rpc';
 import { canWriteRow, canWriteVehicle } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
@@ -28,7 +29,6 @@ import {
 import { fillFieldsError, INVALID_DATE, NOTES_MAX, NOTES_TOO_LONG } from '@/lib/validation/expense';
 
 import type { JsonBody } from '@/lib/validation/body';
-import type { SavedExpense } from '@/types/rpc';
 
 const UPDATABLE_EXPENSE_COLUMNS = ['vehicle_id', 'date', 'amount', 'notes'] as const;
 
@@ -120,7 +120,7 @@ export async function PATCH(request: Request) {
     const { data: existingExpense, error: expenseError } = await supabase
       .from('expenses')
       .select('id, owner_id, vehicle_id, type')
-      .eq('id', body.id)
+      .eq('id', Number(body.id))
       .single();
 
     if (expenseError || !existingExpense) {
@@ -159,11 +159,12 @@ export async function PATCH(request: Request) {
     }
 
     // Expense + detail row in one transaction (P3.4)
-    const { data: saved, error } = await supabase.rpc('save_expense_with_detail', {
-      p_expense_id: existingExpense.id,
-      p_expense: updateData,
-      p_detail: detailPatch(existingExpense.type, body),
-    });
+    const { saved, error } = await saveExpenseWithDetail(
+      supabase,
+      existingExpense.id,
+      updateData,
+      detailPatch(existingExpense.type, body),
+    );
 
     if (error) {
       console.error('Error updating expense:', error);
@@ -172,14 +173,14 @@ export async function PATCH(request: Request) {
         { status: 500 },
       );
     }
-    const updatedExpense = (saved as SavedExpense).expense;
+    const updatedExpense = saved.expense;
 
     // Recompute auto-reminder after edit (trigger only fires on INSERT). Outside the
     // transaction on purpose: the function refuses non-owners, which must not block the edit.
     if (existingExpense.type === 'maintenance' && body.maintenance_type) {
       await supabase.rpc('update_maintenance_reminder', {
-        p_vehicle_id: updatedExpense.vehicle_id,
-        p_maintenance_type_id: body.maintenance_type,
+        p_vehicle_id: Number(updatedExpense.vehicle_id),
+        p_maintenance_type_id: String(body.maintenance_type),
       });
     }
 

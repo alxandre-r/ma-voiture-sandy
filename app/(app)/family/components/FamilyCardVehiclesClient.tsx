@@ -12,17 +12,9 @@ import Icon from '@/components/common/ui/Icon';
 
 import { VehiclePermissionsModal } from './VehiclePermissionsModal';
 
-interface Vehicle {
-  vehicle_id: number;
-  owner_id: string | null;
-  owner_name: string | null;
-  make: string | null;
-  model: string | null;
-  year: number | null;
-  image: string | null;
-  name: string | null;
-  permission_level?: 'read' | 'write' | null;
-}
+import type { FamilyVehicleSummary } from '@/types/vehicle';
+
+type Vehicle = FamilyVehicleSummary;
 
 interface Member {
   user_id: string;

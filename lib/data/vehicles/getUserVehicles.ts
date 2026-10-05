@@ -5,12 +5,15 @@ import { cache } from 'react';
 
 import { failLoad } from '@/lib/data/loadError';
 import { getCurrentUser } from '@/lib/data/user/getCurrentUser';
+import { viewRows } from '@/lib/data/viewRows';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 
 import { createSupabaseServerClient } from '../../supabase/server';
 
-export const getUserVehicles = cache(async () => {
+import type { Vehicle, VehicleMinimal } from '@/types/vehicle';
+
+export const getUserVehicles = cache(async (): Promise<Vehicle[]> => {
   const demo = await getDemoSession();
   if (demo) return demoData.getUserVehicles(demo.state);
 
@@ -29,10 +32,10 @@ export const getUserVehicles = cache(async () => {
     failLoad('vos véhicules', error);
   }
 
-  return data;
+  return viewRows<Vehicle>(data);
 });
 
-export const getUserVehiclesMinimal = cache(async () => {
+export const getUserVehiclesMinimal = cache(async (): Promise<VehicleMinimal[]> => {
   const demo = await getDemoSession();
   if (demo) return demoData.getUserVehiclesMinimal(demo.state);
 
@@ -53,5 +56,5 @@ export const getUserVehiclesMinimal = cache(async () => {
     failLoad('vos véhicules', error);
   }
 
-  return data;
+  return viewRows<VehicleMinimal>(data);
 });

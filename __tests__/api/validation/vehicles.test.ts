@@ -34,7 +34,10 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 import { POST as addVehicle } from '@/app/api/vehicles/add/route';
-import { POST as setPermissions } from '@/app/api/vehicles/permissions/route';
+import {
+  GET as getPermissions,
+  POST as setPermissions,
+} from '@/app/api/vehicles/permissions/route';
 import { PATCH as updateVehicle } from '@/app/api/vehicles/update/route';
 
 const request = (body: string) =>
@@ -107,6 +110,26 @@ describe('vehicles routes body validation', () => {
     );
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: 'Niveau de permission invalide' });
+  });
+
+  it('requires make and model before reaching the DB', async () => {
+    const noMake = await addVehicle(json({ ...formPayload, make: '' }));
+    expect(noMake.status).toBe(400);
+    expect(await noMake.json()).toEqual({ error: 'La marque est requise' });
+
+    const noModel = await addVehicle(json({ ...formPayload, model: undefined }));
+    expect(noModel.status).toBe(400);
+    expect(await noModel.json()).toEqual({ error: 'Le modèle est requis' });
+    expect(state.calls).toEqual([]);
+  });
+
+  it('rejects a non-numeric vehicleId when reading permissions', async () => {
+    const res = await getPermissions(
+      new Request('http://localhost/api/vehicles/permissions?vehicleId=abc'),
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'vehicleId est requis' });
+    expect(state.calls).toEqual([]);
   });
 
   it('lets the VehicleForm payload reach the DB', async () => {

@@ -5,7 +5,7 @@ export interface Family {
   name: string;
   owner_id: string;
   invite_token: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface FamilyMember {

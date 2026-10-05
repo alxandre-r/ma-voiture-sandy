@@ -6,11 +6,14 @@ import { cache } from 'react';
 
 import { fetchAllRows } from '@/lib/data/fetchAllRows';
 import { failLoad } from '@/lib/data/loadError';
+import { viewRows } from '@/lib/data/viewRows';
 import * as demoData from '@/lib/demo/data';
 import { getDemoSession } from '@/lib/demo/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
-export const getAllExpenses = cache(async (vehicleIds: number[]) => {
+import type { Expense } from '@/types/expense';
+
+export const getAllExpenses = cache(async (vehicleIds: number[]): Promise<Expense[]> => {
   const demo = await getDemoSession();
   if (demo) return demoData.getAllExpenses(demo.state, vehicleIds);
 
@@ -26,5 +29,5 @@ export const getAllExpenses = cache(async (vehicleIds: number[]) => {
   );
 
   if (error) failLoad('les dépenses', error);
-  return data ?? [];
+  return viewRows<Expense>(data);
 });

@@ -9,6 +9,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { saveExpenseWithDetail } from '@/lib/api/rpc';
 import { canWriteRow } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { ODOMETER_REQUIRED, parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
@@ -23,8 +24,6 @@ import {
   readJsonObject,
 } from '@/lib/validation/body';
 import { expenseBaseError, fillFieldsError } from '@/lib/validation/expense';
-
-import type { SavedExpense } from '@/types/rpc';
 
 /**
  * PATCH /api/fills/update
@@ -65,7 +64,7 @@ export async function PATCH(request: Request) {
     const { data: existingExpense } = await supabase
       .from('expenses')
       .select('id, owner_id, vehicle_id')
-      .eq('id', body.id)
+      .eq('id', Number(body.id))
       .in('type', ['fuel', 'electric_charge'])
       .maybeSingle();
 
@@ -120,17 +119,18 @@ export async function PATCH(request: Request) {
     // Expense + fill in one transaction (P3.4). The RPC writes the expense first:
     // trg_enforce_fills_charge_type checks the fill against the expense type, so a
     // fill <-> charge switch only passes once the expense has the new type.
-    const { data: saved, error } = await supabase.rpc('save_expense_with_detail', {
-      p_expense_id: existingExpense.id,
-      p_expense: {
+    // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
+    const { saved, error } = await saveExpenseWithDetail(
+      supabase,
+      existingExpense.id,
+      {
         vehicle_id: vehicleId,
         type: isCharge ? 'electric_charge' : 'fuel',
         amount: Number(body.amount),
         date: body.date,
         notes: body.notes || null,
       },
-      // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
-      p_detail: {
+      {
         liters: isCharge ? null : (body.liters ?? null),
         price_per_liter: isCharge ? 0 : (body.price_per_liter ?? null),
         odometer,
@@ -138,7 +138,7 @@ export async function PATCH(request: Request) {
         kwh: isCharge ? (body.kwh ?? null) : null,
         price_per_kwh: isCharge ? (body.price_per_kwh ?? null) : null,
       },
-    });
+    );
 
     if (error) {
       console.error('Error updating fill:', error);
@@ -147,7 +147,7 @@ export async function PATCH(request: Request) {
         { status: 500 },
       );
     }
-    const updatedFill = (saved as SavedExpense).detail;
+    const updatedFill = saved.detail;
 
     await raiseVehicleOdometer(supabase, vehicleId, odometer);
 

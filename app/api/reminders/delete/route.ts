@@ -27,7 +27,7 @@ export async function DELETE(request: Request) {
     const { data: existing, error: fetchError } = await supabase
       .from('reminders')
       .select('id, user_id, vehicle_id')
-      .eq('id', body.id)
+      .eq('id', Number(body.id))
       .single();
 
     if (fetchError || !existing) {
@@ -49,7 +49,7 @@ export async function DELETE(request: Request) {
     const { data: deleted, error } = await supabase
       .from('reminders')
       .delete()
-      .eq('id', body.id)
+      .eq('id', Number(body.id))
       .select('id');
 
     if (!error && (!deleted || deleted.length === 0)) {

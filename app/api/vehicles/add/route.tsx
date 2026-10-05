@@ -59,6 +59,9 @@ export async function POST(request: Request) {
 
     const validationError = vehicleFieldsError(body);
     if (validationError) return badRequest(validationError);
+    // NOT NULL columns: same 400 and message as the dbErrorResponse mapping, before the insert
+    if (!make) return badRequest('La marque est requise');
+    if (!model) return badRequest('Le modèle est requis');
 
     // Helper to convert empty strings to null for date fields
     const toDate = (value: string | undefined | null) => {

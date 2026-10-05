@@ -12,6 +12,7 @@ import { normalizeFuelType } from '@/lib/utils/vehicleEnergy';
 import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
 import { vehicleFieldsError } from '@/lib/validation/vehicle';
 
+import type { TablesUpdate } from '@/types/database';
 import type { Vehicle } from '@/types/vehicle';
 
 const VALID_FIELDS = [
@@ -120,7 +121,7 @@ export async function PATCH(request: Request) {
     const { data: vehicle, error: fetchError } = await supabase
       .from('vehicles')
       .select('id, owner_id')
-      .eq('id', id)
+      .eq('id', Number(id))
       .maybeSingle();
 
     if (fetchError) {
@@ -139,7 +140,7 @@ export async function PATCH(request: Request) {
       const { data: perm } = await supabase
         .from('vehicles_for_display')
         .select('permission_level')
-        .eq('vehicle_id', id)
+        .eq('vehicle_id', Number(id))
         .maybeSingle();
       if (perm?.permission_level !== 'write') {
         return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
@@ -149,8 +150,8 @@ export async function PATCH(request: Request) {
     // Update vehicle
     const { data, error: updateError } = await supabase
       .from('vehicles')
-      .update(updateData)
-      .eq('id', id)
+      .update(updateData as TablesUpdate<'vehicles'>)
+      .eq('id', Number(id))
       .select()
       .single<Vehicle>();
 

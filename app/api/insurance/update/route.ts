@@ -19,6 +19,7 @@ import {
   readJsonObject,
 } from '@/lib/validation/body';
 
+import type { TablesUpdate } from '@/types/database';
 import type { InsuranceContract } from '@/types/insurance';
 
 /**
@@ -58,7 +59,7 @@ export async function PATCH(request: Request) {
     const { data: existing, error: fetchError } = await supabase
       .from('insurance_contracts')
       .select('*')
-      .eq('id', body.id)
+      .eq('id', Number(body.id))
       .single();
 
     if (fetchError || !existing) {
@@ -94,8 +95,8 @@ export async function PATCH(request: Request) {
 
     const { data, error } = await supabase
       .from('insurance_contracts')
-      .update(updates)
-      .eq('id', body.id)
+      .update(updates as TablesUpdate<'insurance_contracts'>)
+      .eq('id', Number(body.id))
       .select()
       .single();
 

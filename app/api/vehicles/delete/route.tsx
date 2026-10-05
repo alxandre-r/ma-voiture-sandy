@@ -51,7 +51,7 @@ export async function DELETE(request: Request) {
     const { data: vehicle, error: fetchError } = await supabase
       .from('vehicles')
       .select('id, owner_id')
-      .eq('id', vehicle_id)
+      .eq('id', Number(vehicle_id))
       .eq('owner_id', user.id)
       .maybeSingle();
 
@@ -71,7 +71,7 @@ export async function DELETE(request: Request) {
     const { error: deleteError } = await supabase
       .from('vehicles')
       .delete()
-      .eq('id', vehicle_id)
+      .eq('id', Number(vehicle_id))
       .eq('owner_id', user.id);
 
     if (deleteError) {

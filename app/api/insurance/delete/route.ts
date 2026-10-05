@@ -31,7 +31,7 @@ export async function DELETE(request: Request) {
     const { data: existing, error: fetchError } = await supabase
       .from('insurance_contracts')
       .select('id, owner_id')
-      .eq('id', body.id)
+      .eq('id', Number(body.id))
       .single();
 
     if (fetchError || !existing) {
@@ -44,7 +44,7 @@ export async function DELETE(request: Request) {
 
     // Contract + its instalments in one transaction (P3.4): the FK is ON DELETE SET NULL
     const { data: deleted, error } = await supabase.rpc('delete_insurance_contract', {
-      p_id: body.id,
+      p_id: Number(body.id),
     });
 
     if (error || !deleted) {

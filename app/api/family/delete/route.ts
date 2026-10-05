@@ -40,7 +40,7 @@ export async function DELETE(request: Request) {
     const { data: familyMember, error: memberError } = await supabase
       .from('family_members')
       .select('role')
-      .eq('family_id', familyId)
+      .eq('family_id', String(familyId))
       .eq('user_id', user.id)
       .single();
 
@@ -59,7 +59,10 @@ export async function DELETE(request: Request) {
     }
 
     // Delete the family (this will cascade to family_members due to foreign key constraints)
-    const { error: deleteError } = await supabase.from('families').delete().eq('id', familyId);
+    const { error: deleteError } = await supabase
+      .from('families')
+      .delete()
+      .eq('id', String(familyId));
 
     if (deleteError) {
       console.error('Erreur Supabase lors de la suppression de la famille:', deleteError);

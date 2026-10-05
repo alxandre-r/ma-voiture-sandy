@@ -9,6 +9,8 @@ import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { badRequest, INVALID_BODY, readJsonObject } from '@/lib/validation/body';
 
+import type { TablesInsert } from '@/types/database';
+
 const ALLOWED_FIELDS = [
   'show_consumption',
   'show_insurance',
@@ -79,7 +81,7 @@ export async function PATCH(request: Request) {
 
     const { error: updateError } = await supabase
       .from('user_preferences')
-      .upsert(updates, { onConflict: 'user_id' });
+      .upsert(updates as TablesInsert<'user_preferences'>, { onConflict: 'user_id' });
 
     if (updateError) {
       console.error('Erreur update user_preferences:', updateError);

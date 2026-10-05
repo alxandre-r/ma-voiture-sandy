@@ -40,6 +40,19 @@ export interface VehicleOwner {
   avatar_url?: string | null;
 }
 
+/** Row of the family page vehicle list (`getFamilyAllVehicles`). */
+export interface FamilyVehicleSummary {
+  vehicle_id: number;
+  owner_id: string | null;
+  owner_name: string | null;
+  make?: string | null;
+  model?: string | null;
+  year?: number | null;
+  image?: string | null;
+  name?: string | null;
+  permission_level?: 'read' | 'write' | null;
+}
+
 export interface VehicleMinimal {
   vehicle_id: number;
   owner_id?: string | null;

@@ -9,6 +9,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { saveExpenseWithDetail } from '@/lib/api/rpc';
 import { hasWriteAccess } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { ODOMETER_REQUIRED, parseOdometer, raiseVehicleOdometer } from '@/lib/utils/odometer';
@@ -22,8 +23,6 @@ import {
   readJsonObject,
 } from '@/lib/validation/body';
 import { expenseBaseError, fillFieldsError } from '@/lib/validation/expense';
-
-import type { SavedExpense } from '@/types/rpc';
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -52,7 +51,7 @@ export async function POST(request: Request) {
     const { data: vehicle, error: vehicleError } = await supabase
       .from('vehicles_for_display')
       .select('vehicle_id, owner_id, name, fuel_type, permission_level')
-      .eq('vehicle_id', body.vehicle_id)
+      .eq('vehicle_id', Number(body.vehicle_id))
       .maybeSingle();
 
     if (vehicleError || !vehicle) {
@@ -81,16 +80,17 @@ export async function POST(request: Request) {
     }
 
     // Expense + fill in one transaction (P3.4)
-    const { data: saved, error } = await supabase.rpc('save_expense_with_detail', {
-      p_expense_id: null,
-      p_expense: {
+    const { saved, error } = await saveExpenseWithDetail(
+      supabase,
+      null,
+      {
         vehicle_id: body.vehicle_id,
         type: expenseType,
         amount: Number(body.amount),
         date: body.date,
         notes: body.notes || null,
       },
-      p_detail: {
+      {
         odometer,
         // fills_energy_consistency: a charge has no liters; price_per_liter is NOT NULL
         liters: isCharge ? null : (body.liters ?? null),
@@ -100,15 +100,15 @@ export async function POST(request: Request) {
         kwh: isCharge ? (body.kwh ?? null) : null,
         price_per_kwh: isCharge ? (body.price_per_kwh ?? null) : null,
       },
-    });
+    );
 
     if (error) {
       console.error('Error adding fill:', error);
       return NextResponse.json({ error: "Erreur lors de l'ajout du plein" }, { status: 500 });
     }
-    const fill = (saved as SavedExpense).detail;
+    const fill = saved.detail;
 
-    await raiseVehicleOdometer(supabase, vehicle.vehicle_id, odometer);
+    await raiseVehicleOdometer(supabase, Number(body.vehicle_id), odometer);
 
     // Add vehicle info to response for UI
     const responseFill = {

@@ -42,7 +42,7 @@ export async function PATCH(request: Request) {
     const { data: reminder, error: fetchError } = await supabase
       .from('reminders')
       .select('*')
-      .eq('id', body.id)
+      .eq('id', Number(body.id))
       .single();
 
     if (fetchError || !reminder) {
@@ -72,7 +72,7 @@ export async function PATCH(request: Request) {
         is_completed,
         last_triggered_at: is_completed ? new Date().toISOString() : null,
       })
-      .eq('id', body.id);
+      .eq('id', Number(body.id));
     const { data: updated, error: updateError } = await (
       is_completed ? toggle.not('is_completed', 'is', true) : toggle.eq('is_completed', true)
     )
