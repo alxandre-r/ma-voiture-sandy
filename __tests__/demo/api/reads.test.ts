@@ -24,13 +24,6 @@ describe('demo read endpoints', () => {
     expect(expenses[0].date >= expenses[1].date).toBe(true);
   });
 
-  it('GET expenses/maintenanceExpense returns maintenance only', () => {
-    const { json } = get('expenses/maintenanceExpense', { vehicleIds: '101,102,103,104' });
-    const { expenses } = json as { expenses: { type: string }[] };
-    expect(expenses).toHaveLength(20);
-    expect(expenses.every((e) => e.type === 'maintenance')).toBe(true);
-  });
-
   it('GET search finds owned-vehicle expenses and own reminders', () => {
     expect((get('search', { q: 'a' }).json as { expenses: unknown[] }).expenses).toEqual([]);
     const { json } = get('search', { q: 'péage' });

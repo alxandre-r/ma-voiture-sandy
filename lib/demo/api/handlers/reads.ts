@@ -22,13 +22,6 @@ export const readHandlers: Record<string, DemoApiHandler> = {
   'GET expenses/get': ({ state, query }) =>
     reply(200, { expenses: scopedExpenses(state, query.get('vehicleIds')) }),
 
-  'GET expenses/maintenanceExpense': ({ state, query }) =>
-    reply(200, {
-      expenses: scopedExpenses(state, query.get('vehicleIds')).filter(
-        (e) => e.type === 'maintenance',
-      ),
-    }),
-
   'GET search': ({ state, query }) => {
     const q = (query.get('q') ?? '').trim();
     if (q.length < 2) return reply(200, { expenses: [], reminders: [] });

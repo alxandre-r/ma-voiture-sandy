@@ -21,6 +21,7 @@ import { useFillActions } from '@/hooks/fill/useFillActions';
 import { useOtherActions } from '@/hooks/other/useOtherActions';
 import { exportExpensesCSV } from '@/lib/utils/exportCSV';
 import { filterByVehiclesAndPeriod } from '@/lib/utils/filterUtils';
+import { writableActiveVehicles } from '@/lib/utils/vehicleAccess';
 import { vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 import { PERIOD_PRESET_LABELS } from '@/types/period';
 
@@ -91,7 +92,7 @@ function CSVExportModal({
             </span>
           </div>
           <div className="pt-1 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Colonnes</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">Colonnes</p>
             <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
               Date · Véhicule · Catégorie · Montant · Kilométrage · Quantité · Unité · Prix unitaire
               · Notes
@@ -347,12 +348,7 @@ function ExpensesContent({
 
   // All active vehicles the current user can write to
   const writableVehicles = useMemo(
-    () =>
-      minimalVehicles.filter((v) => {
-        const isActive = v.status === 'active' || v.status === null || v.status === undefined;
-        const canWrite = v.owner_id === user?.id || v.permission_level === 'write';
-        return isActive && canWrite;
-      }),
+    () => writableActiveVehicles(minimalVehicles, user?.id),
     [minimalVehicles, user?.id],
   );
 
@@ -395,12 +391,9 @@ function ExpensesContent({
         }
       : null;
 
-  // Note: All hooks must be called before any conditional returns
-  // Check if user has any vehicles - must be after all hooks
-  const userHasVehicles = user?.id ? vehicles.some((v) => v.owner_id === user.id) : true;
-
-  // Early return if no vehicles - must be after all hooks
-  if (!vehicles || vehicles.length === 0 || !userHasVehicles) {
+  // Early return if no vehicles - must be after all hooks. Shared vehicles count: family-only
+  // and read-shared users still see the expenses of the vehicles they can access.
+  if (!vehicles || vehicles.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
         <div className="w-20 h-20 bg-custom-1 rounded-full flex items-center justify-center mb-5">

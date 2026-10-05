@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 
 import Icon from '@/components/common/ui/Icon';
 import { useClickOutside } from '@/lib/utils/clickOutside';
+import { writableActiveVehicles } from '@/lib/utils/vehicleAccess';
 import { vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 
 import type { VehicleMinimal } from '@/types/vehicle';
@@ -30,11 +31,7 @@ export default function ExpenseButton({
 
   useClickOutside(menuRef, () => setShowMenu(false), showMenu);
 
-  const minimalVehicles = vehicles.filter((v) => {
-    const isActive = v.status === 'active' || v.status === null || v.status === undefined;
-    const canWrite = v.owner_id === currentUserId || v.permission_level === 'write';
-    return isActive && canWrite;
-  });
+  const minimalVehicles = writableActiveVehicles(vehicles, currentUserId);
 
   const fillVehicles = minimalVehicles.filter((v) => vehicleEnergy(v.fuel_type).fuel);
   const chargeVehicles = minimalVehicles.filter((v) => vehicleEnergy(v.fuel_type).electric);
@@ -135,6 +132,9 @@ export default function ExpenseButton({
       )}
     </div>
   );
+
+  // Read-only users (family-only, read-shared) have nothing to add to; reminders need no vehicle
+  if (minimalVehicles.length === 0 && !onAddReminder) return null;
 
   return (
     <>

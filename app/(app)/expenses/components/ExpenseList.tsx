@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Card } from '@/components/common/ui/card';
 import Icon from '@/components/common/ui/Icon';
+import { canWriteVehicle } from '@/lib/utils/vehicleAccess';
 
 import AdvancedFilters from './AdvancedFilters';
 import CategoryFilters from './CategoryFilters';
@@ -49,9 +50,7 @@ export default function ExpenseList({
     () =>
       new Set(
         (vehicles ?? [])
-          .filter(
-            (v) => v.owner_id === currentUserId || (v as Vehicle).permission_level === 'write',
-          )
+          .filter((v) => canWriteVehicle(v as Vehicle, currentUserId))
           .map((v) => v.vehicle_id),
       ),
     [vehicles, currentUserId],
@@ -150,7 +149,7 @@ export default function ExpenseList({
       <aside data-tour="expenses-filters" className="max-lg:hidden w-48 shrink-0">
         <Card>
           <div className="p-3 space-y-1">
-            <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">
+            <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">
               Catégories
             </p>
             <CategoryFilters
@@ -226,7 +225,8 @@ export default function ExpenseList({
               <ExpenseStats total={stats.total} avgPerMonth={stats.avgPerMonth} />
             </div>
           )}
-          <div className="justify-end items-end hidden sm:flex">{headerAction}</div>
+          {/* No `hidden` here: ExpenseButton hides its desktop button itself, and its mobile FAB is `fixed` */}
+          <div className="flex justify-end items-end">{headerAction}</div>
         </div>
 
         {/* Monthly groups */}
@@ -234,7 +234,7 @@ export default function ExpenseList({
           <Card>
             <div className="py-16 text-center">
               <Icon name="euro" size={40} className="opacity-20 mx-auto mb-3" />
-              <p className="text-sm text-gray-400 dark:text-gray-400">Aucune dépense trouvée.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Aucune dépense trouvée.</p>
             </div>
           </Card>
         ) : (

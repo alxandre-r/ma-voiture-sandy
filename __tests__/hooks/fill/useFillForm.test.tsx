@@ -66,3 +66,17 @@ describe('useFillForm — odometer (E8)', () => {
     expect(result.current.currentOdometer).toBe(1000);
   });
 });
+
+describe('useFillForm — vehicle select (B18)', () => {
+  it('stores vehicle_id as a number, so the energy of the chosen vehicle is found', () => {
+    const vehicles = [vehicle(1, 'gasoline'), vehicle(2, 'electric')];
+    const { result } = renderHook(() => useFillForm(vehicles, null), { wrapper });
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'vehicle_id', value: '2', type: 'select-one' },
+      } as unknown as ChangeEvent<HTMLSelectElement>);
+    });
+    expect(result.current.formData.vehicle_id).toBe(2);
+    expect(result.current.isElectric).toBe(true);
+  });
+});

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { calculateFillValues } from '@/hooks/fill/useFillActions';
+import { getLocalToday } from '@/lib/utils/isoDate';
 import { defaultChargeType, vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 
 import type { Fill, FillFormData } from '@/types/fill';
@@ -39,7 +40,7 @@ function buildInitialFormData(
 
   return {
     vehicle_id: vehicleId,
-    date: initialFill?.date ?? new Date().toISOString().split('T')[0],
+    date: initialFill?.date ?? getLocalToday(),
     odometer: initialFill?.odometer ?? 0,
     liters: initialFill?.liters ?? 0,
     amount: initialFill?.amount ?? null,
@@ -84,6 +85,12 @@ export function useFillForm(
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       const { name, value, type } = e.target;
+
+      // <select> values are strings: keep vehicle_id a number so `===` lookups match
+      if (name === 'vehicle_id') {
+        setFormData((prev) => ({ ...prev, vehicle_id: value ? Number(value) : 0 }));
+        return;
+      }
 
       if (type === 'number' || NUMERIC_FIELDS.has(name)) {
         const parsed = value === '' ? null : parseFloat(value.replace(',', '.'));

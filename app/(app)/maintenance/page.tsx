@@ -30,7 +30,6 @@ export default async function MaintenancePage() {
     <main>
       <MaintenanceClient
         vehicles={vehicles}
-        vehicleIds={vehicleIds}
         initialExpenses={expenses}
         maintenanceTypes={maintenanceTypes}
       />

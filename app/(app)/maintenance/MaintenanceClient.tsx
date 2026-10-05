@@ -12,7 +12,7 @@
  */
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 
 import MaintenanceSuggestions from '@/app/(app)/maintenance/components/MaintenanceSuggestions';
 import MaintenanceTimeline from '@/app/(app)/maintenance/components/MaintenanceTimeline';
@@ -27,6 +27,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useReminderActions } from '@/hooks/reminders/useReminderActions';
 import { filterByVehiclesAndPeriod } from '@/lib/utils/filterUtils';
 import { computeMaintenanceSuggestions } from '@/lib/utils/maintenanceInsights';
+import { canWriteVehicle, writableActiveVehicles } from '@/lib/utils/vehicleAccess';
 
 import type { MaintenanceFormData } from '@/app/(app)/maintenance/hooks/useMaintenanceActions';
 import type { MaintenanceTypeInfo } from '@/lib/data/maintenance/getMaintenanceTypes';
@@ -37,7 +38,6 @@ import type { VehicleMinimal } from '@/types/vehicle';
 
 interface MaintenanceClientProps {
   vehicles: VehicleMinimal[];
-  vehicleIds: number[];
   initialExpenses: Expense[];
   maintenanceTypes?: Record<string, MaintenanceTypeInfo>;
 }
@@ -48,12 +48,10 @@ interface MaintenanceClientProps {
  * Receives pre-fetched data from server for optimal SSR performance.
  */
 function MaintenanceContent({
-  vehicleIds,
   vehicles: initialVehicles,
   initialExpenses,
   maintenanceTypes = {},
 }: {
-  vehicleIds: number[];
   vehicles: VehicleMinimal[];
   initialExpenses: Expense[];
   maintenanceTypes?: Record<string, MaintenanceTypeInfo>;
@@ -69,39 +67,14 @@ function MaintenanceContent({
   const [showReminderForm, setShowReminderForm] = useState(false);
   const [reminderPrefill, setReminderPrefill] = useState<Partial<ReminderFormData> | undefined>();
 
-  // Use ref to track if this is the initial load
-  const isInitialLoad = useRef(true);
-
-  // Expenses state - initialized with server data
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-
-  // Track if we're refreshing data
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Server data: router.refresh() after a mutation re-renders with fresh props
+  const expenses = initialExpenses;
 
   const { saving, adding, deletingId, addMaintenance, updateMaintenance, deleteMaintenance } =
     useMaintenanceActions();
   const { creating, createReminder } = useReminderActions();
 
   const { selectedVehicleIds, selectedPeriod } = useSelectors();
-
-  // Fetch fresh data only when vehicleIds change (not on every render)
-  useEffect(() => {
-    // Skip the initial load since we already have data from server
-    if (isInitialLoad.current) {
-      isInitialLoad.current = false;
-      return;
-    }
-
-    // Fetch fresh data when vehicleIds change
-    if (vehicleIds.length > 0) {
-      setIsRefreshing(true);
-      fetch(`/api/expenses/maintenanceExpense?vehicleIds=${vehicleIds.join(',')}`)
-        .then((res) => res.json())
-        .then((data) => setExpenses(data.expenses || []))
-        .catch((error) => console.error('Failed to fetch maintenance expenses:', error))
-        .finally(() => setIsRefreshing(false));
-    }
-  }, [vehicleIds]);
 
   /**
    * Vehicles available in the form.
@@ -111,19 +84,13 @@ function MaintenanceContent({
   const writableVehicleIds = useMemo(
     () =>
       new Set(
-        initialVehicles
-          .filter((v) => v.owner_id === user.id || v.permission_level === 'write')
-          .map((v) => v.vehicle_id),
+        initialVehicles.filter((v) => canWriteVehicle(v, user.id)).map((v) => v.vehicle_id),
       ),
     [initialVehicles, user.id],
   );
 
   const vehicles = useMemo(() => {
-    const activeVehicles = initialVehicles.filter((v) => {
-      const isActive = v.status === 'active' || v.status == null;
-      const canWrite = v.owner_id === user.id || v.permission_level === 'write';
-      return isActive && canWrite;
-    });
+    const activeVehicles = writableActiveVehicles(initialVehicles, user.id);
 
     if (!editingExpense) return activeVehicles;
 
@@ -255,7 +222,8 @@ function MaintenanceContent({
   /**
    * Empty state
    */
-  if (vehicles.length === 0) {
+  // On all accessible vehicles, not only writable ones: read-shared users still see the history
+  if (initialVehicles.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
         <div className="w-20 h-20 bg-custom-1 rounded-full flex items-center justify-center mb-5">
@@ -279,6 +247,9 @@ function MaintenanceContent({
     );
   }
 
+  // Read-only users have no vehicle to add to
+  const canAdd = vehicles.length > 0;
+
   const handleAddClick = () => {
     setEditingExpense(null);
     setShowForm(true);
@@ -295,24 +266,25 @@ function MaintenanceContent({
         vehicles={initialVehicles}
         expenses={filteredExpenses}
         writableVehicleIds={writableVehicleIds}
-        onAdd={handleAddClick}
+        onAdd={canAdd ? handleAddClick : undefined}
         onEditExpense={handleEditExpense}
         onDeleteExpense={handleDeleteExpense}
         onCreateReminder={handleCreateReminderFromCard}
         deletingId={deletingId}
-        isDataLoading={isRefreshing}
         onDeleteAttachment={handleDeleteAttachment}
         deletingAttachmentId={deletingAttachmentId}
       />
 
       {/* Mobile FAB */}
-      <button
-        onClick={handleAddClick}
-        className="sm:hidden fixed bottom-20 right-4 z-40 w-14 h-14 bg-custom-2 hover:bg-custom-2-hover text-white rounded-full shadow-lg flex items-center justify-center cursor-pointer"
-        aria-label="Ajouter une intervention"
-      >
-        <Icon name="add" size={24} />
-      </button>
+      {canAdd && (
+        <button
+          onClick={handleAddClick}
+          className="sm:hidden fixed bottom-20 right-4 z-40 w-14 h-14 bg-custom-2 hover:bg-custom-2-hover text-white rounded-full shadow-lg flex items-center justify-center cursor-pointer"
+          aria-label="Ajouter une intervention"
+        >
+          <Icon name="add" size={24} />
+        </button>
+      )}
 
       {/* Maintenance form drawer */}
       <Drawer isOpen={showForm} onClose={handleCancelForm}>
@@ -347,14 +319,12 @@ function MaintenanceContent({
  */
 export default function MaintenanceClient({
   vehicles,
-  vehicleIds,
   initialExpenses,
   maintenanceTypes,
 }: MaintenanceClientProps) {
   return (
     <MaintenanceContent
       vehicles={vehicles}
-      vehicleIds={vehicleIds}
       initialExpenses={initialExpenses}
       maintenanceTypes={maintenanceTypes}
     />
