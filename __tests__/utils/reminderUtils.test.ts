@@ -1,4 +1,9 @@
-import { enrichReminder, getReminderStatus, sortReminders } from '@/lib/utils/reminderUtils';
+import {
+  canWriteReminder,
+  enrichReminder,
+  getReminderStatus,
+  sortReminders,
+} from '@/lib/utils/reminderUtils';
 
 import type { Reminder, ReminderWithStatus } from '@/types/reminder';
 
@@ -70,10 +75,52 @@ describe('getReminderStatus', () => {
     expect(getReminderStatus(r, 40000)).toBe('upcoming');
   });
 
-  it('odometer check takes priority over date check', () => {
-    // both conditions: odometer overdue AND date upcoming — odometer wins
+  it('km overdue beats a date still upcoming', () => {
     const r = makeReminder({ due_odometer: 50000, due_date: dateInDays(30) });
     expect(getReminderStatus(r, 50001)).toBe('overdue');
+  });
+
+  it('date overdue beats km due-soon (B13)', () => {
+    const r = makeReminder({ due_odometer: 50000, due_date: dateInDays(-3) });
+    expect(getReminderStatus(r, 49800)).toBe('overdue');
+  });
+
+  it('date due-soon beats km upcoming', () => {
+    const r = makeReminder({ due_odometer: 50000, due_date: dateInDays(5) });
+    expect(getReminderStatus(r, 30000)).toBe('due-soon');
+  });
+
+  it('km due-soon beats a date still upcoming', () => {
+    const r = makeReminder({ due_odometer: 50000, due_date: dateInDays(60) });
+    expect(getReminderStatus(r, 49800)).toBe('due-soon');
+  });
+
+  it('falls back to the date axis when the odometer is unknown', () => {
+    const r = makeReminder({ due_odometer: 50000, due_date: dateInDays(-1) });
+    expect(getReminderStatus(r, null)).toBe('overdue');
+  });
+});
+
+describe('canWriteReminder', () => {
+  const r = makeReminder({ user_id: 'creator' });
+
+  it('allows the creator, even without a vehicle', () => {
+    expect(canWriteReminder(r, null, 'creator')).toBe(true);
+  });
+
+  it('allows the vehicle owner and write members', () => {
+    expect(canWriteReminder(r, { owner_id: 'owner', permission_level: null }, 'owner')).toBe(true);
+    expect(canWriteReminder(r, { owner_id: 'owner', permission_level: 'write' }, 'member')).toBe(
+      true,
+    );
+  });
+
+  it('denies read members, strangers and anonymous users', () => {
+    expect(canWriteReminder(r, { owner_id: 'owner', permission_level: 'read' }, 'member')).toBe(
+      false,
+    );
+    expect(canWriteReminder(r, null, 'stranger')).toBe(false);
+    expect(canWriteReminder(r, { owner_id: 'owner', permission_level: 'write' }, null)).toBe(false);
   });
 });
 

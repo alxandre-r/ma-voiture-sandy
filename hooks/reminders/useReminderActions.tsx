@@ -63,10 +63,11 @@ export function useReminderActions() {
     async (id: number): Promise<boolean> => {
       setDeletingId(id);
       try {
-        await apiCall('/api/reminders/delete', {
+        const res = await apiCall<{ success?: boolean }>('/api/reminders/delete', {
           method: 'DELETE',
           body: JSON.stringify({ id }),
         });
+        if (!res?.success) throw new Error('Erreur lors de la suppression du rappel');
         showSuccess('Rappel supprimé avec succès !');
         router.refresh();
         return true;

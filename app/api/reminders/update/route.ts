@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { canWriteRow } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   badRequest,
@@ -85,7 +86,7 @@ export async function PATCH(request: Request) {
 
     const { data: existing, error: fetchError } = await supabase
       .from('reminders')
-      .select('id, user_id')
+      .select('id, user_id, vehicle_id')
       .eq('id', body.id)
       .single();
 
@@ -93,7 +94,14 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Rappel non trouvé' }, { status: 404 });
     }
 
-    if (existing.user_id !== user.id) {
+    // Creator, vehicle owner or `write` member (same rule as the RLS policy)
+    if (
+      !(await canWriteRow(
+        supabase,
+        { owner_id: existing.user_id, vehicle_id: existing.vehicle_id },
+        user.id,
+      ))
+    ) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
     }
 
@@ -107,7 +115,6 @@ export async function PATCH(request: Request) {
       .from('reminders')
       .update(updateFields)
       .eq('id', body.id)
-      .eq('user_id', user.id)
       .select()
       .single();
 

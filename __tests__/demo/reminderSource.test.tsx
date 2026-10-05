@@ -51,7 +51,7 @@ describe('automatic reminder ↔ source maintenance (P3.12, demo twin of SQL -08
 });
 
 describe('ReminderCard', () => {
-  const handlers = { onComplete: vi.fn(), onEdit: vi.fn(), onDelete: vi.fn() };
+  const handlers = { onComplete: vi.fn(), onEdit: vi.fn(), onDelete: vi.fn(), canWrite: true };
   const base: ReminderWithStatus = {
     id: 1,
     user_id: 'u',

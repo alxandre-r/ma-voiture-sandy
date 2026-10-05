@@ -308,10 +308,11 @@ export function upsertMaintenanceReminder(
   });
 }
 
-/** reminders/complete: toggles completion and inserts the next occurrence of a recurring reminder. */
+/** reminders/complete: toggles completion and inserts the next occurrence of a recurring reminder (idempotent). */
 function completeReminder(state: DemoState, op: Extract<DemoOp, { t: 'reminder.complete' }>): void {
   const reminder = state.reminders.find((r) => r.id === op.id);
-  if (!reminder) return;
+  // Already in that state (replayed / duplicate op): no second next occurrence
+  if (!reminder || Boolean(reminder.is_completed) === op.done) return;
   reminder.is_completed = op.done;
   reminder.last_triggered_at = op.done ? op.at : null;
   if (

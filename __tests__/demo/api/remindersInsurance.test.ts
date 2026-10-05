@@ -103,16 +103,62 @@ describe('reminders endpoints', () => {
     expect(next.estimated_due_date).toBeNull();
   });
 
-  it('answers success on delete even when nothing matches, like the real route', () => {
+  it('deletes a writable reminder; 404 when unknown, 403 without write rights', () => {
     const state = seed();
     expect(call(state, 'DELETE', 'reminders/delete', { id: 999 })).toEqual({
+      status: 404,
+      json: { error: 'Rappel introuvable' },
+    });
+    // 706: the daughter's reminder on her 208, which the demo user can only read
+    expect(call(state, 'DELETE', 'reminders/delete', { id: 706 })).toEqual({
+      status: 403,
+      json: { error: 'Non autorisé' },
+    });
+    expect(call(state, 'DELETE', 'reminders/delete', { id: 702 })).toEqual({
       status: 200,
       json: { success: true },
+      op: { t: 'reminder.delete', id: 702 },
     });
-    expect(call(state, 'DELETE', 'reminders/delete', { id: 702 }).op).toEqual({
-      t: 'reminder.delete',
-      id: 702,
+  });
+
+  it('lets a write member act on a reminder created by someone else (canWriteRow)', () => {
+    const state = seed();
+    // The partner's reminder on the Niro, where the demo user has `write`
+    state.reminders.push({ ...state.reminders.find((r) => r.id === 704)!, id: 799, user_id: 'p' });
+    expect(call(state, 'PATCH', 'reminders/update', { id: 799, title: 'x' }).status).toBe(200);
+    expect(call(state, 'PATCH', 'reminders/complete', { id: 799 }).status).toBe(200);
+    expect(call(state, 'DELETE', 'reminders/delete', { id: 799 }).status).toBe(200);
+  });
+
+  it('refuses to complete a reminder without write rights', () => {
+    const state = seed();
+    expect(call(state, 'PATCH', 'reminders/complete', { id: 706 })).toEqual({
+      status: 403,
+      json: { error: 'Non autorisé' },
     });
+  });
+
+  it('re-completing a recurring reminder creates no second occurrence (B13)', () => {
+    const state = seed();
+    const before = state.reminders.length;
+    commit(state, call(state, 'PATCH', 'reminders/complete', { id: 701, is_completed: true }));
+    expect(state.reminders).toHaveLength(before + 1);
+    const again = commit(
+      state,
+      call(state, 'PATCH', 'reminders/complete', { id: 701, is_completed: true }),
+    );
+    expect(again.status).toBe(200);
+    expect(again.op).toBeUndefined();
+    expect(again.json).toMatchObject({ reminder: { id: 701, is_completed: true } });
+    expect(state.reminders).toHaveLength(before + 1);
+  });
+
+  it('replaying a duplicate complete op (old journal) is a no-op', () => {
+    const state = seed();
+    const before = state.reminders.length;
+    applyOp(state, { t: 'reminder.complete', id: 701, at: NOW, done: true });
+    applyOp(state, { t: 'reminder.complete', id: 701, at: NOW, done: true });
+    expect(state.reminders).toHaveLength(before + 1);
   });
 });
 
@@ -149,7 +195,9 @@ describe('insurance endpoints', () => {
       start_date: '2026-09-01',
     });
     expect(result.status).toBe(409);
-    expect((result.json as { error: string }).error).toMatch(/^Ce contrat chevauche le contrat du /);
+    expect((result.json as { error: string }).error).toMatch(
+      /^Ce contrat chevauche le contrat du /,
+    );
   });
 
   it('requires cost, start date and ownership', () => {

@@ -1,3 +1,5 @@
+import { canWriteVehicle } from '@/lib/utils/vehicleAccess';
+
 import type { Expense } from '@/types/expense';
 import type { Reminder, ReminderStatus, ReminderWithStatus } from '@/types/reminder';
 import type { Vehicle } from '@/types/vehicle';
@@ -8,8 +10,20 @@ const DUE_SOON_DAYS = 14;
 /** Km threshold below which a km-based reminder is "due soon" */
 const DUE_SOON_KM = 500;
 
+/** Lower rank = more urgent. */
+const STATUS_URGENCY: Record<ReminderStatus, number> = {
+  overdue: 0,
+  'due-soon': 1,
+  upcoming: 2,
+  none: 3,
+};
+
+const mostUrgent = (a: ReminderStatus, b: ReminderStatus): ReminderStatus =>
+  STATUS_URGENCY[a] <= STATUS_URGENCY[b] ? a : b;
+
 /**
  * Compute the status of a reminder based on due date, due odometer, and vehicle odometer.
+ * Both axes are evaluated and the most urgent one wins (a date overdue beats a km due-soon).
  */
 export function getReminderStatus(
   reminder: Reminder,
@@ -17,32 +31,44 @@ export function getReminderStatus(
 ): ReminderStatus {
   if (reminder.due_date === null && reminder.due_odometer === null) return 'none';
 
-  const now = new Date();
+  let status: ReminderStatus = 'upcoming';
 
-  // Check odometer-based trigger
+  // Odometer-based trigger
   if (reminder.due_odometer !== null && vehicleOdometer !== null) {
     if (vehicleOdometer >= reminder.due_odometer) {
-      return 'overdue';
-    }
-    if (reminder.due_odometer - vehicleOdometer <= DUE_SOON_KM) {
-      return 'due-soon';
+      status = mostUrgent(status, 'overdue');
+    } else if (reminder.due_odometer - vehicleOdometer <= DUE_SOON_KM) {
+      status = mostUrgent(status, 'due-soon');
     }
   }
 
-  // Check date-based trigger
+  // Date-based trigger
   if (reminder.due_date !== null) {
+    const now = new Date();
     const due = new Date(reminder.due_date);
+    const daysUntilDue = (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
     if (due <= now) {
-      return 'overdue';
-    }
-    const msUntilDue = due.getTime() - now.getTime();
-    const daysUntilDue = msUntilDue / (1000 * 60 * 60 * 24);
-    if (daysUntilDue <= DUE_SOON_DAYS) {
-      return 'due-soon';
+      status = mostUrgent(status, 'overdue');
+    } else if (daysUntilDue <= DUE_SOON_DAYS) {
+      status = mostUrgent(status, 'due-soon');
     }
   }
 
-  return 'upcoming';
+  return status;
+}
+
+/**
+ * Whether the current user may edit, complete or delete a reminder: its creator, the vehicle
+ * owner, or a user with `write` permission on the vehicle (same rule as canWriteRow / RLS).
+ */
+export function canWriteReminder(
+  reminder: Pick<Reminder, 'user_id'>,
+  vehicle: Pick<Vehicle, 'owner_id' | 'permission_level'> | null,
+  userId: string | null | undefined,
+): boolean {
+  if (!userId) return false;
+  if (reminder.user_id === userId) return true;
+  return canWriteVehicle(vehicle, userId);
 }
 
 /**
@@ -170,9 +196,8 @@ export function formatReminderDue(reminder: ReminderWithStatus): string {
  * Within each group, sort by due_date asc (nulls last).
  */
 export function sortReminders(reminders: ReminderWithStatus[]): ReminderWithStatus[] {
-  const order: Record<ReminderStatus, number> = { overdue: 0, 'due-soon': 1, upcoming: 2, none: 3 };
   return [...reminders].sort((a, b) => {
-    const orderDiff = order[a.status] - order[b.status];
+    const orderDiff = STATUS_URGENCY[a.status] - STATUS_URGENCY[b.status];
     if (orderDiff !== 0) return orderDiff;
 
     const dateA = a.due_date ? new Date(a.due_date).getTime() : Infinity;

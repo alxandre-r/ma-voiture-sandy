@@ -15,6 +15,8 @@ interface ReminderCardProps {
   reminder: ReminderWithStatus;
   vehicleName?: string;
   currentUserId?: string;
+  /** Creator, vehicle owner or `write` member (canWriteReminder): edit / complete / delete. */
+  canWrite: boolean;
   onComplete: (id: number, completed: boolean) => void;
   onEdit: (reminder: ReminderWithStatus) => void;
   onDelete: (id: number) => void;
@@ -35,6 +37,7 @@ export default function ReminderCard({
   reminder,
   vehicleName,
   currentUserId,
+  canWrite,
   onComplete,
   onEdit,
   onDelete,
@@ -43,7 +46,8 @@ export default function ReminderCard({
   onDeleteAttachment,
   deletingAttachmentId,
 }: ReminderCardProps) {
-  const isOwner = !currentUserId || reminder.user_id === currentUserId;
+  // Attachments stay tied to their creator (attachments/delete checks owner_id)
+  const isCreator = !!currentUserId && reminder.user_id === currentUserId;
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -68,44 +72,44 @@ export default function ReminderCard({
         }`}
       >
         {/* More menu — top right */}
-        <div className="absolute top-3 right-3">
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            disabled={isCompleting || isDeleting}
-            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
-          >
-            <Icon name="more-vertical" size={18} className="text-gray-500 dark:text-gray-400" />
-          </button>
-
-          {menuOpen && (
-            <div
-              className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
-              onMouseLeave={() => setMenuOpen(false)}
+        {canWrite && (
+          <div className="absolute top-3 right-3">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              disabled={isCompleting || isDeleting}
+              className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
             >
-              {isOwner && !reminder.is_completed && (
+              <Icon name="more-vertical" size={18} className="text-gray-500 dark:text-gray-400" />
+            </button>
+
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
+                onMouseLeave={() => setMenuOpen(false)}
+              >
+                {!reminder.is_completed && (
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onEdit(reminder);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-2"
+                  >
+                    <Icon name="edit" size={16} />
+                    Modifier
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setMenuOpen(false);
-                    onEdit(reminder);
+                    onComplete(reminder.id, !reminder.is_completed);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-2"
+                  disabled={isCompleting}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
                 >
-                  <Icon name="edit" size={16} />
-                  Modifier
+                  <Icon name="check" size={16} />
+                  {reminder.is_completed ? 'Réactiver' : 'Marquer fait'}
                 </button>
-              )}
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  onComplete(reminder.id, !reminder.is_completed);
-                }}
-                disabled={isCompleting}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
-              >
-                <Icon name="check" size={16} />
-                {reminder.is_completed ? 'Réactiver' : 'Marquer fait'}
-              </button>
-              {isOwner && (
                 <button
                   onClick={handleDelete}
                   disabled={isDeleting}
@@ -114,16 +118,16 @@ export default function ReminderCard({
                   <Icon name="delete" size={16} />
                   {isDeleting ? 'Suppression…' : 'Supprimer'}
                 </button>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Header */}
-        <div className="flex flex-wrap items-center gap-2 mb-3 pr-8">
+        <div className={`flex flex-wrap items-center gap-2 mb-3 ${canWrite ? 'pr-8' : ''}`}>
           <h4
             className={`text-base font-bold text-gray-900 dark:text-gray-100 ${
-              reminder.is_completed ? 'line-through text-gray-400 dark:text-gray-500' : ''
+              reminder.is_completed ? 'line-through text-gray-500 dark:text-gray-500' : ''
             }`}
           >
             {reminder.title}
@@ -159,7 +163,7 @@ export default function ReminderCard({
           {reminder.due_odometer !== null &&
             reminder.due_date === null &&
             reminder.computedEstimatedDate && (
-              <span className="text-xs text-gray-400 dark:text-gray-500 italic">
+              <span className="text-xs text-gray-500 dark:text-gray-500 italic">
                 (estimation :{' '}
                 {reminder.computedEstimatedDate.toLocaleDateString('fr-FR', {
                   month: 'long',
@@ -205,14 +209,14 @@ export default function ReminderCard({
             <AttachmentGallery
               savedAttachments={reminder.attachments}
               onDeleteSaved={onDeleteAttachment ?? (() => {})}
-              isOwner={isOwner}
+              isOwner={isCreator}
               deletingId={deletingAttachmentId}
             />
           </div>
         )}
 
         {/* Mark as done — prominent button for active reminders */}
-        {!reminder.is_completed && (
+        {canWrite && !reminder.is_completed && (
           <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
             <button
               onClick={() => onComplete(reminder.id, true)}

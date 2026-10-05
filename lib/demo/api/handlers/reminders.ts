@@ -3,8 +3,9 @@ import { nextId } from '../../ops';
 import { canWriteVehicle, fail, reply, toNumber, toText, visibleVehicle } from '../helpers';
 
 import type { ReminderData, ReminderPatch } from '../../ops';
+import type { DemoState } from '../../types';
 import type { DemoApiHandler, JsonBody } from '../types';
-import type { ReminderType } from '@/types/reminder';
+import type { Reminder, ReminderType } from '@/types/reminder';
 
 const REMINDER_TYPES: readonly ReminderType[] = [
   'maintenance',
@@ -34,6 +35,12 @@ function toReminderPatch(body: JsonBody): ReminderPatch {
   }
   if (body.recurrence_value !== undefined) patch.recurrence_value = toNumber(body.recurrence_value);
   return patch;
+}
+
+/** canWriteRow in the real routes: creator, vehicle owner or `write` member. */
+function canWriteReminder(state: DemoState, reminder: Reminder): boolean {
+  if (reminder.user_id === DEMO_USER_ID) return true;
+  return reminder.vehicle_id != null && canWriteVehicle(visibleVehicle(state, reminder.vehicle_id));
 }
 
 export const reminderHandlers: Record<string, DemoApiHandler> = {
@@ -81,7 +88,7 @@ export const reminderHandlers: Record<string, DemoApiHandler> = {
     if (!id) return fail(400, "L'identifiant est requis");
     const reminder = state.reminders.find((r) => r.id === id);
     if (!reminder) return fail(404, 'Rappel non trouvé');
-    if (reminder.user_id !== DEMO_USER_ID) return fail(403, 'Non autorisé');
+    if (!canWriteReminder(state, reminder)) return fail(403, 'Non autorisé');
     const patch = toReminderPatch(body);
     return reply(
       200,
@@ -93,17 +100,21 @@ export const reminderHandlers: Record<string, DemoApiHandler> = {
   'DELETE reminders/delete': ({ state, body }) => {
     const id = toNumber(body.id);
     if (!id) return fail(400, "L'identifiant est requis");
-    // Like the real route: success even when no own reminder matches
-    const owned = state.reminders.some((r) => r.id === id && r.user_id === DEMO_USER_ID);
-    return reply(200, { success: true }, owned ? { t: 'reminder.delete', id } : undefined);
+    const reminder = state.reminders.find((r) => r.id === id);
+    if (!reminder) return fail(404, 'Rappel introuvable');
+    if (!canWriteReminder(state, reminder)) return fail(403, 'Non autorisé');
+    return reply(200, { success: true }, { t: 'reminder.delete', id });
   },
 
   'PATCH reminders/complete': ({ state, body, now }) => {
     const id = toNumber(body.id);
     if (!id) return fail(400, "L'identifiant est requis");
-    const reminder = state.reminders.find((r) => r.id === id && r.user_id === DEMO_USER_ID);
+    const reminder = state.reminders.find((r) => r.id === id);
     if (!reminder) return fail(404, 'Rappel introuvable');
+    if (!canWriteReminder(state, reminder)) return fail(403, 'Non autorisé');
     const done = Boolean(body.is_completed ?? true);
+    // Idempotent like the real route: already in that state → unchanged, no next occurrence
+    if (Boolean(reminder.is_completed) === done) return reply(200, { reminder });
     return reply(
       200,
       { reminder: { ...reminder, is_completed: done, last_triggered_at: done ? now : null } },

@@ -2,6 +2,7 @@
 
 import ReminderCard from '@/app/(app)/reminders/components/ReminderCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/ui/card';
+import { canWriteReminder } from '@/lib/utils/reminderUtils';
 
 import type { ReminderWithStatus } from '@/types/reminder';
 import type { Vehicle } from '@/types/vehicle';
@@ -83,6 +84,7 @@ export default function UpcomingReminders({
                   reminder={reminder}
                   vehicleName={vehicle?.name ?? undefined}
                   currentUserId={currentUserId}
+                  canWrite={canWriteReminder(reminder, vehicle, currentUserId)}
                   onComplete={onComplete}
                   onEdit={onEdit}
                   onDelete={onDelete}
@@ -125,11 +127,14 @@ export default function UpcomingReminders({
                     reminder={reminder}
                     vehicleName={vehicle?.name ?? undefined}
                     currentUserId={currentUserId}
+                    canWrite={canWriteReminder(reminder, vehicle, currentUserId)}
                     onComplete={onComplete}
                     onEdit={onEdit}
                     onDelete={onDelete}
                     isCompleting={completingId === reminder.id}
                     isDeleting={deletingId === reminder.id}
+                    onDeleteAttachment={onDeleteAttachment}
+                    deletingAttachmentId={deletingAttachmentId}
                   />
                 ))}
               </div>

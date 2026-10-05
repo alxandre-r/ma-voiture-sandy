@@ -2,6 +2,7 @@ import { addMonths } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+import { canWriteRow } from '@/lib/api/vehicleAccess';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation/body';
 
@@ -10,6 +11,8 @@ import { badRequest, INVALID_BODY, isId, readJsonObject } from '@/lib/validation
  * Toggle is_completed on a reminder.
  * If the reminder is recurring and is being marked as done,
  * automatically creates the next occurrence.
+ * Idempotent: a reminder already in the requested state is returned unchanged, so a double
+ * click or a replayed request never creates a second next occurrence.
  */
 export async function PATCH(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -40,24 +43,41 @@ export async function PATCH(request: Request) {
       .from('reminders')
       .select('*')
       .eq('id', body.id)
-      .eq('user_id', user.id)
       .single();
 
     if (fetchError || !reminder) {
       return NextResponse.json({ error: 'Rappel introuvable' }, { status: 404 });
     }
 
-    // Mark the reminder as completed
-    const { data: updated, error: updateError } = await supabase
+    // Creator, vehicle owner or `write` member (same rule as the RLS policy)
+    if (
+      !(await canWriteRow(
+        supabase,
+        { owner_id: reminder.user_id, vehicle_id: reminder.vehicle_id },
+        user.id,
+      ))
+    ) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+    }
+
+    // Already in the requested state: nothing to do (no second next occurrence)
+    if (Boolean(reminder.is_completed) === is_completed) {
+      return NextResponse.json({ reminder });
+    }
+
+    // Toggle only if the state has not changed since the read (concurrent completions)
+    const toggle = supabase
       .from('reminders')
       .update({
         is_completed,
         last_triggered_at: is_completed ? new Date().toISOString() : null,
       })
-      .eq('id', body.id)
-      .eq('user_id', user.id)
+      .eq('id', body.id);
+    const { data: updated, error: updateError } = await (
+      is_completed ? toggle.not('is_completed', 'is', true) : toggle.eq('is_completed', true)
+    )
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Error completing reminder:', updateError);
@@ -65,6 +85,11 @@ export async function PATCH(request: Request) {
         { error: 'Erreur lors de la mise à jour du rappel' },
         { status: 500 },
       );
+    }
+
+    // Another request toggled it first: it owns the next occurrence
+    if (!updated) {
+      return NextResponse.json({ reminder: { ...reminder, is_completed } });
     }
 
     // Create the next occurrence if the reminder is recurring and being marked as done

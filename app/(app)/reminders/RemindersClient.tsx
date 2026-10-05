@@ -16,6 +16,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useReminderActions } from '@/hooks/reminders/useReminderActions';
 import { getEffectivePeriodRange } from '@/lib/utils/filterUtils';
 import { enrichReminder, sortReminders } from '@/lib/utils/reminderUtils';
+import { writableActiveVehicles } from '@/lib/utils/vehicleAccess';
 
 import type { Expense } from '@/types/expense';
 import type { Reminder, ReminderFormData, ReminderWithStatus } from '@/types/reminder';
@@ -100,13 +101,7 @@ function RemindersContent({ reminders, vehicles, fillExpenses }: RemindersClient
     [activeReminders],
   );
 
-  const vehiclesMinimal: VehicleMinimal[] = vehicles
-    .filter(
-      (v) =>
-        (v.owner_id === user?.id || v.permission_level === 'write') &&
-        (v.status === 'active' || v.status == null),
-    )
-    .map((v) => ({
+  const vehiclesMinimal: VehicleMinimal[] = writableActiveVehicles(vehicles, user?.id).map((v) => ({
       vehicle_id: v.vehicle_id,
       name: v.name ?? `${v.make} ${v.model}`,
       make: v.make ?? '',
@@ -174,6 +169,7 @@ function RemindersContent({ reminders, vehicles, fillExpenses }: RemindersClient
           completingId={completingId}
           deletingId={deletingId}
           showCompleted
+          currentUserId={user?.id}
           onDeleteAttachment={handleDeleteAttachment}
           deletingAttachmentId={deletingAttachmentId}
         />
@@ -213,6 +209,7 @@ function RemindersContent({ reminders, vehicles, fillExpenses }: RemindersClient
               completingId={completingId}
               deletingId={deletingId}
               showCompleted
+              currentUserId={user?.id}
               onDeleteAttachment={handleDeleteAttachment}
               deletingAttachmentId={deletingAttachmentId}
             />
