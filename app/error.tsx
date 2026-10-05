@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 
-export default function GlobalError({
+export default function RootError({
   error,
   reset,
 }: {
