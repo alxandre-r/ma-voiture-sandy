@@ -64,12 +64,12 @@ export default function Header({ title, content, onMenuOpen, onSearchOpen }: Hea
               <button
                 data-tour="global-search"
                 onClick={onSearchOpen}
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-600 dark:hover:text-gray-400 bg-white dark:bg-gray-800 transition-colors min-w-[180px]"
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-500 dark:text-gray-500 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-600 dark:hover:text-gray-400 bg-white dark:bg-gray-800 transition-colors min-w-[180px]"
                 aria-label="Ouvrir la recherche"
               >
                 <Icon name="search" size={14} className="shrink-0" />
                 <span className="flex-1 text-left">Rechercher…</span>
-                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 shrink-0">
+                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-500 shrink-0">
                   Ctrl+K
                 </span>
               </button>

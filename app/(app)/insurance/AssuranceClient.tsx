@@ -166,7 +166,7 @@ export default function AssuranceClient({
 
       <section data-tour="insurance-overview" className="space-y-2">
         <div className="flex items-center gap-2">
-          <Icon name="secure" size={15} className="text-gray-400" />
+          <Icon name="secure" size={15} className="text-gray-500" />
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Mes véhicules</h2>
         </div>
         {ownedVehicles.length === 0 ? (
@@ -203,7 +203,7 @@ export default function AssuranceClient({
       {familyVehicles.length > 0 && (
         <section className="space-y-2">
           <div className="flex items-center gap-2">
-            <Icon name="family" size={15} className="text-gray-400" />
+            <Icon name="family" size={15} className="text-gray-500" />
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
               Véhicules famille
             </h2>

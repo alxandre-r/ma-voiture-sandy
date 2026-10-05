@@ -140,6 +140,7 @@ export default function AvatarModal({
 
           {avatarUrl && !hasSelectedFile && onRemove && (
             <button
+              aria-label="Supprimer la photo"
               onClick={handleRemove}
               disabled={isLoading}
               className="absolute top-1 right-1 w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 shadow-lg 

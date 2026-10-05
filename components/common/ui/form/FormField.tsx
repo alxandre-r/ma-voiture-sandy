@@ -33,7 +33,7 @@ export function FormField({
       {children}
 
       {error && <p className="text-xs text-red-500">{error}</p>}
-      {!error && hint && <p className="text-xs text-gray-400">{hint}</p>}
+      {!error && hint && <p className="text-xs text-gray-500">{hint}</p>}
     </div>
   );
 }

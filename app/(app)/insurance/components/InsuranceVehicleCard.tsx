@@ -73,7 +73,7 @@ export default function InsuranceVehicleCard({
   const header = (
     <div className="min-w-0">
       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{name}</p>
-      {vehicle.plate && <p className="text-xs text-gray-400 dark:text-gray-500">{vehicle.plate}</p>}
+      {vehicle.plate && <p className="text-xs text-gray-500 dark:text-gray-500">{vehicle.plate}</p>}
     </div>
   );
 
@@ -81,7 +81,7 @@ export default function InsuranceVehicleCard({
     return (
       <Card className="p-4 space-y-1" id={`insurance-vehicle-${vehicle.vehicle_id}`}>
         {header}
-        <p className="text-xs italic text-gray-400 dark:text-gray-500">
+        <p className="text-xs italic text-gray-500 dark:text-gray-500">
           Informations d&apos;assurance masquées par le propriétaire
         </p>
       </Card>
@@ -105,7 +105,7 @@ export default function InsuranceVehicleCard({
           {shown && (
             <p className="text-sm font-bold text-custom-1 tabular-nums">
               {formatCurrency(shown.monthly_cost)}
-              <span className="text-[11px] font-normal text-gray-400"> /mois</span>
+              <span className="text-[11px] font-normal text-gray-500"> /mois</span>
             </p>
           )}
         </div>
@@ -155,7 +155,7 @@ export default function InsuranceVehicleCard({
               Ajouter un contrat
             </Button>
           ) : status.upcoming ? (
-            <span className="text-xs text-gray-400 dark:text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-500">
               Changement déjà programmé
             </span>
           ) : (
@@ -189,7 +189,7 @@ export default function InsuranceVehicleCard({
                   <p className="font-medium text-gray-700 dark:text-gray-300 truncate">
                     {contract.provider ?? '—'}
                   </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                  <p className="text-[11px] text-gray-500 dark:text-gray-500">
                     {formatInsuranceDate(contract.start_date)} →{' '}
                     {formatInsuranceDate(contract.end_date)}
                   </p>
@@ -211,7 +211,7 @@ export default function InsuranceVehicleCard({
                       type="button"
                       onClick={() => onEdit?.(contract)}
                       aria-label={`Modifier le contrat ${label}`}
-                      className="p-1.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      className="p-1.5 rounded text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                     >
                       <Icon name="edit" size={13} />
                     </button>
@@ -219,7 +219,7 @@ export default function InsuranceVehicleCard({
                       type="button"
                       onClick={() => onDelete?.(contract)}
                       aria-label={`Supprimer le contrat ${label}`}
-                      className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+                      className="p-1.5 rounded text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
                     >
                       <Icon name="delete" size={13} />
                     </button>

@@ -86,9 +86,9 @@ function AttachmentCard({
           </p>
           <div className="flex items-center justify-between gap-1 mt-0.5">
             {size !== undefined && (
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">{formatSize(size)}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-500">{formatSize(size)}</p>
             )}
-            <p className="text-[10px] text-gray-400 dark:text-gray-500">{formatType(type)}</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-500">{formatType(type)}</p>
           </div>
         </div>
       </a>

@@ -68,7 +68,7 @@ export default function VehicleComparison({ vehicleStats, totalCost }: VehicleCo
                     />
                   ) : (
                     <div className="w-full h-[72px] bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                      <Icon name="car" size={24} className="text-gray-400" />
+                      <Icon name="car" size={24} className="text-gray-500" />
                     </div>
                   )}
                   <div className="absolute top-0 left-0 w-full h-[72px] bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>

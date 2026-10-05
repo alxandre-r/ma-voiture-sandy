@@ -56,7 +56,7 @@ export default function StatisticsClient({ vehicles }: StatisticsClientProps) {
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Impossible de charger les statistiques.
         </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-500">
           Vérifiez votre connexion et rechargez la page.
         </p>
       </div>
@@ -72,7 +72,7 @@ export default function StatisticsClient({ vehicles }: StatisticsClientProps) {
         <p className="font-medium text-gray-700 dark:text-gray-300">
           Aucune donnée pour cette sélection
         </p>
-        <p className="text-sm text-gray-400 dark:text-gray-500 max-w-xs">
+        <p className="text-sm text-gray-500 dark:text-gray-500 max-w-xs">
           Ajoutez des dépenses ou modifiez la période et le véhicule sélectionnés.
         </p>
       </div>

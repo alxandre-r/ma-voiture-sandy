@@ -61,13 +61,13 @@ export default function InsuranceSection({
               {formatCurrency(shown.monthly_cost)}/mois
             </p>
             {status.current?.end_date && (
-              <p className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-500">
                 Jusqu&apos;au {formatInsuranceDate(status.current.end_date)}
               </p>
             )}
           </>
         ) : (
-          <p className="text-sm text-gray-400 dark:text-gray-500 italic">Aucun contrat en cours</p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 italic">Aucun contrat en cours</p>
         )}
       </CardContent>
     </Card>

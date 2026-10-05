@@ -159,6 +159,7 @@ export default function VehicleDetail({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <button
+            aria-label="Retour"
             onClick={onBack}
             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition items-center flex shrink-0
             bg-white dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 cursor-pointer"
@@ -243,7 +244,7 @@ export default function VehicleDetail({
           ) : (
             <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center">
               <Icon name="car" size={64} className="text-gray-300 dark:text-gray-500" />
-              <span className="text-gray-400 dark:text-gray-500 mt-2 text-sm">Aucune image</span>
+              <span className="text-gray-500 dark:text-gray-500 mt-2 text-sm">Aucune image</span>
             </div>
           )}
           <div className="absolute top-4 left-4 flex gap-2">
@@ -324,8 +325,9 @@ export default function VehicleDetail({
                       className="w-28 text-sm text-right border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       autoFocus
                     />
-                    <span className="text-sm text-gray-400">km</span>
+                    <span className="text-sm text-gray-500">km</span>
                     <button
+                      aria-label="Enregistrer le kilométrage"
                       onClick={handleSaveOdometer}
                       disabled={savingOdometer}
                       className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
@@ -337,7 +339,7 @@ export default function VehicleDetail({
                         setEditingOdometer(false);
                         setOdometerValue(String(vehicle.odometer ?? ''));
                       }}
-                      className="p-1 text-gray-400 hover:text-gray-600"
+                      className="p-1 text-gray-500 hover:text-gray-600"
                     >
                       <Icon name="delete" size={14} />
                     </button>

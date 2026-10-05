@@ -98,7 +98,7 @@ export default function AttachmentUploader({
         />
       </button>
       {maxFiles !== undefined && (
-        <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center">
+        <p className="text-[11px] text-gray-500 dark:text-gray-500 text-center">
           {currentCount}/{maxFiles} · images et PDF · max 10 Mo
         </p>
       )}

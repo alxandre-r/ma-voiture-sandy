@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 
 import Icon from '@/components/common/ui/Icon';
 import ProfilePicture from '@/components/user/ProfilePicture';
+import { onActivateKey } from '@/lib/utils/a11y';
 import { formatVehicleConsumption } from '@/lib/utils/consumption';
 import { fuelTypeLabel } from '@/lib/utils/vehicleEnergy';
 import { computeHealthScore } from '@/lib/utils/vehicleHealthUtils';
@@ -80,8 +81,13 @@ export default function VehicleCard({
     <div
       className="group relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm
       dark:bg-gray-800 dark:border-gray-700
-      hover:shadow-md transition-shadow hover:-trangray-y-1 hover:border-custom-1/70 cursor-pointer transition-transform"
+      hover:shadow-md transition-shadow hover:-translate-y-1 hover:border-custom-1/70 cursor-pointer transition-transform
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-custom-1"
+      role="button"
+      tabIndex={0}
+      aria-label={`Voir le détail de ${vehicle.name || [vehicle.make, vehicle.model].filter(Boolean).join(' ') || 'ce véhicule'}`}
       onClick={handleClick}
+      onKeyDown={onActivateKey(handleClick)}
     >
       {/* Click to view details - the whole card is clickable */}
       <div className="aspect-video w-full relative">
@@ -154,13 +160,13 @@ export default function VehicleCard({
         {/* Stats grid */}
         <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
           <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 font-bold uppercase">Carburant</span>
+            <span className="text-[10px] text-gray-500 font-bold uppercase">Carburant</span>
             <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
               {fuelTypeLabel(vehicle.fuel_type) || '—'}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 font-bold uppercase">Année</span>
+            <span className="text-[10px] text-gray-500 font-bold uppercase">Année</span>
             <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
               {vehicle.year || '—'}
             </span>
@@ -168,7 +174,7 @@ export default function VehicleCard({
 
           {/* Kilométrage — inline editable */}
           <div className="flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <span className="text-[10px] text-gray-400 font-bold uppercase">Kilométrage</span>
+            <span className="text-[10px] text-gray-500 font-bold uppercase">Kilométrage</span>
             {onOdometerUpdate && isEditingOdo ? (
               <div className="flex items-center gap-1">
                 <input
@@ -181,7 +187,7 @@ export default function VehicleCard({
                   disabled={savingOdo}
                   className="w-20 text-sm font-bold text-gray-700 dark:text-gray-300 bg-transparent border-b border-custom-1 outline-none disabled:opacity-50"
                 />
-                <span className="text-xs text-gray-400">km</span>
+                <span className="text-xs text-gray-500">km</span>
               </div>
             ) : (
               <div
@@ -197,7 +203,7 @@ export default function VehicleCard({
                   <Icon
                     name="pencil"
                     size={11}
-                    className="opacity-0 group-hover/odo:opacity-50 transition-opacity text-gray-400"
+                    className="opacity-0 group-hover/odo:opacity-50 transition-opacity text-gray-500"
                   />
                 )}
               </div>
@@ -205,14 +211,14 @@ export default function VehicleCard({
           </div>
 
           <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 font-bold uppercase">Consommation</span>
+            <span className="text-[10px] text-gray-500 font-bold uppercase">Consommation</span>
             <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
               {formatVehicleConsumption(vehicle) ?? '—'}
             </span>
           </div>
           {vehicle.co2_emission != null && (
             <div className="col-span-2 flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
-              <span className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-1">
+              <span className="text-[10px] text-gray-500 font-bold uppercase flex items-center gap-1">
                 <Image src="icons/leaf-green.svg" alt="CO₂" width={14} height={14} />
                 CO₂ homologué
               </span>

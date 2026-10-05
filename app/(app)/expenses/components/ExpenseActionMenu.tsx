@@ -33,7 +33,7 @@ export default function ExpenseActionMenu({
           e.stopPropagation();
           setOpen((p) => !p);
         }}
-        className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+        className="p-1.5 rounded-lg text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
       >
         <Icon name="more-vertical" size={16} />
       </button>

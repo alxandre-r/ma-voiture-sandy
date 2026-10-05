@@ -124,7 +124,7 @@ export default function PeriodSelector({
         <Icon
           name="arrow-down"
           size={14}
-          className={`shrink-0 transition-transform text-gray-400 ${isOpen ? 'rotate-180' : ''}`}
+          className={`shrink-0 transition-transform text-gray-500 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -224,7 +224,7 @@ function PresetGrid({
               </span>
               <span
                 className={`text-[10px] mt-0.5 leading-tight ${
-                  active ? 'text-indigo-100' : 'text-gray-400 dark:text-gray-500'
+                  active ? 'text-indigo-100' : 'text-gray-500 dark:text-gray-500'
                 }`}
               >
                 {getPresetSubtitle(value)}
@@ -260,7 +260,7 @@ function PresetGrid({
           </span>
           <span
             className={`text-[10px] mt-0.5 ${
-              customActive ? 'text-indigo-100' : 'text-gray-400 dark:text-gray-500'
+              customActive ? 'text-indigo-100' : 'text-gray-500 dark:text-gray-500'
             }`}
           >
             {customActive
@@ -275,7 +275,7 @@ function PresetGrid({
         <Icon
           name="calendar"
           size={16}
-          className={customActive ? 'opacity-80' : 'text-gray-400 dark:text-gray-500'}
+          className={customActive ? 'opacity-80' : 'text-gray-500 dark:text-gray-500'}
         />
       </button>
     </div>
@@ -337,6 +337,7 @@ function RangeCalendar({
       {/* Header row */}
       <div className="flex items-center gap-2 mb-3">
         <button
+          aria-label="Retour"
           onClick={onBack}
           className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           title="Retour"
@@ -395,7 +396,7 @@ function RangeCalendar({
         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
           <div
             key={i}
-            className="text-center text-[10px] font-medium text-gray-400 dark:text-gray-500 py-0.5"
+            className="text-center text-[10px] font-medium text-gray-500 dark:text-gray-500 py-0.5"
           >
             {d}
           </div>
@@ -417,7 +418,7 @@ function RangeCalendar({
           className={`text-[10px] px-2 py-0.5 rounded-full ${
             step === 'start' || !tempStart
               ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 font-medium'
-              : 'text-gray-400 dark:text-gray-500'
+              : 'text-gray-500 dark:text-gray-500'
           }`}
         >
           Début{tempStart ? ` : ${format(tempStart, 'd MMM', { locale: fr })}` : ''}
@@ -427,7 +428,7 @@ function RangeCalendar({
           className={`text-[10px] px-2 py-0.5 rounded-full ${
             step === 'end' && tempStart
               ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 font-medium'
-              : 'text-gray-400 dark:text-gray-500'
+              : 'text-gray-500 dark:text-gray-500'
           }`}
         >
           Fin{tempEnd ? ` : ${format(tempEnd, 'd MMM', { locale: fr })}` : ''}
@@ -451,7 +452,7 @@ function RangeCalendar({
             ${
               canApply
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:opacity-90 shadow-sm'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
             }`}
         >
           Appliquer

@@ -133,7 +133,7 @@ export default function VehicleSelector({
           <Icon
             name="arrow-down"
             size={14}
-            className={`shrink-0 transition-transform text-gray-400 ${open ? 'rotate-180' : ''}`}
+            className={`shrink-0 transition-transform text-gray-500 ${open ? 'rotate-180' : ''}`}
           />
         )}
       </button>
@@ -266,7 +266,7 @@ function VehicleDropdown({
         {myVehicles.length > 0 && (
           <>
             {hasFamilies && (
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-2 pb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-500 px-2 pb-1">
                 Mes véhicules
               </p>
             )}
@@ -288,7 +288,7 @@ function VehicleDropdown({
           if (familyOnlyVehicles.length === 0) return null;
           return (
             <div key={g.id}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-2 pt-2 pb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-500 px-2 pt-2 pb-1">
                 {g.name}
               </p>
               {familyOnlyVehicles.map((v) => (
@@ -340,7 +340,7 @@ function GroupCard({
         {label}
       </span>
       <span
-        className={`text-[10px] mt-0.5 leading-tight ${active ? 'text-orange-100' : 'text-gray-400 dark:text-gray-500'}`}
+        className={`text-[10px] mt-0.5 leading-tight ${active ? 'text-orange-100' : 'text-gray-500 dark:text-gray-500'}`}
       >
         {subtitle}
       </span>

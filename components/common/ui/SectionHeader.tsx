@@ -21,7 +21,7 @@ export default function SectionHeader({
     <div className={`flex items-center justify-between gap-4 ${className}`}>
       <div className="flex items-center gap-2 min-w-0">
         {icon && (
-          <span className="shrink-0 text-gray-400 dark:text-gray-500">{icon}</span>
+          <span className="shrink-0 text-gray-500 dark:text-gray-500">{icon}</span>
         )}
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -35,7 +35,7 @@ export default function SectionHeader({
             )}
           </div>
           {subtitle && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{subtitle}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>

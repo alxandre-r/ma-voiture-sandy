@@ -61,7 +61,7 @@ function SidebarItem({
       prefetch={true}
       onClick={onClick}
       className={`group flex items-center gap-3 px-3 py-3 rounded-lg
-        text-gray-400 focus:outline-none relative z-10
+        text-gray-500 focus:outline-none relative z-10
          ${active ? 'text-white' : 'hover:bg-gray-800 hover:text-white'}`}
       aria-current={active ? 'page' : undefined}
     >
@@ -210,7 +210,7 @@ export function MobileSidebarDrawer({ isOpen, onClose }: { isOpen: boolean; onCl
               <span className="text-2xl font-bold">Ma voiture sandy</span>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors"
                 aria-label="Fermer le menu"
               >
                 <svg

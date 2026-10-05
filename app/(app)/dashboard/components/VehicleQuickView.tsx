@@ -89,12 +89,12 @@ function VehicleRow({
               />
             )}
           </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
+          <p className="text-xs text-gray-500 dark:text-gray-500 truncate mt-0.5">
             {subtitleParts.join(' · ') || '—'}
           </p>
           <div className="flex items-center gap-1.5 mt-1">
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${techStatus.dot}`} />
-            <span className="text-xs text-gray-400 dark:text-gray-500">{techStatus.label}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-500">{techStatus.label}</span>
           </div>
         </div>
 
@@ -102,7 +102,7 @@ function VehicleRow({
         <div className="text-right shrink-0 flex flex-col items-end gap-1">
           <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
             {vehicle.odometer != null ? vehicle.odometer.toLocaleString('fr-FR') : '—'}
-            <span className="text-xs font-normal text-gray-400 dark:text-gray-500 ml-1">km</span>
+            <span className="text-xs font-normal text-gray-500 dark:text-gray-500 ml-1">km</span>
           </p>
           {consumption && <p className="text-xs text-gray-500 dark:text-gray-400">{consumption}</p>}
           {/* Health score badge */}

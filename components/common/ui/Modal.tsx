@@ -125,6 +125,7 @@ export const Modal: React.FC<ModalProps> = ({
             >
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">{title}</h3>
               <button
+                aria-label="Fermer"
                 onClick={onClose}
                 className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:cursor-pointer transition-colors duration-200"
               >

@@ -60,7 +60,7 @@ export default function RemindersWidget({
         {enriched.length === 0 ? (
           <div className="py-8 text-center">
             <Icon name="bell" size={32} className="opacity-20 mx-auto mb-2" />
-            <p className="text-sm text-gray-400 dark:text-gray-500">Aucun rappel actif</p>
+            <p className="text-sm text-gray-500 dark:text-gray-500">Aucun rappel actif</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -88,7 +88,7 @@ export default function RemindersWidget({
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
                       {reminder.title}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
                       {vehicle?.name ? `${vehicle.name} · ` : ''}
                       {formatReminderDue(reminder)}
                     </p>
@@ -101,7 +101,7 @@ export default function RemindersWidget({
             {enriched.length > upcoming.length + overdue.length && (
               <Link
                 href="/reminders"
-                className="block text-xs text-gray-400 dark:text-gray-500 hover:text-custom-2 dark:hover:text-custom-2 text-center pt-1 transition-colors"
+                className="block text-xs text-gray-500 dark:text-gray-500 hover:text-custom-2 dark:hover:text-custom-2 text-center pt-1 transition-colors"
               >
                 +{enriched.length - upcoming.length - overdue.length} autres rappels
               </Link>

@@ -19,7 +19,7 @@ export default async function FamilyCardMembers({
   const members = await getFamilyMembers(familyId);
 
   if (!members || members.length === 0) {
-    return <p className="text-sm text-gray-400 dark:text-gray-500 italic">Aucun membre trouvé.</p>;
+    return <p className="text-sm text-gray-500 dark:text-gray-500 italic">Aucun membre trouvé.</p>;
   }
 
   // Current user first, then others by joined_at
@@ -51,7 +51,7 @@ export default async function FamilyCardMembers({
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
               {member.user_name}
               {isCurrentUser && (
-                <span className="text-gray-400 font-normal ml-1 text-xs">(Vous)</span>
+                <span className="text-gray-500 font-normal ml-1 text-xs">(Vous)</span>
               )}
               {isOwner && !isCurrentUser && (
                 <span className="text-custom-1 font-normal ml-1 text-xs">★</span>

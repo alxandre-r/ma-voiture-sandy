@@ -96,6 +96,7 @@ function MaintenanceCard({
             {canModify && (
               <>
                 <button
+                  aria-label="Modifier"
                   onClick={onEdit}
                   className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                   title="Modifier"
@@ -103,6 +104,7 @@ function MaintenanceCard({
                   <Icon name="edit" size={16} className="text-gray-500 dark:text-gray-400" />
                 </button>
                 <button
+                  aria-label="Supprimer"
                   onClick={onDeleteClick}
                   disabled={deletingId === expense.id}
                   className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"

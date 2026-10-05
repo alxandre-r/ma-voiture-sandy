@@ -140,7 +140,7 @@ export default function CarbonFootprint({
               <span className="text-5xl font-black text-gray-900 dark:text-gray-100 tabular-nums leading-none">
                 {totalCO2Kg.toLocaleString('fr-FR')}
               </span>
-              <span className="text-xl font-semibold text-gray-400 dark:text-gray-500 mb-1">
+              <span className="text-xl font-semibold text-gray-500 dark:text-gray-500 mb-1">
                 kg CO₂
               </span>
             </div>
@@ -235,8 +235,8 @@ export default function CarbonFootprint({
                 {/* Reference bar */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-400 dark:text-gray-500">Moyenne France</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+                    <span className="text-xs text-gray-500 dark:text-gray-500">Moyenne France</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500 tabular-nums">
                       {FR_ANNUAL_KG.toLocaleString('fr-FR')} kg/an
                     </span>
                   </div>
@@ -253,7 +253,7 @@ export default function CarbonFootprint({
             {/* Rate badge */}
             <div className="pt-1 border-t border-gray-100 dark:border-gray-800">
               <div className="inline-flex items-center gap-2">
-                <span className="text-xs text-gray-400 dark:text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-gray-500">
                   Taux d&apos;émission renseigné :
                 </span>
                 <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-md font-mono">

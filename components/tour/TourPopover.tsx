@@ -113,7 +113,7 @@ export default function TourPopover({
               type="button"
               onClick={onClose}
               aria-label="Quitter la visite"
-              className="cursor-pointer rounded-md px-1.5 py-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+              className="cursor-pointer rounded-md px-1.5 py-0.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
             >
               ✕
             </button>

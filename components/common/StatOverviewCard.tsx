@@ -110,7 +110,7 @@ export function StatOverviewCard({
 
       {/* Subtitle */}
       {subtitle && !loading && (
-        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 leading-tight">
+        <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1 leading-tight">
           {subtitle}
         </p>
       )}

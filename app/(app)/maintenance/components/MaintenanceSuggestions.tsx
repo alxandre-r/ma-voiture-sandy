@@ -45,7 +45,7 @@ export default function MaintenanceSuggestions({
         <Icon
           name={collapsed ? 'chevron-down' : 'chevron-up'}
           size={14}
-          className="text-gray-400 shrink-0"
+          className="text-gray-500 shrink-0"
         />
       </button>
 
@@ -71,7 +71,7 @@ export default function MaintenanceSuggestions({
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">
                     {s.label}
-                    <span className="ml-1.5 font-normal text-gray-400 dark:text-gray-500">
+                    <span className="ml-1.5 font-normal text-gray-500 dark:text-gray-500">
                       — {s.vehicleName}
                     </span>
                   </p>

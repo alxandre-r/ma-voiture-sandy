@@ -19,7 +19,7 @@ function PersonalVehiclesSkeleton() {
               Mes Véhicules
             </h3>
           </div>
-          <span className="text-xs font-semibold text-gray-400 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
             - VÉHICULE
           </span>
         </div>

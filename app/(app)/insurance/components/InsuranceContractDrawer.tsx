@@ -39,8 +39,9 @@ export default function InsuranceContractDrawer({
         <div className="space-y-6">
           <div className="flex items-center gap-3">
             <button
+              aria-label="Fermer"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
             >
               <Icon name="arrow-back" size={20} />
             </button>

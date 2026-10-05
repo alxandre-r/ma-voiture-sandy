@@ -40,7 +40,7 @@ export default function AdvancedFilters({
       {/* Section label (desktop only) */}
       {!mobile && (
         <div className="flex items-center justify-between px-1">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
             Recherche
           </p>
           {hasActiveFilters && (
@@ -56,7 +56,7 @@ export default function AdvancedFilters({
         <Icon
           name="notes"
           size={12}
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
         />
         <input
           type="text"
@@ -77,7 +77,7 @@ export default function AdvancedFilters({
           min={0}
           className={inputClass}
         />
-        <span className="text-gray-400 text-xs shrink-0">–</span>
+        <span className="text-gray-500 text-xs shrink-0">–</span>
         <input
           type="number"
           placeholder="Max €"

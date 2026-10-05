@@ -34,7 +34,7 @@ export default function GlobalError({
         </button>
       </div>
       {error.digest && (
-        <p className="text-xs text-gray-400 mt-2 select-text">Référence : {error.digest}</p>
+        <p className="text-xs text-gray-500 mt-2 select-text">Référence : {error.digest}</p>
       )}
     </div>
   );

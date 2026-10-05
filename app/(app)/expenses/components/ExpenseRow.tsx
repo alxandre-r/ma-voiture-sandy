@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 import Icon from '@/components/common/ui/Icon';
+import { onActivateKey } from '@/lib/utils/a11y';
 import { getCategoryColor, getCategoryIcon, getCategoryLabel } from '@/lib/utils/expensesUtils';
 import { formatCurrency } from '@/lib/utils/format';
 import { getVehicleName } from '@/lib/utils/vehicleUtils';
@@ -42,8 +43,12 @@ export default function ExpenseRow({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`${getCategoryLabel(expense)}, ${formatCurrency(expense.amount)} : voir le détail`}
       onClick={() => onViewDetail(expense)}
-      className="cursor-pointer relative flex items-center gap-3 sm:gap-4 py-3 px-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors"
+      onKeyDown={onActivateKey(() => onViewDetail(expense))}
+      className="focus-visible:outline-2 focus-visible:outline-custom-1 focus-visible:-outline-offset-2 cursor-pointer relative flex items-center gap-3 sm:gap-4 py-3 px-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors"
     >
       {/* Category icon */}
       <div
@@ -75,7 +80,7 @@ export default function ExpenseRow({
               <span className="hidden sm:block text-gray-300 dark:text-gray-600 text-xs shrink-0">
                 ·
               </span>
-              <span className="hidden sm:block text-xs text-gray-400 dark:text-gray-500 truncate">
+              <span className="hidden sm:block text-xs text-gray-500 dark:text-gray-500 truncate">
                 {desc}
               </span>
             </>
@@ -90,7 +95,7 @@ export default function ExpenseRow({
 
       {/* Desktop: date + amount + attachment badge + ⋮ button */}
       <div className="hidden sm:flex items-center gap-3 shrink-0">
-        <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums w-12 text-right">
+        <span className="text-xs text-gray-500 dark:text-gray-500 tabular-nums w-12 text-right">
           {format(new Date(expense.date), 'dd MMM', { locale: fr })}
         </span>
         <span className="text-sm font-bold text-gray-900 dark:text-gray-100 w-20 text-right tabular-nums">

@@ -32,7 +32,7 @@ export default function RecentExpenses({ expenses, vehicles }: RecentExpensesPro
         {expenses.length === 0 ? (
           <div className="py-8 text-center">
             <Icon name="euro" size={32} className="opacity-20 mx-auto mb-2" />
-            <p className="text-sm text-gray-400 dark:text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-500">
               Aucune dépense pour la sélection actuelle.
             </p>
           </div>

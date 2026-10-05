@@ -123,7 +123,7 @@ export default function HealthScoreCard({ health, vehicleId }: HealthScoreCardPr
 
       <CardContent>
         {!hasFactors && (
-          <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+          <p className="text-sm text-gray-500 dark:text-gray-500 italic">
             Complétez les informations du véhicule (contrôle technique, pleins…) pour obtenir un
             score détaillé.
           </p>
@@ -149,7 +149,7 @@ export default function HealthScoreCard({ health, vehicleId }: HealthScoreCardPr
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 pl-6">{factor.detail}</p>
                 {factor.recommendation && factor.status !== 'good' && (
-                  <p className="text-xs text-gray-400 dark:text-gray-500 italic pl-6 mt-0.5">
+                  <p className="text-xs text-gray-500 dark:text-gray-500 italic pl-6 mt-0.5">
                     {factor.label === 'Assurance' && vehicleId ? (
                       <>
                         →{' '}

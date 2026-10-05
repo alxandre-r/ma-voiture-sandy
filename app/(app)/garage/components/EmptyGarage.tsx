@@ -60,17 +60,17 @@ export default function EmptyGarage({ onAddVehicle }: EmptyGarageProps) {
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                 step.active
                   ? 'bg-custom-1 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
               }`}
             >
               {i + 1}
             </div>
             <p
-              className={`text-sm font-semibold ${step.active ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}
+              className={`text-sm font-semibold ${step.active ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-500'}`}
             >
               {step.label}
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 leading-snug">
+            <p className="text-xs text-gray-500 dark:text-gray-500 leading-snug">
               {step.description}
             </p>
           </div>

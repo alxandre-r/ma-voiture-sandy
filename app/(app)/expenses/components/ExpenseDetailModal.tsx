@@ -111,7 +111,7 @@ export default function ExpenseDetailModal({
       {/* Notes */}
       {expense.notes && (
         <div className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
-          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-1">
             Notes
           </p>
           <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
@@ -123,7 +123,7 @@ export default function ExpenseDetailModal({
       {/* Attachments */}
       {showAttachments && (
         <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-3">
             Pièces jointes
           </p>
           <AttachmentSection

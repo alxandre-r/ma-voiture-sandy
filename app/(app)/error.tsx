@@ -17,7 +17,7 @@ export default function AppError({
         Impossible de charger cette page pour le moment. Vérifiez votre connexion puis réessayez.
       </p>
       {error.digest && (
-        <p className="text-xs text-gray-400 select-text">Référence : {error.digest}</p>
+        <p className="text-xs text-gray-500 select-text">Référence : {error.digest}</p>
       )}
       <button
         onClick={reset}

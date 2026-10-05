@@ -241,7 +241,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     <Modal isOpen={isOpen} onClose={onClose} title="Rechercher" size="md" fullscreenOnMobile>
       {/* Search input — breaks out of Modal's px-6 py-4 padding */}
       <div className="flex items-center gap-3 -mx-6 -mt-4 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-        <Icon name="search" size={18} className="text-gray-400 shrink-0" />{' '}
+        <Icon name="search" size={18} className="text-gray-500 shrink-0" />{' '}
         {/* Search icon not working (color not beeing applied) */}
         <input
           ref={inputRef}
@@ -262,13 +262,13 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       {/* Results */}
       <div className="-mx-6 overflow-y-auto max-h-[50vh] sm:max-h-[55vh]">
         {showEmpty && (
-          <div className="px-4 py-10 text-center text-sm text-gray-400">
+          <div className="px-4 py-10 text-center text-sm text-gray-500">
             Aucun résultat pour &laquo;&nbsp;{query.trim()}&nbsp;&raquo;
           </div>
         )}
 
         {!showEmpty && q.length < 2 && (
-          <div className="px-4 py-10 text-center text-sm text-gray-400">
+          <div className="px-4 py-10 text-center text-sm text-gray-500">
             Tapez au moins 2 caractères…
           </div>
         )}
@@ -403,7 +403,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       </div>
 
       {/* Footer — keyboard hints, desktop only */}
-      <div className="hidden sm:flex items-center gap-4 -mx-6 -mb-4 px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 text-[11px] text-gray-400">
+      <div className="hidden sm:flex items-center gap-4 -mx-6 -mb-4 px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 text-[11px] text-gray-500">
         <span>
           <kbd className="font-mono">↑↓</kbd> naviguer
         </span>
@@ -423,7 +423,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mb-1">
-      <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+      <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
         {label}
       </p>
       {children}
@@ -466,7 +466,7 @@ function ResultRow({
       <Icon name={icon} size={16} className="shrink-0 opacity-70" />
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-medium truncate">{label}</span>
-        {sub && <span className="block text-xs text-gray-400 truncate">{sub}</span>}
+        {sub && <span className="block text-xs text-gray-500 truncate">{sub}</span>}
       </span>
       <Icon name="arrow-back" size={14} className="shrink-0 opacity-40 rotate-180" />
     </button>

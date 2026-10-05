@@ -72,21 +72,22 @@ export const MemberCard: React.FC<MemberCardProps> = ({
       <div>
         <div className="flex items-center gap-1.5">
           <h4 className="font-bold text-gray-900 dark:text-gray-100">{member.user_name}</h4>
-          {isCurrentUser && <span className="text-gray-400 text-xs font-medium">(Vous)</span>}
+          {isCurrentUser && <span className="text-gray-500 text-xs font-medium">(Vous)</span>}
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400">{member.email}</p>
       </div>
 
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/5 flex items-center justify-between">
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-500">
           Rejoint le {new Date(member.joined_at).toLocaleDateString('fr-FR')}
         </span>
 
         {canRemove && onRemove && (
           <button
+            aria-label={`Supprimer ${member.user_name || 'ce membre'} de la famille`}
             onClick={onRemove}
-            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+            className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
             title={`Supprimer ${member.user_name || 'ce membre'} de la famille`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
