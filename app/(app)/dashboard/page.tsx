@@ -21,7 +21,7 @@ export default async function DashboardPage() {
 
   const [expenses, reminders, insurance] = await Promise.all([
     getAllExpenses(vehicleIds) as Promise<Expense[]>,
-    getReminders() as Promise<Reminder[]>,
+    getReminders(vehicleIds) as Promise<Reminder[]>,
     getInsuranceData(vehicles),
   ]);
 

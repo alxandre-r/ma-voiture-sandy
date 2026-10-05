@@ -1,4 +1,62 @@
-import { filterByVehiclesAndPeriod, getEffectivePeriodRange } from '@/lib/utils/filterUtils';
+import {
+  filterByVehiclesAndPeriod,
+  getEffectivePeriodRange,
+  getPreviousPeriodRange,
+  isVehicleSelected,
+} from '@/lib/utils/filterUtils';
+
+describe('isVehicleSelected', () => {
+  it('treats an empty selection as all vehicles', () => {
+    expect(isVehicleSelected([], 7)).toBe(true);
+  });
+
+  it('checks membership otherwise', () => {
+    expect(isVehicleSelected([1, 2], 2)).toBe(true);
+    expect(isVehicleSelected([1, 2], 3)).toBe(false);
+  });
+
+  it('makes filterByVehiclesAndPeriod keep every vehicle on an empty selection', () => {
+    const items = [
+      { vehicle_id: 1, date: '2020-01-01' },
+      { vehicle_id: 2, date: '2020-01-02' },
+    ];
+    expect(filterByVehiclesAndPeriod(items, [], 'all')).toHaveLength(2);
+  });
+});
+
+describe('getPreviousPeriodRange (like-for-like)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("compares 'month' to date with the same span of the previous month", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 5, 10, 0)); // 5 Oct 2026
+    const range = getPreviousPeriodRange('month')!;
+    expect(range.start).toEqual(new Date(2026, 8, 1));
+    expect(range.end).toEqual(new Date(2026, 8, 5, 23, 59, 59, 999));
+  });
+
+  it("clamps 'month' to the previous month's last day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 2, 31, 10, 0)); // 31 Mar 2026
+    const range = getPreviousPeriodRange('month')!;
+    expect(range.start).toEqual(new Date(2026, 1, 1));
+    expect(range.end).toEqual(new Date(2026, 1, 28, 23, 59, 59, 999));
+  });
+
+  it("compares 'year' to date with 1 January → same day last year", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 5, 10, 0));
+    const range = getPreviousPeriodRange('year')!;
+    expect(range.start).toEqual(new Date(2025, 0, 1));
+    expect(range.end).toEqual(new Date(2025, 9, 5, 23, 59, 59, 999));
+  });
+
+  it("returns null for 'all'", () => {
+    expect(getPreviousPeriodRange('all')).toBeNull();
+  });
+});
 
 describe('getEffectivePeriodRange', () => {
   it("returns start = 1st of current month for 'month'", () => {

@@ -26,7 +26,12 @@ import { useOtherActions } from '@/hooks/other/useOtherActions';
 import { useReminderActions } from '@/hooks/reminders/useReminderActions';
 import { detectAnomalies } from '@/lib/utils/anomalyUtils';
 import { electricConsumption, fuelConsumption } from '@/lib/utils/consumption';
-import { getEffectivePeriodRange, getPreviousPeriodRange } from '@/lib/utils/filterUtils';
+import {
+  filterByVehiclesAndPeriod,
+  getPreviousPeriodRange,
+  isVehicleSelected,
+} from '@/lib/utils/filterUtils';
+import { writableActiveVehicles } from '@/lib/utils/vehicleAccess';
 import { vehicleEnergy } from '@/lib/utils/vehicleEnergy';
 
 import type { MaintenanceFormData } from '@/app/(app)/maintenance/hooks/useMaintenanceActions';
@@ -72,17 +77,10 @@ function DashboardContent({
   const { addOther } = useOtherActions();
   const { creating, createReminder } = useReminderActions();
 
-  const filteredExpenses = useMemo(() => {
-    const byVehicle = expenses.filter((e) => selectedVehicleIds.includes(e.vehicle_id));
-    const { start, end } = getEffectivePeriodRange(selectedPeriod);
-    let result = start ? byVehicle.filter((e) => new Date(e.date) >= start) : byVehicle;
-    if (end) {
-      const endOfDay = new Date(end);
-      endOfDay.setHours(23, 59, 59, 999);
-      result = result.filter((e) => new Date(e.date) <= endOfDay);
-    }
-    return result;
-  }, [expenses, selectedVehicleIds, selectedPeriod]);
+  const filteredExpenses = useMemo(
+    () => filterByVehiclesAndPeriod(expenses, selectedVehicleIds, selectedPeriod),
+    [expenses, selectedVehicleIds, selectedPeriod],
+  );
 
   const sortedExpenses = useMemo(
     () =>
@@ -99,7 +97,7 @@ function DashboardContent({
   const previousPeriodExpenses = useMemo(() => {
     const prevRange = getPreviousPeriodRange(selectedPeriod);
     if (!prevRange || !prevRange.start) return [];
-    const byVehicle = expenses.filter((e) => selectedVehicleIds.includes(e.vehicle_id));
+    const byVehicle = expenses.filter((e) => isVehicleSelected(selectedVehicleIds, e.vehicle_id));
     let result = byVehicle.filter((e) => new Date(e.date) >= prevRange.start!);
     if (prevRange.end) {
       result = result.filter((e) => new Date(e.date) <= prevRange.end!);
@@ -164,22 +162,18 @@ function DashboardContent({
 
   const lastFill = useMemo(() => {
     const selected = fillExpenses
-      .filter((e) => selectedVehicleIds.includes(e.vehicle_id))
+      .filter((e) => isVehicleSelected(selectedVehicleIds, e.vehicle_id))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return selected[0] ?? null;
   }, [fillExpenses, selectedVehicleIds]);
 
-  const writableActiveVehicles = vehicles.filter((v) => {
-    const isActive = v.status === 'active' || v.status === null || v.status === undefined;
-    const canWrite = v.owner_id === currentUserId || v.permission_level === 'write';
-    return isActive && canWrite;
-  });
+  const writableVehicles = writableActiveVehicles(vehicles, currentUserId);
 
-  const fillVehicles = writableActiveVehicles.filter((v) => vehicleEnergy(v.fuel_type).fuel);
-  const chargeVehicles = writableActiveVehicles.filter((v) => vehicleEnergy(v.fuel_type).electric);
+  const fillVehicles = writableVehicles.filter((v) => vehicleEnergy(v.fuel_type).fuel);
+  const chargeVehicles = writableVehicles.filter((v) => vehicleEnergy(v.fuel_type).electric);
   const formVehicles = selectedExpenseType === 'charge' ? chargeVehicles : fillVehicles;
 
-  const vehiclesMinimal: VehicleMinimal[] = writableActiveVehicles.map((v) => ({
+  const vehiclesMinimal: VehicleMinimal[] = writableVehicles.map((v) => ({
     vehicle_id: v.vehicle_id,
     name: v.name ?? `${v.make} ${v.model}`,
     make: v.make ?? '',
@@ -284,7 +278,8 @@ function DashboardContent({
       {/* Header row: context badge left, add button right */}
       <div className="flex items-center justify-between gap-4">
         <ContextBadge />
-        <div className="hidden sm:block shrink-0">
+        {/* Not `hidden` on mobile: ExpenseButton renders its own `fixed` FAB there */}
+        <div className="shrink-0">
           <ExpenseButton
             vehicles={vehicles as VehicleMinimal[]}
             currentUserId={currentUserId}
@@ -398,7 +393,7 @@ function DashboardContent({
       >
         {editFillInitial && (
           <FillForm
-            vehicles={writableActiveVehicles as VehicleMinimal[]}
+            vehicles={writableVehicles as VehicleMinimal[]}
             initialFill={editFillInitial}
             forcedType={editingFillExpense?.type === 'electric_charge' ? 'charge' : 'fill'}
             onSave={handleEditFillSave}

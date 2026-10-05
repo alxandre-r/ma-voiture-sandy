@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 
 import Icon from '@/components/common/ui/Icon';
 import { useSelectors } from '@/contexts/SelectorsContext';
+import { isVehicleSelected } from '@/lib/utils/filterUtils';
 import { formatDate } from '@/lib/utils/format';
 import { getHasActiveInsurance } from '@/lib/utils/insuranceUtils';
 import { getLocalToday } from '@/lib/utils/isoDate';
@@ -55,7 +56,7 @@ export default function InsightsPanel({
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   const filteredVehicles = useMemo(
-    () => vehicles.filter((v) => selectedVehicleIds.includes(v.vehicle_id)),
+    () => vehicles.filter((v) => isVehicleSelected(selectedVehicleIds, v.vehicle_id)),
     [vehicles, selectedVehicleIds],
   );
 
@@ -97,7 +98,9 @@ export default function InsightsPanel({
     }
 
     // ── Consumption anomalies ─────────────────────────────────────────────────
-    const filteredAnomalies = anomalies.filter((a) => selectedVehicleIds.includes(a.vehicleId));
+    const filteredAnomalies = anomalies.filter((a) =>
+      isVehicleSelected(selectedVehicleIds, a.vehicleId),
+    );
     for (const anomaly of filteredAnomalies) {
       const isUp = anomaly.direction === 'up';
       const absDeviation = Math.abs(anomaly.deviationPct);
